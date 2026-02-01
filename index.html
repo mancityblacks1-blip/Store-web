@@ -3,37 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Store + Admin (Single File, Pages Ready)</title>
+    <title>LocalStore + Admin (Single File, Pages Ready)</title>
 
-    <!-- Tailwind CDN (ok for demo on GitHub Pages) -->
+    <!-- Tailwind CDN (demo) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React 18 -->
+    <!-- React 18 (jsDelivr) -->
     <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- React Router DOM v6 UMD -->
-<script crossorigin src="https://cdn.jsdelivr.net/npm/react-router-dom@6.30.3/dist/umd/react-router-dom.production.min.js"></script>
 
-    <!-- Framer Motion UMD -->
+    <!-- React Router DOM v6 UMD (jsDelivr) -->
+    <script
+      crossorigin
+      src="https://cdn.jsdelivr.net/npm/react-router-dom@6.30.3/dist/umd/react-router-dom.production.min.js"
+    ></script>
+
+    <!-- Framer Motion UMD (jsDelivr) -->
     <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.5.6/dist/framer-motion.umd.js"></script>
 
     <style>
       body {
-        background: radial-gradient(1200px 700px at 70% 0%, rgba(99,102,241,0.25), transparent 60%),
-                    radial-gradient(900px 600px at 20% 10%, rgba(16,185,129,0.18), transparent 55%),
-                    #070a14;
+        background: radial-gradient(1200px 700px at 70% 0%, rgba(99, 102, 241, 0.25), transparent 60%),
+          radial-gradient(900px 600px at 20% 10%, rgba(16, 185, 129, 0.18), transparent 55%),
+          #070a14;
       }
       .glass {
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(10px);
       }
-      .ring-soft { box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset; }
-      .shadow-soft { box-shadow: 0 20px 80px rgba(0,0,0,0.35); }
-      .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
-      .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
-      .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); border-radius: 999px; }
+      .ring-soft {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      }
+      .shadow-soft {
+        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 999px;
+      }
     </style>
   </head>
 
@@ -41,13 +57,20 @@
     <div id="root"></div>
 
     <script>
+      // Grab globals
       const React = window.React;
       const ReactDOM = window.ReactDOM;
       const RRD = window.ReactRouterDOM;
-      const { motion, AnimatePresence } = window["framer-motion"];
+      const FM = window["framer-motion"];
+
+      if (!React || !ReactDOM || !RRD || !FM) {
+        document.body.innerHTML =
+          '<div style="color:white;font-family:system-ui;padding:24px">CDN load failed. Open Console.</div>';
+      }
 
       const { useEffect, useMemo, useState } = React;
       const { HashRouter, Routes, Route, Link, NavLink, Navigate, useNavigate, useParams, useLocation } = RRD;
+      const { motion, AnimatePresence } = FM;
 
       /* =========================
          Helpers
@@ -59,46 +82,96 @@
       const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
       const LS_KEYS = {
-        products: "ls_products_v2",
-        cart: "ls_cart_v2",
-        orders: "ls_orders_v2",
-        admin: "ls_admin_v2"
+        products: "ls_products_v3",
+        cart: "ls_cart_v3",
+        orders: "ls_orders_v3",
+        admin: "ls_admin_v3"
       };
 
       const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports"];
       const PRODUCT_CATS = ["Electronics", "Fashion", "Home", "Beauty", "Sports"];
 
       const seedProducts = [
-        { id:"p1",  name:"Nova Wireless Headphones", price:2899, category:"Electronics",
-          image:"https://images.unsplash.com/photo-1518441902117-f0a0a5b0b3e2?auto=format&fit=crop&w=900&q=80",
-          description:"صوت نضيف، Bass محترم، وراحة على الودن لساعات." },
-        { id:"p2",  name:"Aero Smart Watch", price:2199, category:"Electronics",
-          image:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
-          description:"متابعة نشاطك، نومك، ونبضك… على معصمك." },
-        { id:"p3",  name:"Urban Hoodie", price:799, category:"Fashion",
-          image:"https://images.unsplash.com/photo-1520975682031-a05dfb6b4b9d?auto=format&fit=crop&w=900&q=80",
-          description:"هودي مريح وشيك، مناسب للشتا والخروج." },
-        { id:"p4",  name:"Minimal Sneakers", price:1299, category:"Fashion",
-          image:"https://images.unsplash.com/photo-1528701800489-20be9c3ea2b4?auto=format&fit=crop&w=900&q=80",
-          description:"سنيكرز عملي ومناسب لليوم كله." },
-        { id:"p5",  name:"Cozy Throw Blanket", price:499, category:"Home",
-          image:"https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80",
-          description:"بطانية ناعمة… للكنبة والمزاج." },
-        { id:"p6",  name:"Aroma Diffuser", price:650, category:"Home",
-          image:"https://images.unsplash.com/photo-1611078489935-0cb964de46c9?auto=format&fit=crop&w=900&q=80",
-          description:"ريحة هادية وإضاءة لطيفة للغرفة." },
-        { id:"p7",  name:"Skincare Starter Kit", price:950, category:"Beauty",
-          image:"https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=900&q=80",
-          description:"روتين بسيط لبشرة أنضف." },
-        { id:"p8",  name:"Matte Lipstick", price:320, category:"Beauty",
-          image:"https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
-          description:"ثبات كويس ولمسة مطفية شيك." },
-        { id:"p9",  name:"Training Bottle 1L", price:240, category:"Sports",
-          image:"https://images.unsplash.com/photo-1542315192-1f61a1799a03?auto=format&fit=crop&w=900&q=80",
-          description:"اشرب مية كتير… جسمك هيشكرّك." },
-        { id:"p10", name:"Resistance Bands Set", price:410, category:"Sports",
-          image:"https://images.unsplash.com/photo-1599058917212-d750089bc07b?auto=format&fit=crop&w=900&q=80",
-          description:"تمارين في البيت بمرونة ومقاومة." }
+        {
+          id: "p1",
+          name: "Nova Wireless Headphones",
+          price: 2899,
+          category: "Electronics",
+          image: "https://images.unsplash.com/photo-1518441902117-f0a0a5b0b3e2?auto=format&fit=crop&w=900&q=80",
+          description: "صوت نضيف، Bass محترم، وراحة على الودن لساعات."
+        },
+        {
+          id: "p2",
+          name: "Aero Smart Watch",
+          price: 2199,
+          category: "Electronics",
+          image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
+          description: "متابعة نشاطك، نومك، ونبضك… على معصمك."
+        },
+        {
+          id: "p3",
+          name: "Urban Hoodie",
+          price: 799,
+          category: "Fashion",
+          image: "https://images.unsplash.com/photo-1520975682031-a05dfb6b4b9d?auto=format&fit=crop&w=900&q=80",
+          description: "هودي مريح وشيك، مناسب للشتا والخروج."
+        },
+        {
+          id: "p4",
+          name: "Minimal Sneakers",
+          price: 1299,
+          category: "Fashion",
+          image: "https://images.unsplash.com/photo-1528701800489-20be9c3ea2b4?auto=format&fit=crop&w=900&q=80",
+          description: "سنيكرز عملي ومناسب لليوم كله."
+        },
+        {
+          id: "p5",
+          name: "Cozy Throw Blanket",
+          price: 499,
+          category: "Home",
+          image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80",
+          description: "بطانية ناعمة… للكنبة والمزاج."
+        },
+        {
+          id: "p6",
+          name: "Aroma Diffuser",
+          price: 650,
+          category: "Home",
+          image: "https://images.unsplash.com/photo-1611078489935-0cb964de46c9?auto=format&fit=crop&w=900&q=80",
+          description: "ريحة هادية وإضاءة لطيفة للغرفة."
+        },
+        {
+          id: "p7",
+          name: "Skincare Starter Kit",
+          price: 950,
+          category: "Beauty",
+          image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=900&q=80",
+          description: "روتين بسيط لبشرة أنضف."
+        },
+        {
+          id: "p8",
+          name: "Matte Lipstick",
+          price: 320,
+          category: "Beauty",
+          image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
+          description: "ثبات كويس ولمسة مطفية شيك."
+        },
+        {
+          id: "p9",
+          name: "Training Bottle 1L",
+          price: 240,
+          category: "Sports",
+          image: "https://images.unsplash.com/photo-1542315192-1f61a1799a03?auto=format&fit=crop&w=900&q=80",
+          description: "اشرب مية كتير… جسمك هيشكرّك."
+        },
+        {
+          id: "p10",
+          name: "Resistance Bands Set",
+          price: 410,
+          category: "Sports",
+          image: "https://images.unsplash.com/photo-1599058917212-d750089bc07b?auto=format&fit=crop&w=900&q=80",
+          description: "تمارين في البيت بمرونة ومقاومة."
+        }
       ];
 
       const LS = {
@@ -117,7 +190,7 @@
       };
 
       /* =========================
-         Toast (simple)
+         Toast
       ========================= */
       function useToast() {
         const [items, setItems] = useState([]);
@@ -128,7 +201,6 @@
         };
         return { items, push };
       }
-
       function Toasts({ items }) {
         return React.createElement(
           "div",
@@ -149,7 +221,7 @@
       }
 
       /* =========================
-         App State (LocalStorage)
+         Store (LocalStorage)
       ========================= */
       function useAppStore() {
         const [products, setProducts] = useState(() => {
@@ -197,14 +269,21 @@
         };
 
         const adminLogin = (password) => {
-          if (password === "admin123") { setAdmin({ authed: true }); return true; }
+          if (password === "admin123") {
+            setAdmin({ authed: true });
+            return true;
+          }
           return false;
         };
         const adminLogout = () => setAdmin({ authed: false });
 
         const productsCRUD = {
-          add(p) { setProducts((prev) => [{ ...p, id: uid() }, ...prev]); },
-          update(id, patch) { setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x))); },
+          add(p) {
+            setProducts((prev) => [{ ...p, id: uid() }, ...prev]);
+          },
+          update(id, patch) {
+            setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+          },
           remove(id) {
             setProducts((prev) => prev.filter((x) => x.id !== id));
             setCart((prev) => prev.filter((x) => x.id !== id));
@@ -212,38 +291,64 @@
         };
 
         const ordersCRUD = {
-          setStatus(id, status) { setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o))); }
+          setStatus(id, status) {
+            setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+          }
         };
 
         return {
-          products, cart, orders, admin,
-          cartCount, cartTotal,
-          addToCart, updateQty, removeFromCart, clearCart, createOrder,
-          adminLogin, adminLogout,
-          productsCRUD, ordersCRUD
+          products,
+          cart,
+          orders,
+          admin,
+          cartCount,
+          cartTotal,
+          addToCart,
+          updateQty,
+          removeFromCart,
+          clearCart,
+          createOrder,
+          adminLogin,
+          adminLogout,
+          productsCRUD,
+          ordersCRUD
         };
       }
 
       /* =========================
-         UI atoms
+         UI
       ========================= */
       function Card({ className, children }) {
         return React.createElement("div", { className: cn("glass ring-soft rounded-3xl shadow-soft", className) }, children);
       }
       function Button({ className, variant = "primary", ...props }) {
-        const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+        const base =
+          "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
         const styles =
-          variant === "primary" ? "bg-indigo-500/90 hover:bg-indigo-500 text-white" :
-          variant === "ghost" ? "bg-white/5 hover:bg-white/10 text-white" :
-          variant === "danger" ? "bg-rose-500/90 hover:bg-rose-500 text-white" :
-          "bg-emerald-500/90 hover:bg-emerald-500 text-white";
+          variant === "primary"
+            ? "bg-indigo-500/90 hover:bg-indigo-500 text-white"
+            : variant === "ghost"
+            ? "bg-white/5 hover:bg-white/10 text-white"
+            : variant === "danger"
+            ? "bg-rose-500/90 hover:bg-rose-500 text-white"
+            : "bg-emerald-500/90 hover:bg-emerald-500 text-white";
         return React.createElement("button", { className: cn(base, styles, className), ...props });
       }
       function Input({ className, ...props }) {
-        return React.createElement("input", { className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className), ...props });
+        return React.createElement("input", {
+          className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className),
+          ...props
+        });
       }
       function Select({ className, children, ...props }) {
-        return React.createElement("select", { className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className), ...props }, children);
+        return React.createElement(
+          "select",
+          {
+            className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className),
+            ...props
+          },
+          children
+        );
       }
       function Badge({ tone = "slate", children }) {
         const map = {
@@ -256,13 +361,15 @@
         return React.createElement("span", { className: cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", map[tone] || map.slate) }, children);
       }
       function Shell({ children }) {
-        return React.createElement("div", { className: "min-h-screen" },
-          React.createElement("div", { className: "max-w-6xl mx-auto px-4 py-6" }, children)
-        );
+        return React.createElement("div", { className: "min-h-screen" }, React.createElement("div", { className: "max-w-6xl mx-auto px-4 py-6" }, children));
       }
       function PageTitle({ title, subtitle, right }) {
-        return React.createElement("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
-          React.createElement("div", null,
+        return React.createElement(
+          "div",
+          { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
+          React.createElement(
+            "div",
+            null,
             React.createElement("div", { className: "text-2xl font-black tracking-tight" }, title),
             subtitle ? React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, subtitle) : null
           ),
@@ -270,16 +377,22 @@
         );
       }
       function Empty({ title, hint, action }) {
-        return React.createElement(Card, { className: "p-8 text-center" },
+        return React.createElement(
+          Card,
+          { className: "p-8 text-center" },
           React.createElement("div", { className: "text-xl font-extrabold" }, title || "مفيش بيانات"),
           React.createElement("div", { className: "mt-2 text-sm text-slate-300" }, hint || "جرّب تاني ✨"),
           action ? React.createElement("div", { className: "mt-5" }, action) : null
         );
       }
       function LoadingSkeleton() {
-        return React.createElement("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+        return React.createElement(
+          "div",
+          { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
           Array.from({ length: 6 }).map((_, i) =>
-            React.createElement(Card, { key: i, className: "p-4" },
+            React.createElement(
+              Card,
+              { key: i, className: "p-4" },
               React.createElement("div", { className: "h-40 rounded-2xl bg-white/5 animate-pulse" }),
               React.createElement("div", { className: "mt-4 h-4 w-3/4 rounded bg-white/5 animate-pulse" }),
               React.createElement("div", { className: "mt-2 h-4 w-1/2 rounded bg-white/5 animate-pulse" }),
@@ -289,33 +402,42 @@
         );
       }
 
-      /* =========================
-         Store Header
-      ========================= */
       function StoreHeader({ cartCount }) {
-        return React.createElement(Card, { className: "p-4 mb-6" },
-          React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
-            React.createElement(Link, { to: "/", className: "flex items-center gap-3" },
+        return React.createElement(
+          Card,
+          { className: "p-4 mb-6" },
+          React.createElement(
+            "div",
+            { className: "flex items-center justify-between gap-3 flex-wrap" },
+            React.createElement(
+              Link,
+              { to: "/", className: "flex items-center gap-3" },
               React.createElement("div", { className: "h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black" }, "LS"),
-              React.createElement("div", null,
+              React.createElement(
+                "div",
+                null,
                 React.createElement("div", { className: "font-extrabold" }, "LocalStore"),
-                React.createElement("div", { className: "text-xs text-slate-300" }, "GitHub Pages Ready")
+                React.createElement("div", { className: "text-xs text-slate-300" }, "Pages Ready (HashRouter)")
               )
             ),
-            React.createElement("div", { className: "flex items-center gap-2" },
-              React.createElement(NavLink, { to: "/", end: true, className: ({isActive}) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "المنتجات"),
-              React.createElement(NavLink, { to: "/cart", className: ({isActive}) => cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2", isActive ? "bg-white/10" : "hover:bg-white/5") },
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-2" },
+              React.createElement(NavLink, { to: "/", end: true, className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "المنتجات"),
+              React.createElement(
+                NavLink,
+                { to: "/cart", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2", isActive ? "bg-white/10" : "hover:bg-white/5") },
                 React.createElement("span", null, "السلة"),
                 React.createElement(Badge, { tone: "slate" }, cartCount)
               ),
-              React.createElement(NavLink, { to: "/admin/login", className: ({isActive}) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "Admin")
+              React.createElement(NavLink, { to: "/admin/login", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "Admin")
             )
           )
         );
       }
 
       /* =========================
-         Storefront Pages
+         Store Pages
       ========================= */
       function Storefront({ store, toast }) {
         const [q, setQ] = useState("");
@@ -340,52 +462,73 @@
           return list;
         }, [store.products, q, cat, sort]);
 
-        const add = (p) => { store.addToCart(p); toast.push("success", `اتضاف للسلة: ${p.name}`); };
+        const add = (p) => {
+          store.addToCart(p);
+          toast.push("success", `اتضاف للسلة: ${p.name}`);
+        };
 
-        return React.createElement(React.Fragment, null,
+        return React.createElement(
+          React.Fragment,
+          null,
           React.createElement(StoreHeader, { cartCount: store.cartCount }),
           React.createElement(PageTitle, {
             title: "المنتجات",
             subtitle: "Search + Filter + Sort. البيانات محفوظة في LocalStorage.",
-            right: React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]" },
+            right: React.createElement(
+              "div",
+              { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]" },
               React.createElement(Input, { value: q, onChange: (e) => setQ(e.target.value), placeholder: "Search بالاسم…" }),
-              React.createElement(Select, { value: cat, onChange: (e) => setCat(e.target.value) },
-                CATEGORIES.map((c) => React.createElement("option", { key: c, value: c }, c))
-              ),
-              React.createElement(Select, { value: sort, onChange: (e) => setSort(e.target.value) },
+              React.createElement(Select, { value: cat, onChange: (e) => setCat(e.target.value) }, CATEGORIES.map((c) => React.createElement("option", { key: c, value: c }, c))),
+              React.createElement(
+                Select,
+                { value: sort, onChange: (e) => setSort(e.target.value) },
                 React.createElement("option", { value: "none" }, "Sort: بدون"),
                 React.createElement("option", { value: "price_asc" }, "السعر: الأقل للأعلى"),
                 React.createElement("option", { value: "price_desc" }, "السعر: الأعلى للأقل")
               )
             )
           }),
-          React.createElement("div", { className: "mt-4" },
-            loading ? React.createElement(LoadingSkeleton) :
-            filtered.length === 0 ? React.createElement(Empty, { title: "مفيش نتائج", hint: "جرّب تغيّر البحث أو الفلتر." }) :
-            React.createElement("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
-              filtered.map((p) =>
-                React.createElement(motion.div, { key: p.id, initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.22 } },
-                  React.createElement(Card, { className: "overflow-hidden" },
-                    React.createElement(Link, { to: `/product/${p.id}`, className: "block" },
-                      React.createElement("img", { src: p.image, alt: p.name, className: "h-44 w-full object-cover" })
-                    ),
-                    React.createElement("div", { className: "p-4" },
-                      React.createElement("div", { className: "flex items-start justify-between gap-3" },
-                        React.createElement("div", null,
-                          React.createElement(Link, { to: `/product/${p.id}`, className: "font-extrabold hover:underline" }, p.name),
-                          React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, egp(p.price))
-                        ),
-                        React.createElement(Badge, { tone: "indigo" }, p.category)
-                      ),
-                      React.createElement("div", { className: "mt-3 flex gap-2" },
-                        React.createElement(Button, { className: "flex-1", onClick: () => add(p) }, "Add to Cart"),
-                        React.createElement(Button, { variant: "ghost", onClick: () => toast.push("info", "Demo UI ✨") }, "♡")
+          React.createElement(
+            "div",
+            { className: "mt-4" },
+            loading
+              ? React.createElement(LoadingSkeleton)
+              : filtered.length === 0
+              ? React.createElement(Empty, { title: "مفيش نتائج", hint: "جرّب تغيّر البحث أو الفلتر." })
+              : React.createElement(
+                  "div",
+                  { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+                  filtered.map((p) =>
+                    React.createElement(
+                      motion.div,
+                      { key: p.id, initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.22 } },
+                      React.createElement(
+                        Card,
+                        { className: "overflow-hidden" },
+                        React.createElement(Link, { to: `/product/${p.id}`, className: "block" }, React.createElement("img", { src: p.image, alt: p.name, className: "h-44 w-full object-cover" })),
+                        React.createElement(
+                          "div",
+                          { className: "p-4" },
+                          React.createElement(
+                            "div",
+                            { className: "flex items-start justify-between gap-3" },
+                            React.createElement(
+                              "div",
+                              null,
+                              React.createElement(Link, { to: `/product/${p.id}`, className: "font-extrabold hover:underline" }, p.name),
+                              React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, egp(p.price))
+                            ),
+                            React.createElement(Badge, { tone: "indigo" }, p.category)
+                          ),
+                          React.createElement("div", { className: "mt-3 flex gap-2" },
+                            React.createElement(Button, { className: "flex-1", onClick: () => add(p) }, "Add to Cart"),
+                            React.createElement(Button, { variant: "ghost", onClick: () => toast.push("info", "Demo UI ✨") }, "♡")
+                          )
+                        )
                       )
                     )
                   )
                 )
-              )
-            )
           )
         );
       }
@@ -398,11 +541,7 @@
         if (!p) {
           return React.createElement(React.Fragment, null,
             React.createElement(StoreHeader, { cartCount: store.cartCount }),
-            React.createElement(Empty, {
-              title: "المنتج غير موجود",
-              hint: "ممكن اتمسح من الأدمن.",
-              action: React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر")
-            })
+            React.createElement(Empty, { title: "المنتج غير موجود", hint: "ممكن اتمسح من الأدمن.", action: React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر") })
           );
         }
 
@@ -421,10 +560,7 @@
                 ),
                 React.createElement("p", { className: "mt-4 text-sm text-slate-300 leading-6" }, p.description || "وصف مش متوفر."),
                 React.createElement("div", { className: "mt-6 flex gap-2" },
-                  React.createElement(Button, {
-                    className: "flex-1",
-                    onClick: () => { store.addToCart(p); toast.push("success", "اتضاف للسلة ✅"); }
-                  }, "Add to Cart"),
+                  React.createElement(Button, { className: "flex-1", onClick: () => { store.addToCart(p); toast.push("success", "اتضاف للسلة ✅"); } }, "Add to Cart"),
                   React.createElement(Button, { variant: "ghost", onClick: () => nav(-1) }, "رجوع")
                 )
               )
@@ -443,11 +579,7 @@
           React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-3" },
             React.createElement("div", { className: "lg:col-span-2 space-y-3" },
               items.length === 0
-                ? React.createElement(Empty, {
-                    title: "السلة فاضية",
-                    hint: "روح اختار شوية منتجات من المتجر.",
-                    action: React.createElement(Button, { onClick: () => nav("/") }, "فتح المتجر")
-                  })
+                ? React.createElement(Empty, { title: "السلة فاضية", hint: "روح اختار منتجات من المتجر.", action: React.createElement(Button, { onClick: () => nav("/") }, "فتح المتجر") })
                 : items.map((it) =>
                     React.createElement(Card, { key: it.id, className: "p-4" },
                       React.createElement("div", { className: "flex gap-3 items-center" },
@@ -460,15 +592,8 @@
                           )
                         ),
                         React.createElement("div", { className: "flex items-center gap-2" },
-                          React.createElement(Input, {
-                            type: "number", min: 1, max: 99, value: it.qty,
-                            onChange: (e) => store.updateQty(it.id, Number(e.target.value || 1)),
-                            className: "w-20 text-center"
-                          }),
-                          React.createElement(Button, {
-                            variant: "danger",
-                            onClick: () => { store.removeFromCart(it.id); toast.push("success", "اتمسح من السلة"); }
-                          }, "حذف")
+                          React.createElement(Input, { type: "number", min: 1, max: 99, value: it.qty, onChange: (e) => store.updateQty(it.id, Number(e.target.value || 1)), className: "w-20 text-center" }),
+                          React.createElement(Button, { variant: "danger", onClick: () => { store.removeFromCart(it.id); toast.push("success", "اتمسح من السلة"); } }, "حذف")
                         )
                       )
                     )
@@ -506,12 +631,9 @@
 
         const submit = async (e) => {
           e.preventDefault();
-          if (!name.trim() || !mobile.trim() || !address.trim()) {
-            toast.push("error", "من فضلك املا البيانات كلها");
-            return;
-          }
+          if (!name.trim() || !mobile.trim() || !address.trim()) return toast.push("error", "من فضلك املا البيانات كلها");
           setPlacing(true);
-          await new Promise((r) => setTimeout(r, 600));
+          await new Promise((r) => setTimeout(r, 550));
           const id = store.createOrder({ customer: { name: name.trim(), mobile: mobile.trim(), address: address.trim() } });
           setOrderId(id);
           setPlacing(false);
@@ -534,18 +656,9 @@
                     )
                   )
                 : React.createElement("form", { onSubmit: submit, className: "space-y-3" },
-                    React.createElement("div", null,
-                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الاسم"),
-                      React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value), placeholder: "مثال: أحمد" })
-                    ),
-                    React.createElement("div", null,
-                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الموبايل"),
-                      React.createElement(Input, { value: mobile, onChange: (e) => setMobile(e.target.value), placeholder: "مثال: 01xxxxxxxxx" })
-                    ),
-                    React.createElement("div", null,
-                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "العنوان"),
-                      React.createElement(Input, { value: address, onChange: (e) => setAddress(e.target.value), placeholder: "مثال: القاهرة، مدينة نصر…" })
-                    ),
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الاسم"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الموبايل"), React.createElement(Input, { value: mobile, onChange: (e) => setMobile(e.target.value) })),
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "العنوان"), React.createElement(Input, { value: address, onChange: (e) => setAddress(e.target.value) })),
                     React.createElement(Button, { className: "w-full", type: "submit", disabled: placing }, placing ? "جارٍ التأكيد…" : "تأكيد الطلب")
                   )
             ),
@@ -587,7 +700,7 @@
         const submit = async (e) => {
           e.preventDefault();
           setLoading(true);
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 350));
           const ok = store.adminLogin(pw);
           setLoading(false);
           if (!ok) return toast.push("error", "كلمة السر غلط ❌");
@@ -600,94 +713,11 @@
             React.createElement("div", { className: "text-2xl font-black" }, "Admin Login"),
             React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, "Password ثابت: admin123"),
             React.createElement("form", { onSubmit: submit, className: "mt-6 space-y-3" },
-              React.createElement("div", null,
-                React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Password"),
-                React.createElement(Input, { type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "admin123" })
-              ),
+              React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Password"), React.createElement(Input, { type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "admin123" })),
               React.createElement(Button, { className: "w-full", type: "submit", disabled: loading }, loading ? "جارٍ الدخول…" : "Login"),
               React.createElement(Button, { className: "w-full", type: "button", variant: "ghost", onClick: () => nav("/") }, "رجوع للمتجر")
             )
           )
-        );
-      }
-
-      function AdminLayout({ store, toast }) {
-        const nav = useNavigate();
-        const loc = useLocation();
-        const [menu, setMenu] = useState(false);
-
-        const linkClass = ({ isActive }) =>
-          cn("px-3 py-2 rounded-2xl text-sm font-semibold block", isActive ? "bg-white/10" : "hover:bg-white/5");
-
-        return React.createElement(Shell, null,
-          React.createElement("div", { className: "grid lg:grid-cols-[280px_1fr] gap-4" },
-            React.createElement(Card, { className: "p-4 h-fit lg:sticky lg:top-6" },
-              React.createElement("div", { className: "flex items-center justify-between" },
-                React.createElement("div", { className: "font-black" }, "Admin"),
-                React.createElement("button", { className: "lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: () => setMenu(v => !v) }, menu ? "إخفاء" : "قائمة")
-              ),
-              React.createElement("div", { className: cn("mt-3 space-y-1", menu ? "block" : "hidden lg:block") },
-                React.createElement(NavLink, { to: "/admin", end: true, className: linkClass }, "Stats"),
-                React.createElement(NavLink, { to: "/admin/products", className: linkClass }, "Products"),
-                React.createElement(NavLink, { to: "/admin/orders", className: linkClass }, "Orders"),
-                React.createElement("div", { className: "pt-3 mt-3 border-t border-white/10 flex gap-2" },
-                  React.createElement(Button, { variant: "ghost", className: "flex-1", onClick: () => nav("/") }, "Store"),
-                  React.createElement(Button, {
-                    variant: "danger",
-                    className: "flex-1",
-                    onClick: () => { store.adminLogout(); toast.push("success", "تم تسجيل الخروج"); nav("/"); }
-                  }, "Logout")
-                )
-              )
-            ),
-            React.createElement("div", null,
-              React.createElement(Card, { className: "p-4 mb-4" },
-                React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
-                  React.createElement("div", null,
-                    React.createElement("div", { className: "font-black" }, "Dashboard"),
-                    React.createElement("div", { className: "text-sm text-slate-300" }, loc.pathname)
-                  ),
-                  React.createElement(Badge, { tone: "emerald" }, "UI Only + LocalStorage")
-                )
-              ),
-              React.createElement(Routes, null,
-                React.createElement(Route, { index: true, element: React.createElement(AdminStats, { store }) }),
-                React.createElement(Route, { path: "products", element: React.createElement(AdminProducts, { store, toast }) }),
-                React.createElement(Route, { path: "orders", element: React.createElement(AdminOrders, { store, toast }) })
-              )
-            )
-          )
-        );
-      }
-
-      function StatCard({ title, value, hint }) {
-        return React.createElement(Card, { className: "p-5" },
-          React.createElement("div", { className: "text-sm text-slate-300" }, title),
-          React.createElement("div", { className: "mt-2 text-2xl font-black" }, value),
-          hint ? React.createElement("div", { className: "mt-1 text-xs text-slate-400" }, hint) : null
-        );
-      }
-
-      function AdminStats({ store }) {
-        const totalSales = useMemo(() => store.orders.reduce((s, o) => s + (o.total || 0), 0), [store.orders]);
-        const topCategory = useMemo(() => {
-          const map = new Map();
-          for (const o of store.orders) for (const it of (o.items || [])) map.set(it.category, (map.get(it.category) || 0) + (it.qty || 0));
-          let best = null, bestV = -1;
-          for (const [k, v] of map.entries()) if (v > bestV) { bestV = v; best = k; }
-          return best ? `${best} (${bestV})` : "—";
-        }, [store.orders]);
-
-        return React.createElement(React.Fragment, null,
-          React.createElement(PageTitle, { title: "Stats", subtitle: "عدد الطلبات + إجمالي المبيعات + أكثر تصنيف مبيعًا." }),
-          React.createElement("div", { className: "mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
-            React.createElement(StatCard, { title: "عدد الطلبات", value: store.orders.length }),
-            React.createElement(StatCard, { title: "إجمالي المبيعات", value: egp(totalSales) }),
-            React.createElement(StatCard, { title: "أكثر تصنيف مبيعًا", value: topCategory })
-          ),
-          store.orders.length === 0 ? React.createElement("div", { className: "mt-4" },
-            React.createElement(Empty, { title: "لسه مفيش Orders", hint: "اعمل Checkout من المتجر علشان تظهر هنا." })
-          ) : null
         );
       }
 
@@ -718,37 +748,23 @@
         const submit = (e) => {
           e.preventDefault();
           if (!name.trim()) return alert("اكتب اسم المنتج");
-          if (!price || Number(price) < 1) return alert("السعر لازم يكون رقم أكبر من 0");
+          if (!price || Number(price) < 1) return alert("السعر لازم يكون أكبر من 0");
           onSave({ name: name.trim(), price: Number(price), category, image: image.trim(), description: description.trim() });
         };
 
         return React.createElement("form", { onSubmit: submit, className: "space-y-3" },
           React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
-            React.createElement("div", null,
-              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Name"),
-              React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })
-            ),
-            React.createElement("div", null,
-              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Price"),
-              React.createElement(Input, { type: "number", value: price, onChange: (e) => setPrice(e.target.value) })
-            )
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Name"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Price"), React.createElement(Input, { type: "number", value: price, onChange: (e) => setPrice(e.target.value) }))
           ),
           React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
             React.createElement("div", null,
               React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Category"),
-              React.createElement(Select, { value: category, onChange: (e) => setCategory(e.target.value) },
-                PRODUCT_CATS.map((c) => React.createElement("option", { key: c, value: c }, c))
-              )
+              React.createElement(Select, { value: category, onChange: (e) => setCategory(e.target.value) }, PRODUCT_CATS.map((c) => React.createElement("option", { key: c, value: c }, c)))
             ),
-            React.createElement("div", null,
-              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Image URL"),
-              React.createElement(Input, { value: image, onChange: (e) => setImage(e.target.value) })
-            )
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Image URL"), React.createElement(Input, { value: image, onChange: (e) => setImage(e.target.value) }))
           ),
-          React.createElement("div", null,
-            React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Description"),
-            React.createElement(Input, { value: description, onChange: (e) => setDescription(e.target.value), placeholder: "وصف بسيط…" })
-          ),
+          React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Description"), React.createElement(Input, { value: description, onChange: (e) => setDescription(e.target.value), placeholder: "وصف بسيط…" })),
           React.createElement("div", { className: "flex gap-2 pt-2" },
             React.createElement(Button, { type: "submit", className: "flex-1" }, "Save"),
             React.createElement(Button, { type: "button", variant: "ghost", className: "flex-1", onClick: onCancel }, "Cancel")
@@ -792,15 +808,7 @@
                           React.createElement("td", { className: "py-3 px-2" },
                             React.createElement("div", { className: "flex gap-2" },
                               React.createElement(Button, { variant: "ghost", onClick: () => openEdit(p) }, "Edit"),
-                              React.createElement(Button, {
-                                variant: "danger",
-                                onClick: () => {
-                                  if (confirm("متأكد تمسح المنتج؟")) {
-                                    store.productsCRUD.remove(p.id);
-                                    toast.push("success", "اتمسح المنتج");
-                                  }
-                                }
-                              }, "Delete")
+                              React.createElement(Button, { variant: "danger", onClick: () => { if (confirm("متأكد تمسح المنتج؟")) { store.productsCRUD.remove(p.id); toast.push("success", "اتمسح المنتج"); } } }, "Delete")
                             )
                           )
                         )
@@ -837,49 +845,15 @@
                       React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-3" },
                         React.createElement("div", null,
                           React.createElement("div", { className: "font-black text-lg" }, o.id),
-                          React.createElement("div", { className: "text-sm text-slate-300 mt-1" },
-                            new Date(o.createdAt).toLocaleString("ar-EG"),
-                            " • ",
-                            (o.customer?.name || "—"),
-                            " • ",
-                            (o.customer?.mobile || "—")
-                          )
+                          React.createElement("div", { className: "text-sm text-slate-300 mt-1" }, new Date(o.createdAt).toLocaleString("ar-EG"), " • ", (o.customer?.name || "—"))
                         ),
-                        React.createElement("div", { className: "flex items-center gap-2" },
-                          React.createElement(Badge, {
-                            tone:
-                              o.status === "shipped" ? "emerald" :
-                              o.status === "cancelled" ? "rose" :
-                              o.status === "processing" ? "amber" : "indigo"
-                          }, o.status),
-                          React.createElement(Select, {
-                            value: o.status,
-                            onChange: (e) => { store.ordersCRUD.setStatus(o.id, e.target.value); toast.push("success", `الحالة: ${e.target.value}`); },
-                            className: "w-44"
-                          }, statuses.map((s) => React.createElement("option", { key: s, value: s }, s)))
-                        )
+                        React.createElement(Select, {
+                          value: o.status,
+                          onChange: (e) => { store.ordersCRUD.setStatus(o.id, e.target.value); toast.push("success", `الحالة: ${e.target.value}`); },
+                          className: "w-48"
+                        }, statuses.map((s) => React.createElement("option", { key: s, value: s }, s)))
                       ),
-                      React.createElement("div", { className: "mt-4 grid lg:grid-cols-3 gap-4" },
-                        React.createElement("div", { className: "lg:col-span-2" },
-                          React.createElement("div", { className: "text-sm text-slate-300 mb-2" }, "Items"),
-                          React.createElement("div", { className: "space-y-2" },
-                            (o.items || []).map((it) =>
-                              React.createElement("div", { key: it.id, className: "flex items-center justify-between text-sm" },
-                                React.createElement("div", { className: "min-w-0" },
-                                  React.createElement("div", { className: "font-semibold truncate" }, it.name),
-                                  React.createElement("div", { className: "text-slate-400 text-xs" }, `${it.qty} × ${egp(it.price)} • ${it.category}`)
-                                ),
-                                React.createElement("div", { className: "font-extrabold" }, egp(it.qty * it.price))
-                              )
-                            )
-                          )
-                        ),
-                        React.createElement(Card, { className: "p-4 bg-white/4" },
-                          React.createElement("div", { className: "text-sm text-slate-300" }, "الإجمالي"),
-                          React.createElement("div", { className: "mt-2 text-xl font-black" }, egp(o.total)),
-                          React.createElement("div", { className: "mt-2 text-xs text-slate-400" }, "العنوان: ", (o.customer?.address || "—"))
-                        )
-                      )
+                      React.createElement("div", { className: "mt-3 text-sm text-slate-300" }, "الإجمالي: ", React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(o.total)))
                     )
                   )
                 )
@@ -887,9 +861,67 @@
         );
       }
 
-      /* =========================
-         App + Routes
-      ========================= */
+      function AdminStats({ store }) {
+        const totalSales = useMemo(() => store.orders.reduce((s, o) => s + (o.total || 0), 0), [store.orders]);
+        const topCategory = useMemo(() => {
+          const map = new Map();
+          for (const o of store.orders) for (const it of (o.items || [])) map.set(it.category, (map.get(it.category) || 0) + (it.qty || 0));
+          let best = null, bestV = -1;
+          for (const [k, v] of map.entries()) if (v > bestV) { bestV = v; best = k; }
+          return best ? `${best} (${bestV})` : "—";
+        }, [store.orders]);
+
+        return React.createElement(React.Fragment, null,
+          React.createElement(PageTitle, { title: "Stats", subtitle: "عدد الطلبات + إجمالي المبيعات + أكثر تصنيف." }),
+          React.createElement("div", { className: "mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+            React.createElement(Card, { className: "p-5" }, React.createElement("div", { className: "text-sm text-slate-300" }, "عدد الطلبات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, store.orders.length)),
+            React.createElement(Card, { className: "p-5" }, React.createElement("div", { className: "text-sm text-slate-300" }, "إجمالي المبيعات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, egp(totalSales))),
+            React.createElement(Card, { className: "p-5" }, React.createElement("div", { className: "text-sm text-slate-300" }, "أكثر تصنيف مبيعًا"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, topCategory))
+          )
+        );
+      }
+
+      function AdminLayout({ store, toast }) {
+        const nav = useNavigate();
+        const loc = useLocation();
+        const [menu, setMenu] = useState(false);
+
+        const linkClass = ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold block", isActive ? "bg-white/10" : "hover:bg-white/5");
+
+        return React.createElement(Shell, null,
+          React.createElement("div", { className: "grid lg:grid-cols-[280px_1fr] gap-4" },
+            React.createElement(Card, { className: "p-4 h-fit lg:sticky lg:top-6" },
+              React.createElement("div", { className: "flex items-center justify-between" },
+                React.createElement("div", { className: "font-black" }, "Admin"),
+                React.createElement("button", { className: "lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: () => setMenu(v => !v) }, menu ? "إخفاء" : "قائمة")
+              ),
+              React.createElement("div", { className: cn("mt-3 space-y-1", menu ? "block" : "hidden lg:block") },
+                React.createElement(NavLink, { to: "/admin", end: true, className: linkClass }, "Stats"),
+                React.createElement(NavLink, { to: "/admin/products", className: linkClass }, "Products"),
+                React.createElement(NavLink, { to: "/admin/orders", className: linkClass }, "Orders"),
+                React.createElement("div", { className: "pt-3 mt-3 border-t border-white/10 flex gap-2" },
+                  React.createElement(Button, { variant: "ghost", className: "flex-1", onClick: () => nav("/") }, "Store"),
+                  React.createElement(Button, { variant: "danger", className: "flex-1", onClick: () => { store.adminLogout(); toast.push("success", "تم تسجيل الخروج"); nav("/"); } }, "Logout")
+                )
+              )
+            ),
+            React.createElement("div", null,
+              React.createElement(Card, { className: "p-4 mb-4" },
+                React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
+                  React.createElement("div", null, React.createElement("div", { className: "font-black" }, "Dashboard"), React.createElement("div", { className: "text-sm text-slate-300" }, loc.pathname)),
+                  React.createElement(Badge, { tone: "emerald" }, "UI Only + LocalStorage")
+                )
+              ),
+              React.createElement(Routes, null,
+                React.createElement(Route, { index: true, element: React.createElement(AdminStats, { store }) }),
+                React.createElement(Route, { path: "products", element: React.createElement(AdminProducts, { store, toast }) }),
+                React.createElement(Route, { path: "orders", element: React.createElement(AdminOrders, { store, toast }) })
+              )
+            )
+          )
+        );
+      }
+
       function App() {
         const store = useAppStore();
         const toast = useToast();
@@ -905,12 +937,7 @@
             React.createElement(Route, { path: "/admin/login", element: React.createElement(AdminLogin, { store, toast }) }),
             React.createElement(Route, { path: "/admin/*", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
 
-            React.createElement(Route, {
-              path: "*",
-              element: React.createElement(Shell, null,
-                React.createElement(Empty, { title: "الصفحة غير موجودة", hint: "ارجع للمتجر.", action: React.createElement(Link, { to: "/", className: "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white" }, "Home") })
-              )
-            })
+            React.createElement(Route, { path: "*", element: React.createElement(Shell, null, React.createElement(Empty, { title: "الصفحة غير موجودة", hint: "ارجع للمتجر.", action: React.createElement(Link, { to: "/", className: "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white" }, "Home") })) })
           )
         );
       }
