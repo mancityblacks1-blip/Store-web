@@ -1,1 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LocalStore + Admin (Single File)</title>
+
+    <!-- Tailwind via CDN (for demo only) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 18 + ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- React Router DOM v6 UMD -->
+    <script crossorigin src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
+
+    <!-- Framer Motion UMD -->
+    <script src="https://unpkg.com/framer-motion@11.5.6/dist/framer-motion.umd.js"></script>
+
+    <style>
+      body {
+        background: radial-gradient(1200px 700px at 70% 0%, rgba(99,102,241,0.25), transparent 60%),
+                    radial-gradient(900px 600px at 20% 10%, rgba(16,185,129,0.18), transparent 55%),
+                    #070a14;
+      }
+      .glass {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(10px);
+      }
+      .shadow-soft {
+        box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+      }
+      .ring-soft {
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset;
+      }
+      .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+      .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+      .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); border-radius: 999px; }
+    </style>
+  </head>
+
+  <body class="text-slate-100">
+    <div id="root"></div>
+
+    <script>
+      const { useEffect, useMemo, useRef, useState } = React;
+      const { BrowserRouter, Routes, Route, Link, NavLink, useNavigate, useParams, useLocation, Navigate } = ReactRouterDOM;
+      const { motion, AnimatePresence } = window["framer-motion"];
+
+      /* =========================
+         Tiny Toast (no external lib)
+      ========================= */
+      function useToast() {
+        const [items, setItems] = useState([]);
+        const push = (type, message) => {
+          const id = Math.random().toString(16).slice(2) + Date.now().toString(16);
+          setItems((x) => [{ id, type, message }, ...x].slice(0, 4));
+          setTimeout(() => setItems((x) => x.filter((t) => t.id !== id)), 2500);
+        };
+        return { items, push };
+      }
+
+      function Toasts({ items }) {
+        return React.createElement(
+          "div",
+          { className: "fixed top-4 left-4 z-[9999] space-y-2 w-[min(360px,calc(100vw-2rem))]" },
+          items.map((t) =>
+            React.createElement(
+              "div",
+              {
+                key: t.id,
+                className:
+                  "glass shadow-soft ring-soft rounded-2xl px-4 py-3 text-sm flex items-start gap-3"
+              },
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "mt-0.5 h-2.5 w-2.5 rounded-full " +
+                    (t.type === "success"
+                      ? "bg-emerald-400"
+                      : t.type === "error"
+                      ? "bg-rose-400"
+                      : "bg-indigo-400")
+                }
+              ),
+              React.createElement("div", null, t.message)
+            )
+          )
+        );
+      }
+
+      /* =========================
+         LocalStorage helpers
+      ========================= */
+      const LS = {
+        get(key, fallback) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw);
+          } catch {
+            return fallback;
+          }
+        },
+        set(key, value) {
+          localStorage.setItem(key, JSON.stringify(value));
+        }
+      };
+
+      const LS_KEYS = {
+        products: "ls_products_singlefile_v1",
+        cart: "ls_cart_singlefile_v1",
+        orders: "ls_orders_singlefile_v1",
+        admin: "ls_admin_singlefile_v1"
+      };
+
+      const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports"];
+
+      const seedProducts = [
+        {
+          id: "p1",
+          name: "Nova Wireless Headphones",
+          price: 2899,
+          category: "Electronics",
+          image: "https://images.unsplash.com/photo-1518441902117-f0a0a5b0b3e2?auto=format&fit=crop&w=900&q=80",
+          description: "صوت نضيف، Bass محترم، وراحة على الودن لساعات."
+        },
+        {
+          id: "p2",
+          name: "Aero Smart Watch",
+          price: 2199,
+          category: "Electronics",
+          image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
+          description: "متابعة نشاطك، نومك، ونبضك… على معصمك."
+        },
+        {
+          id: "p3",
+          name: "Urban Hoodie",
+          price: 799,
+          category: "Fashion",
+          image: "https://images.unsplash.com/photo-1520975682031-a05dfb6b4b9d?auto=format&fit=crop&w=900&q=80",
+          description: "هودي مريح وشيك، مناسب للشتا والخروج."
+        },
+        {
+          id: "p4",
+          name: "Minimal Sneakers",
+          price: 1299,
+          category: "Fashion",
+          image: "https://images.unsplash.com/photo-1528701800489-20be9c3ea2b4?auto=format&fit=crop&w=900&q=80",
+          description: "سنيكرز عملي ومناسب لليوم كله."
+        },
+        {
+          id: "p5",
+          name: "Cozy Throw Blanket",
+          price: 499,
+          category: "Home",
+          image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80",
+          description: "بطانية ناعمة… للكنبة والمزاج."
+        },
+        {
+          id: "p6",
+          name: "Aroma Diffuser",
+          price: 650,
+          category: "Home",
+          image: "https://images.unsplash.com/photo-1611078489935-0cb964de46c9?auto=format&fit=crop&w=900&q=80",
+          description: "ريحة هادية وإضاءة لطيفة للغرفة."
+        },
+        {
+          id: "p7",
+          name: "Skincare Starter Kit",
+          price: 950,
+          category: "Beauty",
+          image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=900&q=80",
+          description: "روتين بسيط لبشرة أنضف."
+        },
+        {
+          id: "p8",
+          name: "Matte Lipstick",
+          price: 320,
+          category: "Beauty",
+          image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
+          description: "ثبات كويس ولمسة مطفية شيك."
+        },
+        {
+          id: "p9",
+          name: "Training Bottle 1L",
+          price: 240,
+          category: "Sports",
+          image: "https://images.unsplash.com/photo-1542315192-1f61a1799a03?auto=format&fit=crop&w=900&q=80",
+          description: "اشرب مية كتير… جسمك هيشكرّك."
+        },
+        {
+          id: "p10",
+          name: "Resistance Bands Set",
+          price: 410,
+          category: "Sports",
+          image: "https://images.unsplash.com/photo-1599058917212-d750089bc07b?auto=format&fit=crop&w=900&q=80",
+          description: "تمارين في البيت بمرونة ومقاومة."
+        }
+      ];
+
+      const egp = (n) =>
+        new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(n || 0);
+      const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+      const cn = (...xs) => xs.filter(Boolean).join(" ");
+
+      /* =========================
+         Global store (single-file "zustand-like")
+         We keep it simple: a custom hook + local state + LS sync
+      ========================= */
+      function useAppStore() {
+        const [products, setProducts] = useState(() => {
+          const existing = LS.get(LS_KEYS.products, null);
+          if (existing && Array.isArray(existing) && existing.length) return existing;
+          LS.set(LS_KEYS.products, seedProducts);
+          return seedProducts;
+        });
+
+        const [cart, setCart] = useState(() => LS.get(LS_KEYS.cart, []));
+        const [orders, setOrders] = useState(() => LS.get(LS_KEYS.orders, []));
+        const [admin, setAdmin] = useState(() => LS.get(LS_KEYS.admin, { authed: false }));
+
+        useEffect(() => LS.set(LS_KEYS.products, products), [products]);
+        useEffect(() => LS.set(LS_KEYS.cart, cart), [cart]);
+        useEffect(() => LS.set(LS_KEYS.orders, orders), [orders]);
+        useEffect(() => LS.set(LS_KEYS.admin, admin), [admin]);
+
+        const cartCount = useMemo(() => cart.reduce((s, i) => s + (i.qty || 0), 0), [cart]);
+        const cartTotal = useMemo(() => cart.reduce((s, i) => s + (i.qty || 0) * (i.price || 0), 0), [cart]);
+
+        const addToCart = (p) => {
+          setCart((prev) => {
+            const hit = prev.find((x) => x.id === p.id);
+            if (hit) return prev.map((x) => (x.id === p.id ? { ...x, qty: x.qty + 1 } : x));
+            return [...prev, { id: p.id, name: p.name, price: p.price, image: p.image, category: p.category, qty: 1 }];
+          });
+        };
+
+        const updateQty = (id, qty) => {
+          setCart((prev) => {
+            const q = clamp(qty, 1, 99);
+            return prev.map((x) => (x.id === id ? { ...x, qty: q } : x));
+          });
+        };
+
+        const removeFromCart = (id) => setCart((prev) => prev.filter((x) => x.id !== id));
+        const clearCart = () => setCart([]);
+
+        const createOrder = ({ customer }) => {
+          const orderId = "ORD-" + Math.random().toString(10).slice(2, 8);
+          const now = new Date();
+          const order = {
+            id: orderId,
+            createdAt: now.toISOString(),
+            status: "new",
+            customer,
+            items: cart,
+            total: cartTotal
+          };
+          setOrders((prev) => [order, ...prev]);
+          clearCart();
+          return orderId;
+        };
+
+        const adminLogin = (password) => {
+          if (password === "admin123") {
+            setAdmin({ authed: true });
+            return true;
+          }
+          return false;
+        };
+        const adminLogout = () => setAdmin({ authed: false });
+
+        const productsCRUD = {
+          add(p) {
+            setProducts((prev) => [{ ...p, id: uid() }, ...prev]);
+          },
+          update(id, patch) {
+            setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+          },
+          remove(id) {
+            setProducts((prev) => prev.filter((x) => x.id !== id));
+            // Also remove from cart if exists
+            setCart((prev) => prev.filter((x) => x.id !== id));
+          }
+        };
+
+        const ordersCRUD = {
+          setStatus(id, status) {
+            setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+          }
+        };
+
+        return {
+          products, setProducts,
+          cart, setCart,
+          orders, setOrders,
+          admin, setAdmin,
+
+          cartCount,
+          cartTotal,
+
+          addToCart,
+          updateQty,
+          removeFromCart,
+          clearCart,
+          createOrder,
+
+          adminLogin,
+          adminLogout,
+
+          productsCRUD,
+          ordersCRUD
+        };
+      }
+
+      /* =========================
+         UI atoms
+      ========================= */
+      function Shell({ children }) {
+        return React.createElement(
+          "div",
+          { className: "min-h-screen" },
+          React.createElement("div", { className: "max-w-6xl mx-auto px-4 py-6" }, children)
+        );
+      }
+
+      function Card({ className, children }) {
+        return React.createElement("div", { className: cn("glass ring-soft rounded-3xl shadow-soft", className) }, children);
+      }
+
+      function Button({ className, variant = "primary", ...props }) {
+        const base =
+          "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+        const styles =
+          variant === "primary"
+            ? "bg-indigo-500/90 hover:bg-indigo-500 text-white"
+            : variant === "ghost"
+            ? "bg-white/5 hover:bg-white/10 text-white"
+            : variant === "danger"
+            ? "bg-rose-500/90 hover:bg-rose-500 text-white"
+            : "bg-emerald-500/90 hover:bg-emerald-500 text-white";
+        return React.createElement("button", { className: cn(base, styles, className), ...props });
+      }
+
+      function Input({ className, ...props }) {
+        return React.createElement("input", {
+          className: cn(
+            "w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
+            className
+          ),
+          ...props
+        });
+      }
+
+      function Select({ className, children, ...props }) {
+        return React.createElement("select", {
+          className: cn(
+            "w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
+            className
+          ),
+          ...props
+        }, children);
+      }
+
+      function Badge({ tone = "indigo", children }) {
+        const map = {
+          indigo: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/20",
+          emerald: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/20",
+          amber: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/20",
+          rose: "bg-rose-500/15 text-rose-200 ring-1 ring-rose-500/20",
+          slate: "bg-white/8 text-slate-200 ring-1 ring-white/10"
+        };
+        return React.createElement(
+          "span",
+          { className: cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", map[tone] || map.slate) },
+          children
+        );
+      }
+
+      function Empty({ title, hint, action }) {
+        return React.createElement(
+          Card,
+          { className: "p-8 text-center" },
+          React.createElement("div", { className: "text-xl font-extrabold" }, title || "مفيش بيانات هنا"),
+          React.createElement("div", { className: "mt-2 text-sm text-slate-300" }, hint || "جرّب تضيف شوية حاجات، الدنيا هتنور ✨"),
+          action ? React.createElement("div", { className: "mt-5" }, action) : null
+        );
+      }
+
+      function LoadingSkeleton() {
+        return React.createElement(
+          "div",
+          { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+          Array.from({ length: 6 }).map((_, i) =>
+            React.createElement(
+              Card,
+              { key: i, className: "p-4" },
+              React.createElement("div", { className: "h-40 rounded-2xl bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-4 h-4 w-3/4 rounded bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-2 h-4 w-1/2 rounded bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-4 h-9 rounded-2xl bg-white/5 animate-pulse" })
+            )
+          )
+        );
+      }
+
+      function PageTitle({ title, subtitle, right }) {
+        return React.createElement(
+          "div",
+          { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
+          React.createElement(
+            "div",
+            null,
+            React.createElement("div", { className: "text-2xl font-black tracking-tight" }, title),
+            subtitle ? React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, subtitle) : null
+          ),
+          right ? React.createElement("div", null, right) : null
+        );
+      }
+
+      /* =========================
+         Header for Storefront
+      ========================= */
+      function StoreHeader({ cartCount }) {
+        return React.createElement(
+          Card,
+          { className: "p-4 mb-6" },
+          React.createElement(
+            "div",
+            { className: "flex items-center justify-between gap-3 flex-wrap" },
+            React.createElement(
+              Link,
+              { to: "/", className: "flex items-center gap-3" },
+              React.createElement("div", { className: "h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black" }, "LS"),
+              React.createElement("div", null,
+                React.createElement("div", { className: "font-extrabold" }, "LocalStore"),
+                React.createElement("div", { className: "text-xs text-slate-300" }, "متجر بسيط + Dashboard")
+              )
+            ),
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-2" },
+              React.createElement(NavLink, {
+                to: "/",
+                className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5")
+              }, "المنتجات"),
+              React.createElement(NavLink, {
+                to: "/cart",
+                className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2", isActive ? "bg-white/10" : "hover:bg-white/5")
+              }, React.createElement("span", null, "السلة"), React.createElement(Badge, { tone: "slate" }, cartCount)),
+              React.createElement(NavLink, {
+                to: "/admin/login",
+                className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5")
+              }, "Admin")
+            )
+          )
+        );
+      }
+
+      /* =========================
+         Storefront pages
+      ========================= */
+      function Storefront({ store, toast }) {
+        const [q, setQ] = useState("");
+        const [cat, setCat] = useState("All");
+        const [sort, setSort] = useState("none");
+        const [loading, setLoading] = useState(true);
+
+        useEffect(() => {
+          const t = setTimeout(() => setLoading(false), 350);
+          return () => clearTimeout(t);
+        }, []);
+
+        const filtered = useMemo(() => {
+          let list = store.products.slice();
+          if (q.trim()) {
+            const s = q.trim().toLowerCase();
+            list = list.filter((p) => p.name.toLowerCase().includes(s));
+          }
+          if (cat !== "All") list = list.filter((p) => p.category === cat);
+          if (sort === "price_asc") list.sort((a, b) => a.price - b.price);
+          if (sort === "price_desc") list.sort((a, b) => b.price - a.price);
+          return list;
+        }, [store.products, q, cat, sort]);
+
+        const add = (p) => {
+          store.addToCart(p);
+          toast.push("success", `اتضاف للسلة: ${p.name}`);
+        };
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(
+            PageTitle,
+            {
+              title: "المنتجات",
+              subtitle: "ابحث، فلتر، ورتّب. كل حاجة بتتخزن في LocalStorage.",
+              right: React.createElement(
+                "div",
+                { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]" },
+                React.createElement(Input, {
+                  value: q,
+                  onChange: (e) => setQ(e.target.value),
+                  placeholder: "Search بالاسم…"
+                }),
+                React.createElement(
+                  Select,
+                  { value: cat, onChange: (e) => setCat(e.target.value) },
+                  CATEGORIES.map((c) => React.createElement("option", { key: c, value: c }, c))
+                ),
+                React.createElement(
+                  Select,
+                  { value: sort, onChange: (e) => setSort(e.target.value) },
+                  React.createElement("option", { value: "none" }, "Sort: بدون"),
+                  React.createElement("option", { value: "price_asc" }, "السعر: الأقل للأعلى"),
+                  React.createElement("option", { value: "price_desc" }, "السعر: الأعلى للأقل")
+                )
+              )
+            }
+          ),
+          React.createElement("div", { className: "mt-4" },
+            loading
+              ? React.createElement(LoadingSkeleton, null)
+              : filtered.length === 0
+                ? React.createElement(Empty, {
+                    title: "مفيش نتائج",
+                    hint: "جرّب تغيّر البحث أو الفلتر."
+                  })
+                : React.createElement(
+                    "div",
+                    { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+                    filtered.map((p) =>
+                      React.createElement(
+                        motion.div,
+                        { key: p.id, initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25 } },
+                        React.createElement(
+                          Card,
+                          { className: "overflow-hidden" },
+                          React.createElement(
+                            Link,
+                            { to: `/product/${p.id}`, className: "block" },
+                            React.createElement("img", { src: p.image, alt: p.name, className: "h-44 w-full object-cover" })
+                          ),
+                          React.createElement(
+                            "div",
+                            { className: "p-4" },
+                            React.createElement("div", { className: "flex items-start justify-between gap-3" },
+                              React.createElement("div", null,
+                                React.createElement(Link, { to: `/product/${p.id}`, className: "font-extrabold hover:underline" }, p.name),
+                                React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, egp(p.price))
+                              ),
+                              React.createElement(Badge, { tone: "indigo" }, p.category)
+                            ),
+                            React.createElement("div", { className: "mt-3 flex gap-2" },
+                              React.createElement(Button, { className: "flex-1", onClick: () => add(p) }, "Add to Cart"),
+                              React.createElement(Button, { variant: "ghost", onClick: () => toast.push("info", "دي Demo UI 😄") }, "♡")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+          )
+        );
+      }
+
+      function ProductDetails({ store, toast }) {
+        const { id } = useParams();
+        const nav = useNavigate();
+        const p = store.products.find((x) => x.id === id);
+
+        if (!p) {
+          return React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(StoreHeader, { cartCount: store.cartCount }),
+            React.createElement(Empty, {
+              title: "المنتج غير موجود",
+              hint: "ممكن يكون اتمسح من الأدمن.",
+              action: React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر")
+            })
+          );
+        }
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(
+            Card,
+            { className: "overflow-hidden" },
+            React.createElement(
+              "div",
+              { className: "grid lg:grid-cols-2" },
+              React.createElement("img", { src: p.image, alt: p.name, className: "h-64 lg:h-full w-full object-cover" }),
+              React.createElement(
+                "div",
+                { className: "p-6" },
+                React.createElement("div", { className: "flex items-center justify-between gap-3" },
+                  React.createElement("div", null,
+                    React.createElement("div", { className: "text-2xl font-black" }, p.name),
+                    React.createElement("div", { className: "mt-2 text-slate-300" }, egp(p.price))
+                  ),
+                  React.createElement(Badge, { tone: "indigo" }, p.category)
+                ),
+                React.createElement("p", { className: "mt-4 text-sm text-slate-300 leading-6" }, p.description || "وصف المنتج مش موجود، بس إحنا عاملين شغل شيك 😄"),
+                React.createElement("div", { className: "mt-6 flex gap-2" },
+                  React.createElement(Button, {
+                    className: "flex-1",
+                    onClick: () => {
+                      store.addToCart(p);
+                      toast.push("success", "اتضاف للسلة ✅");
+                    }
+                  }, "Add to Cart"),
+                  React.createElement(Button, { variant: "ghost", onClick: () => nav(-1) }, "رجوع")
+                )
+              )
+            )
+          )
+        );
+      }
+
+      function CartPage({ store, toast }) {
+        const nav = useNavigate();
+        const items = store.cart;
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(PageTitle, {
+            title: "السلة",
+            subtitle: "عدّل الكميات واحذف. الإجمالي بيتحسب تلقائي."
+          }),
+          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-3" },
+            React.createElement(
+              "div",
+              { className: "lg:col-span-2 space-y-3" },
+              items.length === 0
+                ? React.createElement(Empty, {
+                    title: "السلة فاضية",
+                    hint: "روح اختار شوية منتجات من المتجر.",
+                    action: React.createElement(Button, { onClick: () => nav("/") }, "فتح المتجر")
+                  })
+                : items.map((it) =>
+                    React.createElement(
+                      Card,
+                      { key: it.id, className: "p-4" },
+                      React.createElement("div", { className: "flex gap-3 items-center" },
+                        React.createElement("img", { src: it.image, alt: it.name, className: "h-16 w-16 rounded-2xl object-cover ring-soft" }),
+                        React.createElement("div", { className: "flex-1 min-w-0" },
+                          React.createElement("div", { className: "font-extrabold truncate" }, it.name),
+                          React.createElement("div", { className: "text-sm text-slate-300 flex items-center gap-2 mt-1" },
+                            React.createElement("span", null, egp(it.price)),
+                            React.createElement(Badge, { tone: "slate" }, it.category)
+                          )
+                        ),
+                        React.createElement("div", { className: "flex items-center gap-2" },
+                          React.createElement(Input, {
+                            type: "number",
+                            min: 1,
+                            max: 99,
+                            value: it.qty,
+                            onChange: (e) => store.updateQty(it.id, Number(e.target.value || 1)),
+                            className: "w-20 text-center"
+                          }),
+                          React.createElement(Button, {
+                            variant: "danger",
+                            onClick: () => {
+                              store.removeFromCart(it.id);
+                              toast.push("success", "اتمسح من السلة");
+                            }
+                          }, "حذف")
+                        )
+                      )
+                    )
+                  )
+            ),
+            React.createElement(
+              Card,
+              { className: "p-5 h-fit" },
+              React.createElement("div", { className: "text-lg font-black" }, "ملخص الطلب"),
+              React.createElement("div", { className: "mt-4 space-y-2 text-sm text-slate-300" },
+                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "عدد القطع"), React.createElement("span", null, store.cartCount)),
+                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "الإجمالي"), React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(store.cartTotal)))
+              ),
+              React.createElement("div", { className: "mt-5 space-y-2" },
+                React.createElement(Button, { className: "w-full", disabled: items.length === 0, onClick: () => nav("/checkout") }, "Checkout"),
+                React.createElement(Button, { className: "w-full", variant: "ghost", disabled: items.length === 0, onClick: () => { store.clearCart(); toast.push("success", "السلة اتصفرت"); } }, "تصفير السلة")
+              )
+            )
+          )
+        );
+      }
+
+      function CheckoutPage({ store, toast }) {
+        const nav = useNavigate();
+        const [name, setName] = useState("");
+        const [mobile, setMobile] = useState("");
+        const [address, setAddress] = useState("");
+        const [placing, setPlacing] = useState(false);
+        const [orderId, setOrderId] = useState(null);
+
+        if (store.cart.length === 0 && !orderId) {
+          return React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(StoreHeader, { cartCount: store.cartCount }),
+            React.createElement(Empty, {
+              title: "مفيش حاجة تتعمل Checkout",
+              hint: "السلة فاضية.",
+              action: React.createElement(Button, { onClick: () => nav("/") }, "روح للمتجر")
+            })
+          );
+        }
+
+        const submit = async (e) => {
+          e.preventDefault();
+          if (!name.trim() || !mobile.trim() || !address.trim()) {
+            toast.push("error", "من فضلك املا البيانات كلها");
+            return;
+          }
+          setPlacing(true);
+          await new Promise((r) => setTimeout(r, 600));
+          const id = store.createOrder({
+            customer: { name: name.trim(), mobile: mobile.trim(), address: address.trim() }
+          });
+          setOrderId(id);
+          setPlacing(false);
+          toast.push("success", "تم تأكيد الطلب ✅");
+        };
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(PageTitle, {
+            title: "Checkout Demo",
+            subtitle: "فورم بسيط. عند التأكيد: Order يتسجل + السلة تتصفر."
+          }),
+          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-2" },
+            React.createElement(
+              Card,
+              { className: "p-6" },
+              orderId
+                ? React.createElement(
+                    "div",
+                    { className: "text-center" },
+                    React.createElement("div", { className: "text-2xl font-black" }, "تم الطلب بنجاح 🎉"),
+                    React.createElement("div", { className: "mt-2 text-slate-300" }, "رقم الطلب (وهمي):"),
+                    React.createElement("div", { className: "mt-3 text-xl font-extrabold tracking-wide" }, orderId),
+                    React.createElement("div", { className: "mt-5 flex gap-2 justify-center" },
+                      React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر"),
+                      React.createElement(Button, { variant: "ghost", onClick: () => nav("/admin") }, "روح للأدمن")
+                    )
+                  )
+                : React.createElement(
+                    "form",
+                    { onSubmit: submit, className: "space-y-3" },
+                    React.createElement("div", null,
+                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الاسم"),
+                      React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value), placeholder: "مثال: أحمد" })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الموبايل"),
+                      React.createElement(Input, { value: mobile, onChange: (e) => setMobile(e.target.value), placeholder: "مثال: 01xxxxxxxxx" })
+                    ),
+                    React.createElement("div", null,
+                      React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "العنوان"),
+                      React.createElement(Input, { value: address, onChange: (e) => setAddress(e.target.value), placeholder: "مثال: القاهرة، مدينة نصر…" })
+                    ),
+                    React.createElement(Button, { className: "w-full", type: "submit", disabled: placing }, placing ? "جارٍ التأكيد…" : "تأكيد الطلب")
+                  )
+            ),
+            React.createElement(
+              Card,
+              { className: "p-6 h-fit" },
+              React.createElement("div", { className: "text-lg font-black" }, "محتويات الطلب"),
+              React.createElement("div", { className: "mt-4 space-y-2 max-h-[340px] overflow-auto scrollbar-thin pr-1" },
+                store.cart.map((it) =>
+                  React.createElement("div", { key: it.id, className: "flex items-center justify-between gap-3 text-sm" },
+                    React.createElement("div", { className: "min-w-0" },
+                      React.createElement("div", { className: "font-semibold truncate" }, it.name),
+                      React.createElement("div", { className: "text-slate-300" }, `${it.qty} × ${egp(it.price)}`)
+                    ),
+                    React.createElement("div", { className: "font-extrabold" }, egp(it.qty * it.price))
+                  )
+                )
+              ),
+              React.createElement("div", { className: "mt-4 pt-4 border-t border-white/10 flex justify-between" },
+                React.createElement("span", { className: "text-slate-300 text-sm" }, "الإجمالي"),
+                React.createElement("span", { className: "font-extrabold" }, egp(store.cartTotal))
+              )
+            )
+          )
+        );
+      }
+
+      /* =========================
+         Admin
+      ========================= */
+      function RequireAdmin({ store, children }) {
+        if (!store.admin.authed) return React.createElement(Navigate, { to: "/admin/login", replace: true });
+        return children;
+      }
+
+      function AdminLogin({ store, toast }) {
+        const nav = useNavigate();
+        const [pw, setPw] = useState("");
+        const [loading, setLoading] = useState(false);
+
+        const submit = async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          await new Promise((r) => setTimeout(r, 450));
+          const ok = store.adminLogin(pw);
+          setLoading(false);
+          if (!ok) {
+            toast.push("error", "كلمة السر غلط ❌");
+            return;
+          }
+          toast.push("success", "تم تسجيل الدخول ✅");
+          nav("/admin");
+        };
+
+        return React.createElement(
+          Shell,
+          null,
+          React.createElement(
+            Card,
+            { className: "p-6 max-w-xl mx-auto" },
+            React.createElement("div", { className: "text-2xl font-black" }, "Admin Login"),
+            React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, "Login وهمي بكلمة سر ثابتة داخل الكود."),
+            React.createElement(
+              "form",
+              { onSubmit: submit, className: "mt-6 space-y-3" },
+              React.createElement("div", null,
+                React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Password"),
+                React.createElement(Input, { type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "جرّب: admin123" })
+              ),
+              React.createElement(Button, { className: "w-full", type: "submit", disabled: loading }, loading ? "جارٍ الدخول…" : "Login"),
+              React.createElement(Button, { className: "w-full", type: "button", variant: "ghost", onClick: () => nav("/") }, "رجوع للمتجر")
+            )
+          )
+        );
+      }
+
+      function AdminLayout({ store, toast }) {
+        const nav = useNavigate();
+        const loc = useLocation();
+        const [sidebarOpen, setSidebarOpen] = useState(false);
+
+        const linkClass = ({ isActive }) =>
+          cn("px-3 py-2 rounded-2xl text-sm font-semibold block",
+            isActive ? "bg-white/10" : "hover:bg-white/5");
+
+        return React.createElement(
+          Shell,
+          null,
+          React.createElement("div", { className: "grid lg:grid-cols-[280px_1fr] gap-4" },
+            React.createElement(
+              Card,
+              { className: cn("p-4 h-fit lg:sticky lg:top-6", sidebarOpen ? "" : "") },
+              React.createElement("div", { className: "flex items-center justify-between" },
+                React.createElement("div", { className: "font-black" }, "Admin"),
+                React.createElement("button", {
+                  className: "lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm",
+                  onClick: () => setSidebarOpen((v) => !v)
+                }, sidebarOpen ? "إخفاء" : "قائمة")
+              ),
+              React.createElement("div", { className: cn("mt-3 space-y-1", sidebarOpen ? "block" : "hidden lg:block") },
+                React.createElement(NavLink, { to: "/admin", end: true, className: linkClass }, "Stats"),
+                React.createElement(NavLink, { to: "/admin/products", className: linkClass }, "Products"),
+                React.createElement(NavLink, { to: "/admin/orders", className: linkClass }, "Orders"),
+                React.createElement("div", { className: "pt-3 mt-3 border-t border-white/10 flex gap-2" },
+                  React.createElement(Button, { variant: "ghost", className: "flex-1", onClick: () => nav("/") }, "Store"),
+                  React.createElement(Button, {
+                    variant: "danger",
+                    className: "flex-1",
+                    onClick: () => { store.adminLogout(); toast.push("success", "تم تسجيل الخروج"); nav("/"); }
+                  }, "Logout")
+                )
+              )
+            ),
+            React.createElement(
+              "div",
+              null,
+              React.createElement(
+                Card,
+                { className: "p-4 mb-4" },
+                React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
+                  React.createElement("div", null,
+                    React.createElement("div", { className: "font-black" }, "Dashboard"),
+                    React.createElement("div", { className: "text-sm text-slate-300" }, loc.pathname)
+                  ),
+                  React.createElement(Badge, { tone: "emerald" }, "UI Only + LocalStorage")
+                )
+              ),
+              React.createElement(Routes, null,
+                React.createElement(Route, { index: true, element: React.createElement(AdminStats, { store }) }),
+                React.createElement(Route, { path: "products", element: React.createElement(AdminProducts, { store, toast }) }),
+                React.createElement(Route, { path: "orders", element: React.createElement(AdminOrders, { store, toast }) })
+              )
+            )
+          )
+        );
+      }
+
+      function StatCard({ title, value, hint }) {
+        return React.createElement(
+          Card,
+          { className: "p-5" },
+          React.createElement("div", { className: "text-sm text-slate-300" }, title),
+          React.createElement("div", { className: "mt-2 text-2xl font-black" }, value),
+          hint ? React.createElement("div", { className: "mt-1 text-xs text-slate-400" }, hint) : null
+        );
+      }
+
+      function AdminStats({ store }) {
+        const totalSales = useMemo(() => store.orders.reduce((s, o) => s + (o.total || 0), 0), [store.orders]);
+        const ordersCount = store.orders.length;
+
+        const topCategory = useMemo(() => {
+          const map = new Map();
+          for (const o of store.orders) {
+            for (const it of (o.items || [])) {
+              map.set(it.category, (map.get(it.category) || 0) + (it.qty || 0));
+            }
+          }
+          let best = null, bestV = -1;
+          for (const [k, v] of map.entries()) {
+            if (v > bestV) { bestV = v; best = k; }
+          }
+          return best ? `${best} (${bestV})` : "—";
+        }, [store.orders]);
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(PageTitle, {
+            title: "Stats",
+            subtitle: "كروت إحصائيات بسيطة من بيانات LocalStorage."
+          }),
+          React.createElement("div", { className: "mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+            React.createElement(StatCard, { title: "عدد الطلبات", value: ordersCount, hint: "Orders في LocalStorage" }),
+            React.createElement(StatCard, { title: "إجمالي المبيعات", value: egp(totalSales), hint: "مجموع Totals لكل الطلبات" }),
+            React.createElement(StatCard, { title: "أكثر تصنيف مبيعًا", value: topCategory, hint: "حسب عدد القطع" })
+          ),
+          store.orders.length === 0
+            ? React.createElement("div", { className: "mt-4" },
+                React.createElement(Empty, { title: "لسه مفيش Orders", hint: "اعمل Checkout من المتجر علشان تظهر هنا." })
+              )
+            : null
+        );
+      }
+
+      /* ===== Admin Products (CRUD) ===== */
+      function AdminProducts({ store, toast }) {
+        const [modalOpen, setModalOpen] = useState(false);
+        const [editing, setEditing] = useState(null);
+
+        const openAdd = () => {
+          setEditing(null);
+          setModalOpen(true);
+        };
+        const openEdit = (p) => {
+          setEditing(p);
+          setModalOpen(true);
+        };
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(PageTitle, {
+            title: "Products",
+            subtitle: "CRUD على LocalStorage: Add / Edit / Delete",
+            right: React.createElement(Button, { onClick: openAdd }, "Add Product")
+          }),
+          React.createElement("div", { className: "mt-4" },
+            store.products.length === 0
+              ? React.createElement(Empty, {
+                  title: "مفيش منتجات",
+                  hint: "ضيف أول منتج من زر Add.",
+                  action: React.createElement(Button, { onClick: openAdd }, "Add Product")
+                })
+              : React.createElement(
+                  Card,
+                  { className: "p-4 overflow-auto scrollbar-thin" },
+                  React.createElement(
+                    "table",
+                    { className: "w-full text-sm" },
+                    React.createElement("thead", null,
+                      React.createElement("tr", { className: "text-slate-300" },
+                        ["Name", "Category", "Price", "Actions"].map((h) =>
+                          React.createElement("th", { key: h, className: "text-right font-semibold py-2 px-2" }, h)
+                        )
+                      )
+                    ),
+                    React.createElement("tbody", null,
+                      store.products.map((p) =>
+                        React.createElement("tr", { key: p.id, className: "border-t border-white/10" },
+                          React.createElement("td", { className: "py-3 px-2" },
+                            React.createElement("div", { className: "flex items-center gap-3" },
+                              React.createElement("img", { src: p.image, className: "h-10 w-10 rounded-2xl object-cover ring-soft" }),
+                              React.createElement("div", null,
+                                React.createElement("div", { className: "font-extrabold" }, p.name),
+                                React.createElement("div", { className: "text-xs text-slate-400" }, p.id)
+                              )
+                            )
+                          ),
+                          React.createElement("td", { className: "py-3 px-2" }, React.createElement(Badge, { tone: "indigo" }, p.category)),
+                          React.createElement("td", { className: "py-3 px-2 font-extrabold" }, egp(p.price)),
+                          React.createElement("td", { className: "py-3 px-2" },
+                            React.createElement("div", { className: "flex gap-2" },
+                              React.createElement(Button, { variant: "ghost", onClick: () => openEdit(p) }, "Edit"),
+                              React.createElement(Button, {
+                                variant: "danger",
+                                onClick: () => {
+                                  if (confirm("متأكد تمسح المنتج؟")) {
+                                    store.productsCRUD.remove(p.id);
+                                    toast.push("success", "اتمسح المنتج");
+                                  }
+                                }
+                              }, "Delete")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+          ),
+          React.createElement(Modal, {
+            open: modalOpen,
+            onClose: () => setModalOpen(false),
+            title: editing ? "Edit Product" : "Add Product",
+            children: React.createElement(ProductForm, {
+              initial: editing,
+              onCancel: () => setModalOpen(false),
+              onSave: (data) => {
+                if (editing) {
+                  store.productsCRUD.update(editing.id, data);
+                  toast.push("success", "تم التعديل ✅");
+                } else {
+                  store.productsCRUD.add(data);
+                  toast.push("success", "تمت الإضافة ✅");
+                }
+                setModalOpen(false);
+              }
+            })
+          })
+        );
+      }
+
+      function ProductForm({ initial, onSave, onCancel }) {
+        const [name, setName] = useState(initial?.name || "");
+        const [price, setPrice] = useState(initial?.price || 0);
+        const [category, setCategory] = useState(initial?.category || "Electronics");
+        const [image, setImage] = useState(initial?.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80");
+        const [description, setDescription] = useState(initial?.description || "");
+
+        const submit = (e) => {
+          e.preventDefault();
+          if (!name.trim()) return alert("اكتب اسم المنتج");
+          if (!price || price < 1) return alert("السعر لازم يكون رقم أكبر من 0");
+          onSave({
+            name: name.trim(),
+            price: Number(price),
+            category,
+            image: image.trim(),
+            description: description.trim()
+          });
+        };
+
+        return React.createElement(
+          "form",
+          { onSubmit: submit, className: "space-y-3" },
+          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
+            React.createElement("div", null,
+              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Name"),
+              React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })
+            ),
+            React.createElement("div", null,
+              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Price"),
+              React.createElement(Input, { type: "number", value: price, onChange: (e) => setPrice(e.target.value) })
+            )
+          ),
+          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
+            React.createElement("div", null,
+              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Category"),
+              React.createElement(
+                Select,
+                { value: category, onChange: (e) => setCategory(e.target.value) },
+                ["Electronics", "Fashion", "Home", "Beauty", "Sports"].map((c) => React.createElement("option", { key: c, value: c }, c))
+              )
+            ),
+            React.createElement("div", null,
+              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Image URL"),
+              React.createElement(Input, { value: image, onChange: (e) => setImage(e.target.value) })
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Description"),
+            React.createElement(Input, { value: description, onChange: (e) => setDescription(e.target.value), placeholder: "وصف بسيط…" })
+          ),
+          React.createElement("div", { className: "flex gap-2 pt-2" },
+            React.createElement(Button, { type: "submit", className: "flex-1" }, "Save"),
+            React.createElement(Button, { type: "button", variant: "ghost", className: "flex-1", onClick: onCancel }, "Cancel")
+          )
+        );
+      }
+
+      /* ===== Admin Orders ===== */
+      function AdminOrders({ store, toast }) {
+        const statuses = ["new", "processing", "shipped", "cancelled"];
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(PageTitle, {
+            title: "Orders",
+            subtitle: "عرض الطلبات من LocalStorage + تغيير الحالة."
+          }),
+          React.createElement("div", { className: "mt-4" },
+            store.orders.length === 0
+              ? React.createElement(Empty, { title: "مفيش Orders", hint: "اعمل Checkout من المتجر." })
+              : React.createElement(
+                  "div",
+                  { className: "space-y-3" },
+                  store.orders.map((o) =>
+                    React.createElement(
+                      Card,
+                      { key: o.id, className: "p-5" },
+                      React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-3" },
+                        React.createElement("div", null,
+                          React.createElement("div", { className: "font-black text-lg" }, o.id),
+                          React.createElement("div", { className: "text-sm text-slate-300 mt-1" },
+                            new Date(o.createdAt).toLocaleString("ar-EG"),
+                            " • ",
+                            o.customer?.name || "—",
+                            " • ",
+                            o.customer?.mobile || "—"
+                          )
+                        ),
+                        React.createElement("div", { className: "flex items-center gap-2" },
+                          React.createElement(Badge, { tone: o.status === "shipped" ? "emerald" : o.status === "cancelled" ? "rose" : o.status === "processing" ? "amber" : "indigo" }, o.status),
+                          React.createElement(
+                            Select,
+                            {
+                              value: o.status,
+                              onChange: (e) => {
+                                store.ordersCRUD.setStatus(o.id, e.target.value);
+                                toast.push("success", `تم تغيير الحالة إلى: ${e.target.value}`);
+                              },
+                              className: "w-44"
+                            },
+                            statuses.map((s) => React.createElement("option", { key: s, value: s }, s))
+                          )
+                        )
+                      ),
+                      React.createElement("div", { className: "mt-4 grid lg:grid-cols-3 gap-4" },
+                        React.createElement("div", { className: "lg:col-span-2" },
+                          React.createElement("div", { className: "text-sm text-slate-300 mb-2" }, "Items"),
+                          React.createElement("div", { className: "space-y-2" },
+                            (o.items || []).map((it) =>
+                              React.createElement("div", { key: it.id, className: "flex items-center justify-between text-sm" },
+                                React.createElement("div", { className: "min-w-0" },
+                                  React.createElement("div", { className: "font-semibold truncate" }, it.name),
+                                  React.createElement("div", { className: "text-slate-400 text-xs" }, `${it.qty} × ${egp(it.price)} • ${it.category}`)
+                                ),
+                                React.createElement("div", { className: "font-extrabold" }, egp(it.qty * it.price))
+                              )
+                            )
+                          )
+                        ),
+                        React.createElement(Card, { className: "p-4 bg-white/4" },
+                          React.createElement("div", { className: "text-sm text-slate-300" }, "الإجمالي"),
+                          React.createElement("div", { className: "mt-2 text-xl font-black" }, egp(o.total)),
+                          React.createElement("div", { className: "mt-2 text-xs text-slate-400" }, "العنوان: ", o.customer?.address || "—")
+                        )
+                      )
+                    )
+                  )
+                )
+          )
+        );
+      }
+
+      /* =========================
+         Modal
+      ========================= */
+      function Modal({ open, onClose, title, children }) {
+        return React.createElement(
+          AnimatePresence,
+          null,
+          open &&
+            React.createElement(
+              motion.div,
+              { className: "fixed inset-0 z-[999] grid place-items-center p-4",
+                initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }
+              },
+              React.createElement("div", { className: "absolute inset-0 bg-black/60", onClick: onClose }),
+              React.createElement(
+                motion.div,
+                {
+                  className: "relative w-full max-w-2xl",
+                  initial: { y: 20, scale: 0.98, opacity: 0 },
+                  animate: { y: 0, scale: 1, opacity: 1 },
+                  exit: { y: 20, scale: 0.98, opacity: 0 },
+                  transition: { duration: 0.2 }
+                },
+                React.createElement(
+                  Card,
+                  { className: "p-5" },
+                  React.createElement("div", { className: "flex items-center justify-between" },
+                    React.createElement("div", { className: "font-black text-lg" }, title || "Modal"),
+                    React.createElement("button", { className: "px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: onClose }, "✕")
+                  ),
+                  React.createElement("div", { className: "mt-4" }, children)
+                )
+              )
+            )
+        );
+      }
+
+      /* =========================
+         App
+      ========================= */
+      function App() {
+        const store = useAppStore();
+        const toast = useToast();
+
+        return React.createElement(
+          BrowserRouter,
+          null,
+          React.createElement(Toasts, { items: toast.items }),
+          React.createElement(
+            "div",
+            null,
+            React.createElement(
+              Routes,
+              null,
+              React.createElement(Route, { path: "/", element: React.createElement(Shell, null, React.createElement(Storefront, { store, toast })) }),
+              React.createElement(Route, { path: "/product/:id", element: React.createElement(Shell, null, React.createElement(ProductDetails, { store, toast })) }),
+              React.createElement(Route, { path: "/cart", element: React.createElement(Shell, null, React.createElement(CartPage, { store, toast })) }),
+              React.createElement(Route, { path: "/checkout", element: React.createElement(Shell, null, React.createElement(CheckoutPage, { store, toast })) }),
+
+              React.createElement(Route, { path: "/admin/login", element: React.createElement(AdminLogin, { store, toast }) }),
+              React.createElement(Route, {
+                path: "/admin/*",
+                element: React.createElement(RequireAdmin, { store, children: React.createElement(AdminLayout, { store, toast }) })
+              }),
+
+              React.createElement(Route, {
+                path: "*",
+                element: React.createElement(Shell, null,
+                  React.createElement(Empty, {
+                    title: "الصفحة غير موجودة",
+                    hint: "ارجع للمتجر.",
+                    action: React.createElement(LinkButton, { to: "/" }, "Home")
+                  })
+                )
+              })
+            )
+          )
+        );
+      }
+
+      function LinkButton({ to, children }) {
+        return React.createElement(Link, {
+          to,
+          className: "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white transition active:scale-[0.98]"
+        }, children);
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+    </script>
+  </body>
+</html>
 
