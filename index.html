@@ -911,6 +911,222 @@
           )
         );
       }
+function ChatWidget({ store, toast, navigate }) {
+  const [open, setOpen] = React.useState(false);
+  const [text, setText] = React.useState("");
+  const [msgs, setMsgs] = React.useState(() => ([
+    { role: "bot", content: "أهلًا 👋 أنا مساعد المتجر. اسألني: (ترشيحات إلكترونيات) أو (أرخص حاجة) أو (منتجات للبيت) أو (عايز حاجة تحت 500) 🙂" }
+  ]));
+
+  // helpers
+  const norm = (s) => (s || "").toLowerCase().trim();
+  const hasAny = (s, arr) => arr.some(w => s.includes(w));
+  const parseBudget = (s) => {
+    // يلقط رقم زي 500 / 1500 / 2,000
+    const m = s.replace(/,/g, "").match(/(\d{2,6})/);
+    return m ? Number(m[1]) : null;
+  };
+
+  const suggest = ({ category=null, maxPrice=null, sort="smart" } = {}) => {
+    let list = store.products.slice();
+
+    if (category) list = list.filter(p => (p.category || "").toLowerCase() === category.toLowerCase());
+    if (maxPrice != null) list = list.filter(p => Number(p.price) <= maxPrice);
+
+    if (sort === "cheap") list.sort((a,b) => a.price - b.price);
+    else if (sort === "expensive") list.sort((a,b) => b.price - a.price);
+    else {
+      // smart: خلي الأرخص/الأعلى تقييمًا (مفيش تقييم) فنعمل ترتيب قريب: أقرب للسعر المتوسط
+      const avg = list.reduce((s,p)=>s+Number(p.price||0),0)/(list.length||1);
+      list.sort((a,b)=>Math.abs(a.price-avg)-Math.abs(b.price-avg));
+    }
+
+    return list.slice(0, 3);
+  };
+
+  const answerFAQ = (s) => {
+    if (hasAny(s, ["شحن", "توصيل", "delivery"])) {
+      return "التوصيل Demo في المشروع. تقدر تكمل Checkout وهيتسجل Order في LocalStorage ✅";
+    }
+    if (hasAny(s, ["مرتجع", "استرجاع", "refund", "return"])) {
+      return "حالياً Demo: اعتبر سياسة الاسترجاع خلال 14 يوم بشرط سلامة المنتج. (تقدر تغيّر النص براحتك)";
+    }
+    if (hasAny(s, ["طرق دفع", "دفع", "payment"])) {
+      return "Demo: الدفع عند الاستلام/تحويل (رمزي). المهم إن الطلب بيتسجل 👌";
+    }
+    return null;
+  };
+
+  const renderProductCard = (p) => {
+    return {
+      type: "product",
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      category: p.category,
+      image: p.image
+    };
+  };
+
+  const botRespond = (raw) => {
+    const s = norm(raw);
+    // FAQ
+    const faq = answerFAQ(s);
+    if (faq) return [{ role:"bot", content: faq }];
+
+    // cart / checkout navigation
+    if (hasAny(s, ["السلة", "cart"])) {
+      return [
+        { role:"bot", content:"تمام. خليك رايح على السلة 🛒" },
+        { role:"bot", content:{ type:"action", label:"افتح السلة", onClick: () => navigate("/cart") } }
+      ];
+    }
+    if (hasAny(s, ["checkout", "الدفع", "اتمام", "إتمام", "طلب"])) {
+      return [
+        { role:"bot", content:"حاضر. هوديك لصفحة الـCheckout ✅" },
+        { role:"bot", content:{ type:"action", label:"افتح Checkout", onClick: () => navigate("/checkout") } }
+      ];
+    }
+
+    // Budget detection
+    const budget = parseBudget(s);
+
+    // Category detection (Arabic + English-ish)
+    const catMap = [
+      { key:"Electronics", words:["الكترون", "إلكترون", "سماعه", "سماعات", "ساعة", "watch", "headphone", "electronics"] },
+      { key:"Fashion", words:["ملابس", "هودي", "شوز", "حذاء", "fashion", "hoodie", "sneaker"] },
+      { key:"Home", words:["بيت", "منزل", "home", "بطانية", "معطر", "diffuser"] },
+      { key:"Beauty", words:["بيوتي", "مكياج", "بشرة", "lipstick", "skincare", "beauty"] },
+      { key:"Sports", words:["رياضة", "جيم", "sports", "bands", "زجاجة", "bottle"] }
+    ];
+
+    let chosenCat = null;
+    for (const c of catMap) {
+      if (hasAny(s, c.words)) { chosenCat = c.key; break; }
+    }
+
+    // Sorting intent
+    let sort = "smart";
+    if (hasAny(s, ["أرخص", "ارخص", "cheap", "اقل سعر"])) sort = "cheap";
+    if (hasAny(s, ["أغلى", "اغلى", "expensive", "اعلى سعر"])) sort = "expensive";
+
+    // Search by name intent
+    if (s.startsWith("ابحث") || s.startsWith("بحث") || s.startsWith("search")) {
+      const q = s.replace(/^ابحث|^بحث|^search/,"").trim();
+      const hits = store.products.filter(p => (p.name||"").toLowerCase().includes(q)).slice(0,3);
+      if (!hits.length) return [{ role:"bot", content:`مش لاقي "${q}". جرّب كلمة أبسط.` }];
+      return [
+        { role:"bot", content:`لقيتلك ${hits.length} نتيجة:` },
+        ...hits.map(p => ({ role:"bot", content: renderProductCard(p) }))
+      ];
+    }
+
+    // Suggestions default
+    const picks = suggest({ category: chosenCat, maxPrice: budget, sort });
+    if (!picks.length) {
+      return [{ role:"bot", content:"مش لاقي منتجات مطابقة. جرّب تصنيف تاني أو زوّد الميزانية." }];
+    }
+
+    const summaryBits = [];
+    if (chosenCat) summaryBits.push(`تصنيف: ${chosenCat}`);
+    if (budget != null) summaryBits.push(`تحت: ${budget}`);
+    if (sort !== "smart") summaryBits.push(`ترتيب: ${sort === "cheap" ? "الأرخص" : "الأغلى"}`);
+
+    return [
+      { role:"bot", content: `اقتراحاتي 🎯 ${summaryBits.length ? "(" + summaryBits.join(" • ") + ")" : ""}` },
+      ...picks.map(p => ({ role:"bot", content: renderProductCard(p) })),
+      { role:"bot", content:"عايز ترشيحات أكتر؟ قولّي: (إلكترونيات) أو (تحت 1000) أو (أرخص حاجة)" }
+    ];
+  };
+
+  const send = () => {
+    const v = text.trim();
+    if (!v) return;
+    setMsgs(m => [{ role:"user", content:v }, ...m]);
+    setText("");
+
+    // simulate thinking
+    setTimeout(() => {
+      const replies = botRespond(v);
+      setMsgs(m => [...replies, ...m]);
+    }, 240);
+  };
+
+  return React.createElement(
+    React.Fragment,
+    null,
+    // Floating button
+    React.createElement("button", {
+      onClick: () => setOpen(o => !o),
+      className: "fixed bottom-4 right-4 z-[9999] rounded-2xl px-4 py-3 font-extrabold bg-indigo-500/90 hover:bg-indigo-500 shadow-soft ring-soft"
+    }, open ? "✕" : "💬 اسألني"),
+    open && React.createElement("div", {
+      className: "fixed bottom-20 right-4 z-[9999] w-[min(360px,calc(100vw-2rem))] anim-pop"
+    },
+      React.createElement("div", { className:"glass ring-soft rounded-3xl overflow-hidden shadow-soft" },
+        React.createElement("div", { className:"p-3 border-b border-white/10 flex items-center justify-between" },
+          React.createElement("div", { className:"font-black" }, "مساعد المتجر"),
+          React.createElement("div", { className:"text-xs text-slate-300" }, "Local bot")
+        ),
+        React.createElement("div", { className:"p-3 h-80 overflow-auto scrollbar-thin space-y-2 flex flex-col-reverse" },
+          msgs.map((m, idx) => {
+            const isUser = m.role === "user";
+            const bubbleBase = "max-w-[85%] rounded-2xl px-3 py-2 text-sm ring-soft";
+            const bubbleCls = isUser ? cn(bubbleBase, "self-start bg-white/10") : cn(bubbleBase, "self-end bg-indigo-500/15");
+
+            // rich content
+            if (typeof m.content === "object" && m.content?.type === "action") {
+              return React.createElement("div", { key: idx, className: "self-end" },
+                React.createElement("button", { className:"px-3 py-2 rounded-2xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-bold", onClick: m.content.onClick }, m.content.label)
+              );
+            }
+
+            if (typeof m.content === "object" && m.content?.type === "product") {
+              const p = m.content;
+              return React.createElement("div", { key: idx, className:"self-end w-full" },
+                React.createElement("div", { className:"glass ring-soft rounded-2xl p-3 flex gap-3 items-center" },
+                  React.createElement("img", { src:p.image, className:"h-12 w-12 rounded-2xl object-cover ring-soft" }),
+                  React.createElement("div", { className:"flex-1 min-w-0" },
+                    React.createElement("div", { className:"font-extrabold truncate" }, p.name),
+                    React.createElement("div", { className:"text-xs text-slate-300 flex items-center gap-2 mt-1" },
+                      React.createElement("span", null, egp(p.price)),
+                      React.createElement("span", { className:"px-2 py-1 rounded-full bg-white/8" }, p.category)
+                    )
+                  ),
+                  React.createElement("div", { className:"flex flex-col gap-2" },
+                    React.createElement("button", {
+                      className:"px-3 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 text-xs font-bold",
+                      onClick: () => { 
+                        const real = store.products.find(x => x.id === p.id);
+                        if (real) { store.addToCart(real); toast.push("success", "اتضاف للسلة ✅"); }
+                      }
+                    }, "Add"),
+                    React.createElement("a", {
+                      className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold text-center",
+                      href: "#/product/" + p.id
+                    }, "Details")
+                  )
+                )
+              );
+            }
+
+            return React.createElement("div", { key: idx, className: bubbleCls }, String(m.content));
+          })
+        ),
+        React.createElement("div", { className:"p-3 border-t border-white/10 flex gap-2" },
+          React.createElement("input", {
+            value: text,
+            onChange: (e) => setText(e.target.value),
+            onKeyDown: (e) => { if (e.key === "Enter") send(); },
+            className:"flex-1 rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
+            placeholder:"اكتب سؤالك… مثل: تحت 500 أو أرخص إلكترونيات"
+          }),
+          React.createElement("button", { className:"px-4 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 font-extrabold", onClick: send }, "إرسال")
+        )
+      )
+    )
+  );
+}
 
       /* =========================
          App
