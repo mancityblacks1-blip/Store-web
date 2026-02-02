@@ -3,27 +3,49 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CV Builder - ملف واحد</title>
+  <title>CV Builder - قوالب متعددة - صفحة واحدة</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    /* تحسين الطباعة */
-    @media print {
-      body { background: #fff !important; }
-      .no-print { display: none !important; }
-      .print-area { box-shadow: none !important; border: none !important; }
-      .print-container { max-width: 100% !important; padding: 0 !important; }
-      .cv-page { border: none !important; border-radius: 0 !important; }
+    :root { --a4w: 210mm; --a4h: 297mm; }
+
+    /* A4 canvas */
+    .a4 {
+      width: var(--a4w);
+      min-height: var(--a4h);
+      background: #fff;
     }
+    @media (max-width: 1024px) {
+      .a4 { width: 100%; min-height: auto; }
+    }
+
+    /* Smooth shadow */
     .shadow-soft { box-shadow: 0 18px 40px rgba(0,0,0,.08); }
-    .a4 { width: 210mm; min-height: 297mm; }
-    @media (max-width: 1024px){ .a4 { width: 100%; } }
+
+    /* Print: single page + no extra margins */
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+      .print-shell { padding: 0 !important; max-width: 100% !important; }
+      .print-area { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
+      /* Prevent any accidental page breaks */
+      .print-area, .print-area * { page-break-inside: avoid; break-inside: avoid; }
+    }
+
+    /* Scale wrapper used only for print-fit */
+    #printScaleWrap { transform-origin: top right; }
+
+    /* Tiny helpers */
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 
 <body class="bg-zinc-50 text-zinc-900">
   <header class="no-print border-b border-zinc-200 bg-white">
     <div class="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-      <div class="font-semibold">🧾 CV Builder</div>
+      <div class="font-semibold">🧾 CV Builder (ملف واحد)</div>
       <div class="flex items-center gap-2">
         <button id="btnSave" class="h-10 px-4 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">
           حفظ
@@ -38,7 +60,7 @@
     </div>
   </header>
 
-  <main class="mx-auto max-w-6xl px-4 py-6 print-container">
+  <main class="mx-auto max-w-6xl px-4 py-6 print-shell">
     <div class="grid gap-4 lg:grid-cols-3">
       <!-- Form -->
       <section class="no-print lg:col-span-1 space-y-4">
@@ -46,13 +68,14 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <div class="text-lg font-semibold">بيانات الـ CV</div>
-              <div class="text-sm text-zinc-600">املأ البيانات وشوف الشكل فورًا</div>
+              <div class="text-sm text-zinc-600">قوالب متعددة + طباعة صفحة واحدة</div>
             </div>
-            <div class="w-40">
+            <div class="w-44">
               <label class="block text-xs text-zinc-600 mb-1">القالب</label>
               <select id="template" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300">
                 <option value="modern">Modern</option>
-                <option value="classic">Classic</option>
+                <option value="minimal">Minimal</option>
+                <option value="sidebar">Sidebar</option>
               </select>
             </div>
           </div>
@@ -62,9 +85,16 @@
               <label class="block text-xs text-zinc-600 mb-1">الاسم</label>
               <input id="fullName" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Ahmed Mohamed" />
             </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">المسمى الوظيفي</label>
-              <input id="title" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Frontend Developer" />
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">المسمى</label>
+                <input id="title" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Frontend Developer" />
+              </div>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">المكان</label>
+                <input id="location" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="Cairo, Egypt" />
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -78,18 +108,11 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">المكان</label>
-                <input id="location" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="Cairo, Egypt" />
-              </div>
+            <div class="grid grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs text-zinc-600 mb-1">LinkedIn</label>
                 <input id="linkedin" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="linkedin.com/in/..." />
               </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs text-zinc-600 mb-1">GitHub</label>
                 <input id="github" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="github.com/..." />
@@ -101,9 +124,9 @@
             </div>
 
             <div>
-              <label class="block text-xs text-zinc-600 mb-1">ملخص (Summary)</label>
+              <label class="block text-xs text-zinc-600 mb-1">Summary</label>
               <textarea id="summary" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-                placeholder="اكتب 3-5 سطور عنك: خبرتك، أقوى مهاراتك، نوع الشغل اللي بتستهدفه..."></textarea>
+                placeholder="3-5 سطور قوية عنك، خبرتك، وأهم إنجازاتك..."></textarea>
             </div>
           </div>
         </div>
@@ -138,7 +161,7 @@
         <!-- Skills -->
         <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
           <div class="font-semibold">المهارات</div>
-          <div class="mt-2 text-xs text-zinc-600">اكتبها مفصولة بفواصل: HTML, CSS, React...</div>
+          <div class="mt-2 text-xs text-zinc-600">مفصولة بفواصل: React, Next.js, ...</div>
           <input id="skills" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
             placeholder="React, Next.js, Tailwind, TypeScript..." />
         </div>
@@ -150,98 +173,179 @@
           <input id="languages" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
             placeholder="Arabic (Native), English (B2)" />
         </div>
+
+        <div class="rounded-2xl border border-zinc-200 bg-zinc-900 text-white p-4 shadow-soft">
+          <div class="text-sm font-semibold">ملاحظة مهمة</div>
+          <div class="mt-1 text-xs text-zinc-200">
+            لو محتوى الـ CV كبير جدًا، قبل الطباعة هيتم تصغيره تلقائيًا عشان يطلع صفحة واحدة.
+          </div>
+        </div>
       </section>
 
       <!-- Preview -->
       <section class="lg:col-span-2">
-        <div class="print-area mx-auto a4 rounded-2xl border border-zinc-200 bg-white shadow-soft overflow-hidden cv-page" id="cv">
-          <!-- Modern template header -->
-          <div id="modernHeader" class="hidden">
-            <div class="bg-zinc-900 text-white p-7">
-              <div class="flex items-start justify-between gap-6">
-                <div class="min-w-0">
-                  <div class="text-3xl font-semibold leading-tight" id="pName">—</div>
-                  <div class="mt-1 text-lg text-zinc-200" id="pTitle">—</div>
-                  <div class="mt-4 grid gap-1 text-sm text-zinc-200">
-                    <div id="pMeta1">—</div>
-                    <div id="pMeta2">—</div>
+        <div class="mx-auto a4 rounded-2xl border border-zinc-200 bg-white shadow-soft overflow-hidden print-area cv-page" id="cv">
+          <!-- Print scale wrapper -->
+          <div id="printScaleWrap">
+            <!-- Template containers -->
+            <div id="tplModern" class="hidden">
+              <div class="bg-zinc-900 text-white p-8">
+                <div class="flex items-start justify-between gap-6">
+                  <div class="min-w-0">
+                    <div class="text-3xl font-semibold leading-tight" id="mName">—</div>
+                    <div class="mt-1 text-lg text-zinc-200" id="mTitle">—</div>
+                    <div class="mt-4 text-sm text-zinc-200 space-y-1">
+                      <div id="mMeta1">—</div>
+                      <div id="mMeta2">—</div>
+                    </div>
+                  </div>
+                  <div class="w-52 text-right text-sm text-zinc-200">
+                    <div class="font-semibold text-white">Contacts</div>
+                    <div class="mt-2 space-y-1" id="mLinks">—</div>
                   </div>
                 </div>
-                <div class="w-40 text-right text-sm text-zinc-200">
-                  <div class="font-semibold text-white">Contacts</div>
-                  <div class="mt-2 space-y-1" id="pLinks">—</div>
+              </div>
+
+              <div class="p-8">
+                <div class="grid gap-7 lg:grid-cols-2">
+                  <div class="space-y-6">
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
+                      <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="mSummary">—</div>
+                    </section>
+
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
+                      <div class="mt-3 space-y-4" id="mExp">—</div>
+                    </section>
+
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
+                      <div class="mt-3 space-y-3" id="mProj">—</div>
+                    </section>
+                  </div>
+
+                  <div class="space-y-6">
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
+                      <div class="mt-3 space-y-3" id="mEdu">—</div>
+                    </section>
+
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SKILLS</h2>
+                      <div class="mt-3 flex flex-wrap gap-2" id="mSkills">—</div>
+                    </section>
+
+                    <section>
+                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">LANGUAGES</h2>
+                      <div class="mt-2 text-sm text-zinc-700" id="mLang">—</div>
+                    </section>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Classic template header -->
-          <div id="classicHeader" class="hidden p-7 border-b border-zinc-200">
-            <div class="flex items-start justify-between gap-6">
-              <div class="min-w-0">
-                <div class="text-3xl font-semibold leading-tight" id="cName">—</div>
-                <div class="mt-1 text-lg text-zinc-700" id="cTitle">—</div>
-                <div class="mt-3 text-sm text-zinc-600" id="cMeta">—</div>
-              </div>
-              <div class="text-right text-sm text-zinc-700">
-                <div class="font-semibold">Contacts</div>
-                <div class="mt-2 space-y-1" id="cLinks">—</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-7">
-            <!-- Summary -->
-            <section>
-              <h2 class="text-sm font-semibold tracking-wide text-zinc-900" id="hSummary">SUMMARY</h2>
-              <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="pSummary">—</div>
-            </section>
-
-            <div class="mt-6 grid gap-6 lg:grid-cols-2">
-              <!-- Left -->
-              <div class="space-y-6">
-                <section>
-                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">EXPERIENCE</h2>
-                  <div class="mt-3 space-y-4" id="pExp">—</div>
-                </section>
-
-                <section>
-                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">PROJECTS</h2>
-                  <div class="mt-3 space-y-3" id="pProj">—</div>
-                </section>
+            <div id="tplMinimal" class="hidden p-8">
+              <div class="flex items-start justify-between gap-6 border-b border-zinc-200 pb-5">
+                <div class="min-w-0">
+                  <div class="text-3xl font-semibold leading-tight" id="nName">—</div>
+                  <div class="mt-1 text-lg text-zinc-700" id="nTitle">—</div>
+                  <div class="mt-3 text-sm text-zinc-600" id="nMeta">—</div>
+                </div>
+                <div class="text-right text-sm text-zinc-700">
+                  <div class="font-semibold">Contacts</div>
+                  <div class="mt-2 space-y-1" id="nLinks">—</div>
+                </div>
               </div>
 
-              <!-- Right -->
-              <div class="space-y-6">
-                <section>
-                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">EDUCATION</h2>
-                  <div class="mt-3 space-y-3" id="pEdu">—</div>
-                </section>
+              <div class="mt-6 grid gap-7 lg:grid-cols-3">
+                <div class="lg:col-span-2 space-y-6">
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
+                    <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="nSummary">—</div>
+                  </section>
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
+                    <div class="mt-3 space-y-4" id="nExp">—</div>
+                  </section>
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
+                    <div class="mt-3 space-y-3" id="nProj">—</div>
+                  </section>
+                </div>
 
-                <section>
-                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">SKILLS</h2>
-                  <div class="mt-3 flex flex-wrap gap-2" id="pSkills">—</div>
-                </section>
-
-                <section>
-                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">LANGUAGES</h2>
-                  <div class="mt-2 text-sm text-zinc-700" id="pLang">—</div>
-                </section>
+                <div class="space-y-6">
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
+                    <div class="mt-3 space-y-3" id="nEdu">—</div>
+                  </section>
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SKILLS</h2>
+                    <div class="mt-3 flex flex-wrap gap-2" id="nSkills">—</div>
+                  </section>
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">LANGUAGES</h2>
+                    <div class="mt-2 text-sm text-zinc-700" id="nLang">—</div>
+                  </section>
+                </div>
               </div>
             </div>
 
-            <div class="mt-8 text-[11px] text-zinc-500">
-              Tip: احفظه كـ PDF من زر الطباعة.
+            <div id="tplSidebar" class="hidden">
+              <div class="grid grid-cols-12 min-h-[297mm]">
+                <aside class="col-span-4 bg-zinc-900 text-white p-8">
+                  <div class="text-2xl font-semibold leading-tight" id="sName">—</div>
+                  <div class="mt-1 text-sm text-zinc-200" id="sTitle">—</div>
+
+                  <div class="mt-5">
+                    <div class="text-xs font-semibold tracking-widest text-zinc-300">CONTACT</div>
+                    <div class="mt-2 text-sm text-zinc-200 space-y-1" id="sContact">—</div>
+                  </div>
+
+                  <div class="mt-6">
+                    <div class="text-xs font-semibold tracking-widest text-zinc-300">SKILLS</div>
+                    <div class="mt-3 flex flex-wrap gap-2" id="sSkills">—</div>
+                  </div>
+
+                  <div class="mt-6">
+                    <div class="text-xs font-semibold tracking-widest text-zinc-300">LANGUAGES</div>
+                    <div class="mt-2 text-sm text-zinc-200" id="sLang">—</div>
+                  </div>
+                </aside>
+
+                <section class="col-span-8 p-8">
+                  <section>
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
+                    <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="sSummary">—</div>
+                  </section>
+
+                  <section class="mt-6">
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
+                    <div class="mt-3 space-y-4" id="sExp">—</div>
+                  </section>
+
+                  <section class="mt-6">
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
+                    <div class="mt-3 space-y-3" id="sProj">—</div>
+                  </section>
+
+                  <section class="mt-6">
+                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
+                    <div class="mt-3 space-y-3" id="sEdu">—</div>
+                  </section>
+                </section>
+              </div>
             </div>
-          </div>
+          </div><!-- /printScaleWrap -->
         </div>
       </section>
     </div>
   </main>
 
   <script>
-    const LS_KEY = "cv_builder_v1";
+    const LS_KEY = "cv_builder_onepage_v2";
 
+    // -------- State --------
     const state = {
       template: "modern",
       fullName: "Ahmed Mohamed",
@@ -255,7 +359,7 @@
       summary:
 `Frontend Developer with experience building responsive web apps using React and Next.js.
 I focus on clean UI, performance, and maintainable code.
-Looking for opportunities to deliver modern products and delightful user experiences.`,
+Seeking opportunities to ship modern products and delightful user experiences.`,
       experiences: [
         {
           role: "Frontend Developer",
@@ -278,7 +382,7 @@ Looking for opportunities to deliver modern products and delightful user experie
       ],
       projects: [
         {
-          name: "E-commerce Store + Admin",
+          name: "E-commerce Store + Admin Dashboard",
           link: "github.com/yourrepo",
           bullets: [
             "Next.js storefront with cart, checkout demo and admin dashboard.",
@@ -290,8 +394,9 @@ Looking for opportunities to deliver modern products and delightful user experie
       languages: "Arabic (Native), English (B2)"
     };
 
-    // DOM
+    // -------- DOM helpers --------
     const el = (id) => document.getElementById(id);
+
     const inputs = {
       template: el("template"),
       fullName: el("fullName"),
@@ -307,31 +412,24 @@ Looking for opportunities to deliver modern products and delightful user experie
       languages: el("languages")
     };
 
-    // Preview targets
-    const modernHeader = el("modernHeader");
-    const classicHeader = el("classicHeader");
-
-    const pName = el("pName"), pTitle = el("pTitle"), pMeta1 = el("pMeta1"), pMeta2 = el("pMeta2"), pLinks = el("pLinks");
-    const cName = el("cName"), cTitle = el("cTitle"), cMeta = el("cMeta"), cLinks = el("cLinks");
-
-    const pSummary = el("pSummary");
-    const pExp = el("pExp");
-    const pEdu = el("pEdu");
-    const pProj = el("pProj");
-    const pSkills = el("pSkills");
-    const pLang = el("pLang");
-
     const expList = el("expList");
     const eduList = el("eduList");
     const projList = el("projList");
+
+    const addExp = el("addExp");
+    const addEdu = el("addEdu");
+    const addProj = el("addProj");
 
     const btnPdf = el("btnPdf");
     const btnSave = el("btnSave");
     const btnReset = el("btnReset");
 
-    const addExp = el("addExp");
-    const addEdu = el("addEdu");
-    const addProj = el("addProj");
+    const printScaleWrap = el("printScaleWrap");
+    const cv = el("cv");
+
+    const tplModern = el("tplModern");
+    const tplMinimal = el("tplMinimal");
+    const tplSidebar = el("tplSidebar");
 
     function escapeHtml(s) {
       return String(s ?? "")
@@ -347,121 +445,188 @@ Looking for opportunities to deliver modern products and delightful user experie
       t.className = "fixed left-1/2 top-4 -translate-x-1/2 z-50 rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm shadow-soft";
       t.textContent = msg;
       document.body.appendChild(t);
-      setTimeout(() => t.remove(), 1600);
+      setTimeout(() => t.remove(), 1400);
     }
 
-    function setTemplate(template) {
-      state.template = template;
-      if (template === "modern") {
-        modernHeader.classList.remove("hidden");
-        classicHeader.classList.add("hidden");
-      } else {
-        classicHeader.classList.remove("hidden");
-        modernHeader.classList.add("hidden");
-      }
-    }
-
-    function linkLine(label, value) {
-      if (!value) return "";
-      const safe = escapeHtml(value);
-      return `<div class="truncate"><span class="text-zinc-300">${label}:</span> <span class="text-white">${safe}</span></div>`;
-    }
-
-    function classicLinkLine(label, value) {
-      if (!value) return "";
-      const safe = escapeHtml(value);
-      return `<div class="truncate"><span class="text-zinc-500">${label}:</span> <span class="text-zinc-900">${safe}</span></div>`;
-    }
-
-    function renderChips(arr) {
+    // -------- Rendering bits --------
+    function renderChips(arr, tone = "light") {
       if (!arr || arr.length === 0) return `<span class="text-sm text-zinc-500">—</span>`;
-      return arr.map(s => `<span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700">${escapeHtml(s)}</span>`).join("");
+      if (tone === "dark") {
+        return arr.map(s => `<span class="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-white">${escapeHtml(s)}</span>`).join("");
+      }
+      return arr.map(s => `<span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] text-zinc-700">${escapeHtml(s)}</span>`).join("");
     }
 
-    function renderBullets(bullets) {
+    function renderBullets(bullets, compact = true) {
       if (!bullets || bullets.length === 0) return "";
+      const cls = compact ? "text-[12px]" : "text-sm";
       return `
-        <ul class="mt-2 list-disc pr-5 text-sm text-zinc-700 space-y-1">
+        <ul class="mt-2 list-disc pr-5 ${cls} text-zinc-700 space-y-1">
           ${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}
         </ul>
       `;
     }
 
-    function renderExp() {
-      if (!state.experiences.length) return `<div class="text-sm text-zinc-500">—</div>`;
-      return state.experiences.map((e) => `
+    function expBlock(e) {
+      return `
         <div>
           <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900">${escapeHtml(e.role)}</div>
-            <div class="text-xs text-zinc-500">${escapeHtml(e.period)}</div>
+            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(e.role)}</div>
+            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(e.period || "")}</div>
           </div>
-          <div class="text-sm text-zinc-700">${escapeHtml(e.company)}</div>
-          ${renderBullets(e.bullets)}
+          <div class="text-[12px] text-zinc-700">${escapeHtml(e.company || "")}</div>
+          ${renderBullets(e.bullets, true)}
         </div>
-      `).join("");
+      `;
     }
 
-    function renderEdu() {
-      if (!state.education.length) return `<div class="text-sm text-zinc-500">—</div>`;
-      return state.education.map((e) => `
+    function eduBlock(e) {
+      return `
         <div>
           <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900">${escapeHtml(e.degree)}</div>
-            <div class="text-xs text-zinc-500">${escapeHtml(e.period)}</div>
+            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(e.degree)}</div>
+            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(e.period || "")}</div>
           </div>
-          <div class="text-sm text-zinc-700">${escapeHtml(e.school)}</div>
-          ${e.details ? `<div class="mt-1 text-sm text-zinc-600">${escapeHtml(e.details)}</div>` : ""}
+          <div class="text-[12px] text-zinc-700">${escapeHtml(e.school || "")}</div>
+          ${e.details ? `<div class="mt-1 text-[12px] text-zinc-600">${escapeHtml(e.details)}</div>` : ""}
         </div>
-      `).join("");
+      `;
     }
 
-    function renderProj() {
-      if (!state.projects.length) return `<div class="text-sm text-zinc-500">—</div>`;
-      return state.projects.map((p) => `
+    function projBlock(p) {
+      return `
         <div>
           <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900">${escapeHtml(p.name)}</div>
-            <div class="text-xs text-zinc-500">${escapeHtml(p.link || "")}</div>
+            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(p.name)}</div>
+            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(p.link || "")}</div>
           </div>
-          ${renderBullets(p.bullets)}
+          ${renderBullets(p.bullets, true)}
         </div>
-      `).join("");
+      `;
     }
 
-    function syncInputsFromState() {
-      inputs.template.value = state.template;
-      inputs.fullName.value = state.fullName;
-      inputs.title.value = state.title;
-      inputs.phone.value = state.phone;
-      inputs.email.value = state.email;
-      inputs.location.value = state.location;
-      inputs.linkedin.value = state.linkedin;
-      inputs.github.value = state.github;
-      inputs.portfolio.value = state.portfolio;
-      inputs.summary.value = state.summary;
-      inputs.skills.value = state.skills.join(", ");
-      inputs.languages.value = state.languages;
+    function linksModern() {
+      const parts = [
+        ["LinkedIn", state.linkedin],
+        ["GitHub", state.github],
+        ["Portfolio", state.portfolio]
+      ].filter(([,v]) => (v||"").trim());
+
+      if (!parts.length) return `<div class="text-zinc-300">—</div>`;
+      return parts.map(([k,v]) =>
+        `<div class="truncate"><span class="text-zinc-300">${k}:</span> <span class="text-white">${escapeHtml(v)}</span></div>`
+      ).join("");
     }
 
-    function syncStateFromInputs() {
-      state.template = inputs.template.value;
-      state.fullName = inputs.fullName.value;
-      state.title = inputs.title.value;
-      state.phone = inputs.phone.value;
-      state.email = inputs.email.value;
-      state.location = inputs.location.value;
-      state.linkedin = inputs.linkedin.value;
-      state.github = inputs.github.value;
-      state.portfolio = inputs.portfolio.value;
-      state.summary = inputs.summary.value;
-      state.skills = (inputs.skills.value || "")
-        .split(",")
-        .map(s => s.trim())
-        .filter(Boolean);
-      state.languages = inputs.languages.value;
+    function linksLight() {
+      const parts = [
+        ["LinkedIn", state.linkedin],
+        ["GitHub", state.github],
+        ["Portfolio", state.portfolio]
+      ].filter(([,v]) => (v||"").trim());
+
+      if (!parts.length) return `<div class="text-zinc-500">—</div>`;
+      return parts.map(([k,v]) =>
+        `<div class="truncate"><span class="text-zinc-500">${k}:</span> <span class="text-zinc-900">${escapeHtml(v)}</span></div>`
+      ).join("");
     }
 
-    // Dynamic forms for Experience/Education/Projects
+    function contactDark() {
+      const lines = [
+        state.location && `📍 ${state.location}`,
+        state.phone && `📞 ${state.phone}`,
+        state.email && `✉️ ${state.email}`,
+        state.linkedin && `in: ${state.linkedin}`,
+        state.github && `gh: ${state.github}`,
+        state.portfolio && `web: ${state.portfolio}`
+      ].filter(Boolean);
+
+      return lines.length ? lines.map(x => `<div class="truncate">${escapeHtml(x)}</div>`).join("") : `<div class="text-zinc-300">—</div>`;
+    }
+
+    function setTemplate(t) {
+      state.template = t;
+
+      tplModern.classList.toggle("hidden", t !== "modern");
+      tplMinimal.classList.toggle("hidden", t !== "minimal");
+      tplSidebar.classList.toggle("hidden", t !== "sidebar");
+    }
+
+    function renderPreview() {
+      setTemplate(state.template);
+
+      const name = (state.fullName || "—").trim();
+      const title = (state.title || "—").trim();
+      const meta1 = [state.location, state.phone].filter(Boolean).join(" • ") || "—";
+      const meta2 = [state.email].filter(Boolean).join(" • ") || "—";
+
+      // modern IDs
+      const mName = el("mName"), mTitle = el("mTitle"), mMeta1 = el("mMeta1"), mMeta2 = el("mMeta2"), mLinks = el("mLinks");
+      const mSummary = el("mSummary"), mExp = el("mExp"), mProj = el("mProj"), mEdu = el("mEdu"), mSkills = el("mSkills"), mLang = el("mLang");
+
+      // minimal IDs
+      const nName = el("nName"), nTitle = el("nTitle"), nMeta = el("nMeta"), nLinks = el("nLinks");
+      const nSummary = el("nSummary"), nExp = el("nExp"), nProj = el("nProj"), nEdu = el("nEdu"), nSkills = el("nSkills"), nLang = el("nLang");
+
+      // sidebar IDs
+      const sName = el("sName"), sTitle = el("sTitle"), sContact = el("sContact"), sSkills = el("sSkills"), sLang = el("sLang");
+      const sSummary = el("sSummary"), sExp = el("sExp"), sProj = el("sProj"), sEdu = el("sEdu");
+
+      // content blocks
+      const expHtml = state.experiences.length ? state.experiences.map(expBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
+      const eduHtml = state.education.length ? state.education.map(eduBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
+      const projHtml = state.projects.length ? state.projects.map(projBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
+
+      const sum = (state.summary || "").trim() || "—";
+      const lang = (state.languages || "").trim() || "—";
+
+      // modern
+      if (mName) {
+        mName.textContent = name;
+        mTitle.textContent = title;
+        mMeta1.textContent = meta1;
+        mMeta2.textContent = meta2;
+        mLinks.innerHTML = linksModern();
+        mSummary.textContent = sum;
+        mExp.innerHTML = expHtml;
+        mEdu.innerHTML = eduHtml;
+        mProj.innerHTML = projHtml;
+        mSkills.innerHTML = renderChips(state.skills, "light");
+        mLang.textContent = lang;
+      }
+
+      // minimal
+      if (nName) {
+        nName.textContent = name;
+        nTitle.textContent = title;
+        nMeta.textContent = [state.location, state.phone, state.email].filter(Boolean).join(" • ") || "—";
+        nLinks.innerHTML = linksLight();
+        nSummary.textContent = sum;
+        nExp.innerHTML = expHtml;
+        nEdu.innerHTML = eduHtml;
+        nProj.innerHTML = projHtml;
+        nSkills.innerHTML = renderChips(state.skills, "light");
+        nLang.textContent = lang;
+      }
+
+      // sidebar
+      if (sName) {
+        sName.textContent = name;
+        sTitle.textContent = title;
+        sContact.innerHTML = contactDark();
+        sSkills.innerHTML = renderChips(state.skills, "dark");
+        sLang.textContent = lang;
+        sSummary.textContent = sum;
+        sExp.innerHTML = expHtml;
+        sProj.innerHTML = projHtml;
+        sEdu.innerHTML = eduHtml;
+      }
+
+      // reset print scale (screen)
+      printScaleWrap.style.transform = "scale(1)";
+    }
+
+    // -------- Dynamic Forms --------
     function expCard(e, idx) {
       const bulletsText = (e.bullets || []).join("\n");
       return `
@@ -559,76 +724,36 @@ Looking for opportunities to deliver modern products and delightful user experie
       projList.innerHTML = state.projects.map(projCard).join("");
     }
 
-    function renderPreview() {
-      setTemplate(state.template);
-
-      const name = (state.fullName || "—").trim();
-      const title = (state.title || "—").trim();
-
-      // meta lines
-      const meta1 = [state.location, state.phone].filter(Boolean).join(" • ") || "—";
-      const meta2 = [state.email].filter(Boolean).join(" • ") || "—";
-
-      // links
-      const linksModern =
-        [
-          ["LinkedIn", state.linkedin],
-          ["GitHub", state.github],
-          ["Portfolio", state.portfolio]
-        ]
-          .filter(([_, v]) => (v || "").trim().length > 0)
-          .map(([k, v]) => linkLine(k, v))
-          .join("") || `<div class="text-zinc-300">—</div>`;
-
-      const linksClassic =
-        [
-          ["LinkedIn", state.linkedin],
-          ["GitHub", state.github],
-          ["Portfolio", state.portfolio]
-        ]
-          .filter(([_, v]) => (v || "").trim().length > 0)
-          .map(([k, v]) => classicLinkLine(k, v))
-          .join("") || `<div class="text-zinc-500">—</div>`;
-
-      // modern
-      pName.textContent = name;
-      pTitle.textContent = title;
-      pMeta1.textContent = meta1;
-      pMeta2.textContent = meta2;
-      pLinks.innerHTML = linksModern;
-
-      // classic
-      cName.textContent = name;
-      cTitle.textContent = title;
-      cMeta.textContent = [state.location, state.phone, state.email].filter(Boolean).join(" • ") || "—";
-      cLinks.innerHTML = linksClassic;
-
-      pSummary.textContent = (state.summary || "").trim() || "—";
-      pExp.innerHTML = renderExp();
-      pEdu.innerHTML = renderEdu();
-      pProj.innerHTML = renderProj();
-      pSkills.innerHTML = renderChips(state.skills);
-      pLang.textContent = (state.languages || "").trim() || "—";
+    // -------- Sync --------
+    function syncInputsFromState() {
+      inputs.template.value = state.template;
+      inputs.fullName.value = state.fullName;
+      inputs.title.value = state.title;
+      inputs.phone.value = state.phone;
+      inputs.email.value = state.email;
+      inputs.location.value = state.location;
+      inputs.linkedin.value = state.linkedin;
+      inputs.github.value = state.github;
+      inputs.portfolio.value = state.portfolio;
+      inputs.summary.value = state.summary;
+      inputs.skills.value = state.skills.join(", ");
+      inputs.languages.value = state.languages;
     }
 
-    function save() {
-      localStorage.setItem(LS_KEY, JSON.stringify(state));
-      toast("✅ تم الحفظ");
-    }
-
-    function load() {
-      try {
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        Object.assign(state, data);
-      } catch {}
-    }
-
-    function reset() {
-      if (!confirm("إعادة ضبط كل البيانات؟")) return;
-      localStorage.removeItem(LS_KEY);
-      location.reload();
+    function syncStateFromInputs() {
+      state.template = inputs.template.value;
+      state.fullName = inputs.fullName.value;
+      state.title = inputs.title.value;
+      state.phone = inputs.phone.value;
+      state.email = inputs.email.value;
+      state.location = inputs.location.value;
+      state.linkedin = inputs.linkedin.value;
+      state.github = inputs.github.value;
+      state.portfolio = inputs.portfolio.value;
+      state.summary = inputs.summary.value;
+      state.skills = (inputs.skills.value || "")
+        .split(",").map(s => s.trim()).filter(Boolean);
+      state.languages = inputs.languages.value;
     }
 
     function syncAll() {
@@ -637,37 +762,94 @@ Looking for opportunities to deliver modern products and delightful user experie
       renderPreview();
     }
 
-    // Events (simple)
+    // -------- Save/Load --------
+    function save() {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      toast("✅ تم الحفظ");
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        Object.assign(state, data);
+      } catch {}
+    }
+    function reset() {
+      if (!confirm("إعادة ضبط كل البيانات؟")) return;
+      localStorage.removeItem(LS_KEY);
+      location.reload();
+    }
+
+    // -------- One-page print fit --------
+    function fitToSinglePage() {
+      // Reset
+      printScaleWrap.style.transform = "scale(1)";
+
+      // Only fit when A4 is active (desktop/print)
+      const wrap = printScaleWrap;
+      const maxH = cv.clientHeight; // should approximate A4 height in px in current render
+      const contentH = wrap.scrollHeight;
+
+      if (!maxH || !contentH) return;
+
+      // If content exceeds, scale down; cap to avoid too tiny
+      if (contentH > maxH) {
+        let scale = maxH / contentH;
+        scale = Math.max(0.72, Math.min(1, scale)); // don't go below 0.72
+        wrap.style.transform = `scale(${scale})`;
+      } else {
+        wrap.style.transform = "scale(1)";
+      }
+    }
+
+    // Ensure fit before print
+    window.addEventListener("beforeprint", fitToSinglePage);
+    window.addEventListener("afterprint", () => {
+      printScaleWrap.style.transform = "scale(1)";
+    });
+
+    // -------- Events --------
     Object.values(inputs).forEach(inp => inp.addEventListener("input", syncAll));
     inputs.template.addEventListener("change", syncAll);
 
     addExp.addEventListener("click", () => {
-      state.experiences.push({ role: "Role", company: "Company", period: "2023 - 2024", bullets: ["Achievement 1", "Achievement 2"] });
-      renderDynamicForms();
-      renderPreview();
+      state.experiences.push({
+        role: "Role",
+        company: "Company",
+        period: "2023 - 2024",
+        bullets: ["Achievement 1", "Achievement 2"]
+      });
+      renderDynamicForms(); renderPreview();
     });
 
     addEdu.addEventListener("click", () => {
-      state.education.push({ degree: "Degree", school: "School", period: "2019 - 2023", details: "" });
-      renderDynamicForms();
-      renderPreview();
+      state.education.push({
+        degree: "Degree",
+        school: "School",
+        period: "2019 - 2023",
+        details: ""
+      });
+      renderDynamicForms(); renderPreview();
     });
 
     addProj.addEventListener("click", () => {
-      state.projects.push({ name: "Project Name", link: "", bullets: ["What you built", "Tech used", "Result/impact"] });
-      renderDynamicForms();
-      renderPreview();
+      state.projects.push({
+        name: "Project Name",
+        link: "",
+        bullets: ["What you built", "Tech used", "Result/impact"]
+      });
+      renderDynamicForms(); renderPreview();
     });
 
-    // Delegated inputs for dynamic lists
+    // Delegated updates
     expList.addEventListener("input", (e) => {
       const t = e.target;
       if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
       const i = Number(t.dataset.i);
       const k = t.dataset.exp;
       if (!Number.isFinite(i) || !k) return;
-      const exp = state.experiences[i];
-      if (!exp) return;
+      const exp = state.experiences[i]; if (!exp) return;
 
       if (k === "role") exp.role = t.value;
       if (k === "company") exp.company = t.value;
@@ -677,13 +859,11 @@ Looking for opportunities to deliver modern products and delightful user experie
       renderPreview();
     });
     expList.addEventListener("click", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
+      const t = e.target; if (!(t instanceof HTMLElement)) return;
       const del = t.getAttribute("data-exp-del");
       if (del !== null) {
         state.experiences.splice(Number(del), 1);
-        renderDynamicForms();
-        renderPreview();
+        renderDynamicForms(); renderPreview();
       }
     });
 
@@ -693,8 +873,7 @@ Looking for opportunities to deliver modern products and delightful user experie
       const i = Number(t.dataset.i);
       const k = t.dataset.edu;
       if (!Number.isFinite(i) || !k) return;
-      const edu = state.education[i];
-      if (!edu) return;
+      const edu = state.education[i]; if (!edu) return;
 
       if (k === "degree") edu.degree = t.value;
       if (k === "school") edu.school = t.value;
@@ -704,13 +883,11 @@ Looking for opportunities to deliver modern products and delightful user experie
       renderPreview();
     });
     eduList.addEventListener("click", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
+      const t = e.target; if (!(t instanceof HTMLElement)) return;
       const del = t.getAttribute("data-edu-del");
       if (del !== null) {
         state.education.splice(Number(del), 1);
-        renderDynamicForms();
-        renderPreview();
+        renderDynamicForms(); renderPreview();
       }
     });
 
@@ -720,8 +897,7 @@ Looking for opportunities to deliver modern products and delightful user experie
       const i = Number(t.dataset.i);
       const k = t.dataset.proj;
       if (!Number.isFinite(i) || !k) return;
-      const proj = state.projects[i];
-      if (!proj) return;
+      const proj = state.projects[i]; if (!proj) return;
 
       if (k === "name") proj.name = t.value;
       if (k === "link") proj.link = t.value;
@@ -730,28 +906,31 @@ Looking for opportunities to deliver modern products and delightful user experie
       renderPreview();
     });
     projList.addEventListener("click", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
+      const t = e.target; if (!(t instanceof HTMLElement)) return;
       const del = t.getAttribute("data-proj-del");
       if (del !== null) {
         state.projects.splice(Number(del), 1);
-        renderDynamicForms();
-        renderPreview();
+        renderDynamicForms(); renderPreview();
       }
     });
 
-    btnPdf.addEventListener("click", () => window.print());
+    btnPdf.addEventListener("click", () => {
+      // Ensure last sync + fit before print dialog
+      syncAll();
+      fitToSinglePage();
+      window.print();
+    });
+
     btnSave.addEventListener("click", save);
     btnReset.addEventListener("click", reset);
 
-    // Init
+    // -------- Init --------
     (function init() {
       load();
       syncInputsFromState();
       renderDynamicForms();
       renderPreview();
-      setTemplate(state.template);
-      toast("جاهز ✅ املأ بياناتك واطبع PDF");
+      toast("جاهز ✅ اختر قالب واطبع PDF");
     })();
   </script>
 </body>
