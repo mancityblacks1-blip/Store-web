@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LocalStore + Admin (Single File, Hash Router)</title>
+    <title>LocalStore + Admin + Bot (Single File)</title>
 
     <!-- Tailwind (demo) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +35,7 @@
 
       @keyframes popIn {
         from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
       }
       .anim-pop { animation: popIn 220ms ease-out both; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -47,7 +47,7 @@
     <div id="root"></div>
 
     <script>
-      // ===== Safety: error overlay (helps debug if anything happens) =====
+      // ===== Error overlay (لو في أي مشكلة هتظهر بدل الشاشة السودة) =====
       (function () {
         const box = document.createElement("pre");
         box.style.cssText =
@@ -71,11 +71,11 @@
       const { useEffect, useMemo, useState, useContext, createContext } = React;
 
       /* =========================
-         Mini Hash Router (single-file friendly)
-         - supports params: /product/:id
-         - supports simple exact matches
+         Mini Hash Router (بدون أي مكتبة)
+         - يدعم params: /product/:id
       ========================= */
       const RouterCtx = createContext(null);
+      const RouteCtx = createContext({ params: {} });
 
       const getHashPath = () => {
         const h = (location.hash || "#/").slice(1);
@@ -83,7 +83,6 @@
       };
 
       function matchPath(pattern, path) {
-        // pattern like "/product/:id" or "/admin/products"
         const pSeg = (pattern || "").split("/").filter(Boolean);
         const aSeg = (path || "").split("/").filter(Boolean);
         if (pSeg.length !== aSeg.length) return null;
@@ -98,18 +97,15 @@
 
       function HashRouter({ children }) {
         const [path, setPath] = useState(getHashPath());
-
         useEffect(() => {
           const onHash = () => setPath(getHashPath());
           window.addEventListener("hashchange", onHash);
           return () => window.removeEventListener("hashchange", onHash);
         }, []);
-
         const navigate = (to) => {
           const target = String(to || "/");
           location.hash = "#" + (target.startsWith("/") ? target : "/" + target);
         };
-
         const value = useMemo(() => ({ path, navigate }), [path]);
         return React.createElement(RouterCtx.Provider, { value }, children);
       }
@@ -122,18 +118,14 @@
         const ctx = useContext(RouterCtx);
         return { pathname: ctx.path };
       }
-
-      function Link({ to, className, children }) {
-        return React.createElement(
-          "a",
-          {
-            href: "#" + (String(to || "/").startsWith("/") ? String(to || "/") : "/" + String(to || "/")),
-            className
-          },
-          children
-        );
+      function useParams() {
+        return useContext(RouteCtx).params || {};
       }
 
+      function Link({ to, className, children }) {
+        const href = "#" + (String(to || "/").startsWith("/") ? String(to || "/") : "/" + String(to || "/"));
+        return React.createElement("a", { href, className }, children);
+      }
       function NavLink({ to, end, className, children }) {
         const { pathname } = useLocation();
         const target = String(to || "/");
@@ -141,8 +133,7 @@
         const cls = typeof className === "function" ? className({ isActive: active }) : className;
         return React.createElement(Link, { to: target, className: cls }, children);
       }
-
-      function Navigate({ to, replace }) {
+      function Navigate({ to }) {
         const nav = useNavigate();
         useEffect(() => { nav(to); }, [to]);
         return null;
@@ -151,15 +142,15 @@
       function Routes({ children }) {
         const ctx = useContext(RouterCtx);
         const path = ctx.path;
-
         const arr = React.Children.toArray(children).filter(Boolean);
 
         for (const el of arr) {
           if (!el?.props) continue;
 
-          // index route support: <Route index element={...} />
           if (el.props.index) {
-            if (path === "/") return React.createElement(RouteCtx.Provider, { value: { params: {} } }, el.props.element);
+            if (path === "/") {
+              return React.createElement(RouteCtx.Provider, { value: { params: {} } }, el.props.element);
+            }
             continue;
           }
 
@@ -168,18 +159,14 @@
             return React.createElement(RouteCtx.Provider, { value: { params } }, el.props.element);
           }
         }
-        return null;
+        // fallback: لو مفيش match
+        return React.createElement(Navigate, { to: "/404" });
       }
 
-      function Route(_) { return null; } // for readability only
-
-      const RouteCtx = createContext({ params: {} });
-      function useParams() {
-        return useContext(RouteCtx).params || {};
-      }
+      function Route(_) { return null; } // purely declarative
 
       /* =========================
-         Helpers + Data
+         Helpers + Seed Data
       ========================= */
       const cn = (...xs) => xs.filter(Boolean).join(" ");
       const egp = (n) => new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(n || 0);
@@ -187,10 +174,10 @@
       const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
       const LS_KEYS = {
-        products: "ls_products_v5",
-        cart: "ls_cart_v5",
-        orders: "ls_orders_v5",
-        admin: "ls_admin_v5"
+        products: "ls_products_v6",
+        cart: "ls_cart_v6",
+        orders: "ls_orders_v6",
+        admin: "ls_admin_v6"
       };
 
       const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports"];
@@ -272,7 +259,7 @@
       }
 
       /* =========================
-         Store (LocalStorage)
+         Store State (LocalStorage)
       ========================= */
       function useAppStore() {
         const [products, setProducts] = useState(() => {
@@ -326,22 +313,19 @@
             setCart((prev) => prev.filter((x) => x.id !== id));
           }
         };
-        const ordersCRUD = {
-          setStatus(id, status) { setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o))); }
-        };
+        const ordersCRUD = { setStatus(id, status) { setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o))); } };
 
         return { products, cart, orders, admin, cartCount, cartTotal, addToCart, updateQty, removeFromCart, clearCart, createOrder, adminLogin, adminLogout, productsCRUD, ordersCRUD };
       }
 
       /* =========================
-         UI components
+         UI Components
       ========================= */
       function Card({ className, children }) {
         return React.createElement("div", { className: cn("glass ring-soft rounded-3xl shadow-soft", className) }, children);
       }
       function Button({ className, variant = "primary", ...props }) {
-        const base =
-          "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+        const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
         const styles =
           variant === "primary" ? "bg-indigo-500/90 hover:bg-indigo-500 text-white"
           : variant === "ghost" ? "bg-white/5 hover:bg-white/10 text-white"
@@ -356,13 +340,12 @@
         });
       }
       function Select({ className, children, ...props }) {
-        return React.createElement(
-          "select",
-          { className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className), ...props },
-          children
-        );
+        return React.createElement("select", {
+          className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className),
+          ...props
+        }, children);
       }
-      function Badge({ tone = "slate", children }) {
+      function Badge({ tone="slate", children }) {
         const map = {
           indigo: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/20",
           emerald: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/20",
@@ -373,93 +356,252 @@
         return React.createElement("span", { className: cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", map[tone] || map.slate) }, children);
       }
       function Shell({ children }) {
-        return React.createElement("div", { className: "min-h-screen" }, React.createElement("div", { className: "max-w-6xl mx-auto px-4 py-6" }, children));
+        return React.createElement("div", { className:"min-h-screen" }, React.createElement("div", { className:"max-w-6xl mx-auto px-4 py-6" }, children));
       }
       function PageTitle({ title, subtitle, right }) {
-        return React.createElement(
-          "div",
-          { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
+        return React.createElement("div", { className:"flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
           React.createElement("div", null,
-            React.createElement("div", { className: "text-2xl font-black tracking-tight" }, title),
-            subtitle ? React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, subtitle) : null
+            React.createElement("div", { className:"text-2xl font-black tracking-tight" }, title),
+            subtitle ? React.createElement("div", { className:"mt-1 text-sm text-slate-300" }, subtitle) : null
           ),
           right ? React.createElement("div", null, right) : null
         );
       }
       function Empty({ title, hint, action }) {
-        return React.createElement(
-          Card,
-          { className: "p-8 text-center anim-pop" },
-          React.createElement("div", { className: "text-xl font-extrabold" }, title || "مفيش بيانات"),
-          React.createElement("div", { className: "mt-2 text-sm text-slate-300" }, hint || "جرّب تاني ✨"),
-          action ? React.createElement("div", { className: "mt-5" }, action) : null
+        return React.createElement(Card, { className:"p-8 text-center anim-pop" },
+          React.createElement("div", { className:"text-xl font-extrabold" }, title || "مفيش بيانات"),
+          React.createElement("div", { className:"mt-2 text-sm text-slate-300" }, hint || "جرّب تاني ✨"),
+          action ? React.createElement("div", { className:"mt-5" }, action) : null
         );
       }
       function LoadingSkeleton() {
-        return React.createElement(
-          "div",
-          { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
-          Array.from({ length: 6 }).map((_, i) =>
-            React.createElement(
-              Card,
-              { key: i, className: "p-4 anim-pop" },
-              React.createElement("div", { className: "h-40 rounded-2xl bg-white/5 animate-pulse" }),
-              React.createElement("div", { className: "mt-4 h-4 w-3/4 rounded bg-white/5 animate-pulse" }),
-              React.createElement("div", { className: "mt-2 h-4 w-1/2 rounded bg-white/5 animate-pulse" }),
-              React.createElement("div", { className: "mt-4 h-9 rounded-2xl bg-white/5 animate-pulse" })
+        return React.createElement("div", { className:"grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+          Array.from({length:6}).map((_,i)=>React.createElement(Card,{key:i,className:"p-4 anim-pop"},
+            React.createElement("div",{className:"h-40 rounded-2xl bg-white/5 animate-pulse"}),
+            React.createElement("div",{className:"mt-4 h-4 w-3/4 rounded bg-white/5 animate-pulse"}),
+            React.createElement("div",{className:"mt-2 h-4 w-1/2 rounded bg-white/5 animate-pulse"}),
+            React.createElement("div",{className:"mt-4 h-9 rounded-2xl bg-white/5 animate-pulse"})
+          ))
+        );
+      }
+      function Modal({ open, onClose, title, children }) {
+        if (!open) return null;
+        return React.createElement("div",{className:"fixed inset-0 z-[999] grid place-items-center p-4 anim-fade"},
+          React.createElement("div",{className:"absolute inset-0 bg-black/60",onClick:onClose}),
+          React.createElement("div",{className:"relative w-full max-w-2xl anim-pop"},
+            React.createElement(Card,{className:"p-5"},
+              React.createElement("div",{className:"flex items-center justify-between"},
+                React.createElement("div",{className:"font-black text-lg"},title||"Modal"),
+                React.createElement("button",{className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm",onClick:onClose},"✕")
+              ),
+              React.createElement("div",{className:"mt-4"},children)
             )
           )
         );
       }
 
       function StoreHeader({ cartCount }) {
-        return React.createElement(
-          Card,
-          { className: "p-4 mb-6 anim-pop" },
-          React.createElement(
-            "div",
-            { className: "flex items-center justify-between gap-3 flex-wrap" },
-            React.createElement(
-              Link,
-              { to: "/", className: "flex items-center gap-3" },
-              React.createElement("div", { className: "h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black" }, "LS"),
-              React.createElement("div", null,
-                React.createElement("div", { className: "font-extrabold" }, "LocalStore"),
-                React.createElement("div", { className: "text-xs text-slate-300" }, "Single-file Hash Router")
+        return React.createElement(Card,{className:"p-4 mb-6 anim-pop"},
+          React.createElement("div",{className:"flex items-center justify-between gap-3 flex-wrap"},
+            React.createElement(Link,{to:"/",className:"flex items-center gap-3"},
+              React.createElement("div",{className:"h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black"},"LS"),
+              React.createElement("div",null,
+                React.createElement("div",{className:"font-extrabold"},"LocalStore"),
+                React.createElement("div",{className:"text-xs text-slate-300"},"Single-file + LocalStorage + Bot")
               )
             ),
-            React.createElement("div", { className: "flex items-center gap-2" },
-              React.createElement(NavLink, { to: "/", end: true, className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "المنتجات"),
-              React.createElement(NavLink, { to: "/cart", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2", isActive ? "bg-white/10" : "hover:bg-white/5") },
-                React.createElement("span", null, "السلة"),
-                React.createElement(Badge, { tone: "slate" }, cartCount)
+            React.createElement("div",{className:"flex items-center gap-2"},
+              React.createElement(NavLink,{to:"/",end:true,className:({isActive})=>cn("px-3 py-2 rounded-2xl text-sm font-semibold",isActive?"bg-white/10":"hover:bg-white/5")},"المنتجات"),
+              React.createElement(NavLink,{to:"/cart",className:({isActive})=>cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2",isActive?"bg-white/10":"hover:bg-white/5")},
+                React.createElement("span",null,"السلة"),
+                React.createElement(Badge,{tone:"slate"},cartCount)
               ),
-              React.createElement(NavLink, { to: "/admin/login", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "Admin")
-            )
-          )
-        );
-      }
-
-      function Modal({ open, onClose, title, children }) {
-        if (!open) return null;
-        return React.createElement(
-          "div",
-          { className: "fixed inset-0 z-[999] grid place-items-center p-4 anim-fade" },
-          React.createElement("div", { className: "absolute inset-0 bg-black/60", onClick: onClose }),
-          React.createElement("div", { className: "relative w-full max-w-2xl anim-pop" },
-            React.createElement(Card, { className: "p-5" },
-              React.createElement("div", { className: "flex items-center justify-between" },
-                React.createElement("div", { className: "font-black text-lg" }, title || "Modal"),
-                React.createElement("button", { className: "px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: onClose }, "✕")
-              ),
-              React.createElement("div", { className: "mt-4" }, children)
+              React.createElement(NavLink,{to:"/admin/login",className:({isActive})=>cn("px-3 py-2 rounded-2xl text-sm font-semibold",isActive?"bg-white/10":"hover:bg-white/5")},"Admin")
             )
           )
         );
       }
 
       /* =========================
-         Pages
+         Chat Bot Widget (بدون Backend)
+      ========================= */
+      function ChatWidget({ store, toast }) {
+        const nav = useNavigate();
+        const [open, setOpen] = useState(false);
+        const [text, setText] = useState("");
+        const [msgs, setMsgs] = useState(() => ([
+          { role:"bot", content:"أهلًا 👋 أنا مساعد المتجر. قولّي: (أرخص حاجة) أو (إلكترونيات تحت 1000) أو (شحن/استرجاع) 🙂" }
+        ]));
+
+        const norm = (s) => (s || "").toLowerCase().trim();
+        const hasAny = (s, arr) => arr.some(w => s.includes(w));
+        const parseBudget = (s) => {
+          const m = s.replace(/,/g,"").match(/(\d{2,6})/);
+          return m ? Number(m[1]) : null;
+        };
+
+        const answerFAQ = (s) => {
+          if (hasAny(s, ["شحن","توصيل","delivery"])) return "التوصيل Demo. اعمل Checkout وهيتسجل Order في LocalStorage ✅";
+          if (hasAny(s, ["مرتجع","استرجاع","refund","return"])) return "Demo: سياسة الاسترجاع 14 يوم بشرط سلامة المنتج. (تقدر تغيّرها)";
+          if (hasAny(s, ["طرق دفع","دفع","payment"])) return "Demo: الدفع عند الاستلام/تحويل (رمزي). الهدف تسجيل الطلب 👌";
+          return null;
+        };
+
+        const suggest = ({ category=null, maxPrice=null, sort="smart" } = {}) => {
+          let list = store.products.slice();
+          if (category) list = list.filter(p => (p.category||"").toLowerCase() === category.toLowerCase());
+          if (maxPrice != null) list = list.filter(p => Number(p.price) <= maxPrice);
+          if (sort === "cheap") list.sort((a,b)=>a.price-b.price);
+          else if (sort === "expensive") list.sort((a,b)=>b.price-a.price);
+          else {
+            const avg = list.reduce((s,p)=>s+Number(p.price||0),0)/(list.length||1);
+            list.sort((a,b)=>Math.abs(a.price-avg)-Math.abs(b.price-avg));
+          }
+          return list.slice(0,3);
+        };
+
+        const renderProduct = (p) => ({ type:"product", id:p.id, name:p.name, price:p.price, category:p.category, image:p.image });
+
+        const botRespond = (raw) => {
+          const s = norm(raw);
+          const faq = answerFAQ(s);
+          if (faq) return [{ role:"bot", content: faq }];
+
+          if (hasAny(s, ["السلة","cart"])) {
+            return [
+              { role:"bot", content:"تمام 🛒 هوديك للسلة." },
+              { role:"bot", content:{ type:"action", label:"افتح السلة", onClick: ()=>nav("/cart") } }
+            ];
+          }
+          if (hasAny(s, ["checkout","الدفع","اتمام","إتمام","طلب"])) {
+            return [
+              { role:"bot", content:"حاضر ✅ هوديك للـCheckout." },
+              { role:"bot", content:{ type:"action", label:"افتح Checkout", onClick: ()=>nav("/checkout") } }
+            ];
+          }
+
+          // name search
+          if (s.startsWith("ابحث") || s.startsWith("بحث") || s.startsWith("search")) {
+            const q = s.replace(/^ابحث|^بحث|^search/,"").trim();
+            const hits = store.products.filter(p => (p.name||"").toLowerCase().includes(q)).slice(0,3);
+            if (!hits.length) return [{ role:"bot", content:`مش لاقي "${q}". جرّب كلمة أبسط.` }];
+            return [
+              { role:"bot", content:`لقيتلك ${hits.length} نتيجة:` },
+              ...hits.map(p => ({ role:"bot", content: renderProduct(p) }))
+            ];
+          }
+
+          const budget = parseBudget(s);
+
+          const catMap = [
+            { key:"Electronics", words:["الكترون","إلكترون","سماعه","سماعات","ساعة","watch","headphone","electronics"] },
+            { key:"Fashion",     words:["ملابس","هودي","شوز","حذاء","fashion","hoodie","sneaker"] },
+            { key:"Home",        words:["بيت","منزل","home","بطانية","معطر","diffuser"] },
+            { key:"Beauty",      words:["بيوتي","مكياج","بشرة","lipstick","skincare","beauty"] },
+            { key:"Sports",      words:["رياضة","جيم","sports","bands","زجاجة","bottle"] }
+          ];
+          let chosenCat = null;
+          for (const c of catMap) { if (hasAny(s, c.words)) { chosenCat = c.key; break; } }
+
+          let sort = "smart";
+          if (hasAny(s, ["أرخص","ارخص","cheap","اقل سعر"])) sort = "cheap";
+          if (hasAny(s, ["أغلى","اغلى","expensive","اعلى سعر"])) sort = "expensive";
+
+          const picks = suggest({ category: chosenCat, maxPrice: budget, sort });
+          if (!picks.length) return [{ role:"bot", content:"مش لاقي منتجات مطابقة. جرّب تصنيف تاني أو زوّد الميزانية." }];
+
+          const bits = [];
+          if (chosenCat) bits.push("تصنيف: " + chosenCat);
+          if (budget != null) bits.push("تحت: " + budget);
+          if (sort !== "smart") bits.push("ترتيب: " + (sort==="cheap" ? "الأرخص" : "الأغلى"));
+
+          return [
+            { role:"bot", content:`اقتراحاتي 🎯 ${bits.length ? "(" + bits.join(" • ") + ")" : ""}` },
+            ...picks.map(p => ({ role:"bot", content: renderProduct(p) })),
+            { role:"bot", content:"عايز أكتر؟ قولّي: (أرخص حاجة) أو (Home تحت 600) أو (إلكترونيات) 🙂" }
+          ];
+        };
+
+        const send = () => {
+          const v = text.trim();
+          if (!v) return;
+          setMsgs(m => [{ role:"user", content:v }, ...m]);
+          setText("");
+          setTimeout(() => {
+            const replies = botRespond(v);
+            setMsgs(m => [...replies, ...m]);
+          }, 220);
+        };
+
+        return React.createElement(React.Fragment, null,
+          React.createElement("button", {
+            onClick: () => setOpen(o => !o),
+            className: "fixed bottom-4 right-4 z-[9999] rounded-2xl px-4 py-3 font-extrabold bg-indigo-500/90 hover:bg-indigo-500 shadow-soft ring-soft"
+          }, open ? "✕" : "💬 اسألني"),
+          open && React.createElement("div", { className:"fixed bottom-20 right-4 z-[9999] w-[min(360px,calc(100vw-2rem))] anim-pop" },
+            React.createElement("div", { className:"glass ring-soft rounded-3xl overflow-hidden shadow-soft" },
+              React.createElement("div", { className:"p-3 border-b border-white/10 flex items-center justify-between" },
+                React.createElement("div", { className:"font-black" }, "مساعد المتجر"),
+                React.createElement("div", { className:"text-xs text-slate-300" }, "Local Bot")
+              ),
+              React.createElement("div", { className:"p-3 h-80 overflow-auto scrollbar-thin space-y-2 flex flex-col-reverse" },
+                msgs.map((m, idx) => {
+                  const isUser = m.role === "user";
+                  const bubble = "max-w-[85%] rounded-2xl px-3 py-2 text-sm ring-soft";
+                  const cls = isUser ? cn(bubble,"self-start bg-white/10") : cn(bubble,"self-end bg-indigo-500/15");
+
+                  if (typeof m.content === "object" && m.content?.type === "action") {
+                    return React.createElement("div",{key:idx,className:"self-end"},
+                      React.createElement("button",{className:"px-3 py-2 rounded-2xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-bold",onClick:m.content.onClick},m.content.label)
+                    );
+                  }
+
+                  if (typeof m.content === "object" && m.content?.type === "product") {
+                    const p = m.content;
+                    return React.createElement("div",{key:idx,className:"self-end w-full"},
+                      React.createElement("div",{className:"glass ring-soft rounded-2xl p-3 flex gap-3 items-center"},
+                        React.createElement("img",{src:p.image,className:"h-12 w-12 rounded-2xl object-cover ring-soft"}),
+                        React.createElement("div",{className:"flex-1 min-w-0"},
+                          React.createElement("div",{className:"font-extrabold truncate"},p.name),
+                          React.createElement("div",{className:"text-xs text-slate-300 flex items-center gap-2 mt-1"},
+                            React.createElement("span",null,egp(p.price)),
+                            React.createElement("span",{className:"px-2 py-1 rounded-full bg-white/8"},p.category)
+                          )
+                        ),
+                        React.createElement("div",{className:"flex flex-col gap-2"},
+                          React.createElement("button",{
+                            className:"px-3 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 text-xs font-bold",
+                            onClick:()=>{ const real=store.products.find(x=>x.id===p.id); if(real){store.addToCart(real); toast.push("success","اتضاف للسلة ✅");} }
+                          },"Add"),
+                          React.createElement("a",{
+                            className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold text-center",
+                            href:"#/product/"+p.id
+                          },"Details")
+                        )
+                      )
+                    );
+                  }
+
+                  return React.createElement("div",{key:idx,className:cls},String(m.content));
+                })
+              ),
+              React.createElement("div",{className:"p-3 border-t border-white/10 flex gap-2"},
+                React.createElement("input",{
+                  value:text,
+                  onChange:(e)=>setText(e.target.value),
+                  onKeyDown:(e)=>{ if(e.key==="Enter") send(); },
+                  className:"flex-1 rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
+                  placeholder:"مثال: أرخص إلكترونيات تحت 1000"
+                }),
+                React.createElement("button",{className:"px-4 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 font-extrabold",onClick:send},"إرسال")
+              )
+            )
+          )
+        );
+      }
+
+      /* =========================
+         Pages: Store
       ========================= */
       function Storefront({ store, toast }) {
         const [q, setQ] = useState("");
@@ -467,7 +609,7 @@
         const [sort, setSort] = useState("none");
         const [loading, setLoading] = useState(true);
 
-        useEffect(() => { const t = setTimeout(() => setLoading(false), 260); return () => clearTimeout(t); }, []);
+        useEffect(() => { const t=setTimeout(()=>setLoading(false),260); return ()=>clearTimeout(t); }, []);
 
         const filtered = useMemo(() => {
           let list = store.products.slice();
@@ -483,52 +625,46 @@
 
         const add = (p) => { store.addToCart(p); toast.push("success", `اتضاف للسلة: ${p.name}`); };
 
-        return React.createElement(
-          React.Fragment,
-          null,
+        return React.createElement(React.Fragment, null,
           React.createElement(StoreHeader, { cartCount: store.cartCount }),
           React.createElement(PageTitle, {
             title: "المنتجات",
             subtitle: "Search + Filter + Sort. البيانات محفوظة في LocalStorage.",
-            right: React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]" },
-              React.createElement(Input, { value: q, onChange: (e) => setQ(e.target.value), placeholder: "Search بالاسم…" }),
-              React.createElement(Select, { value: cat, onChange: (e) => setCat(e.target.value) }, CATEGORIES.map((c) => React.createElement("option", { key: c, value: c }, c))),
-              React.createElement(Select, { value: sort, onChange: (e) => setSort(e.target.value) },
-                React.createElement("option", { value: "none" }, "Sort: بدون"),
-                React.createElement("option", { value: "price_asc" }, "السعر: الأقل للأعلى"),
-                React.createElement("option", { value: "price_desc" }, "السعر: الأعلى للأقل")
+            right: React.createElement("div",{className:"grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]"},
+              React.createElement(Input,{value:q,onChange:(e)=>setQ(e.target.value),placeholder:"Search بالاسم…"}),
+              React.createElement(Select,{value:cat,onChange:(e)=>setCat(e.target.value)},CATEGORIES.map(c=>React.createElement("option",{key:c,value:c},c))),
+              React.createElement(Select,{value:sort,onChange:(e)=>setSort(e.target.value)},
+                React.createElement("option",{value:"none"},"Sort: بدون"),
+                React.createElement("option",{value:"price_asc"},"السعر: الأقل للأعلى"),
+                React.createElement("option",{value:"price_desc"},"السعر: الأعلى للأقل")
               )
             )
           }),
-          React.createElement("div", { className: "mt-4" },
-            loading
-              ? React.createElement(LoadingSkeleton)
-              : filtered.length === 0
-              ? React.createElement(Empty, { title: "مفيش نتائج", hint: "جرّب تغيّر البحث أو الفلتر." })
-              : React.createElement("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
-                  filtered.map((p) =>
-                    React.createElement("div", { key: p.id, className: "anim-pop" },
-                      React.createElement(Card, { className: "overflow-hidden" },
-                        React.createElement(Link, { to: `/product/${p.id}`, className: "block" },
-                          React.createElement("img", { src: p.image, alt: p.name, className: "h-44 w-full object-cover" })
+          React.createElement("div",{className:"mt-4"},
+            loading ? React.createElement(LoadingSkeleton)
+            : filtered.length===0 ? React.createElement(Empty,{title:"مفيش نتائج",hint:"جرّب تغيّر البحث أو الفلتر."})
+            : React.createElement("div",{className:"grid gap-4 sm:grid-cols-2 lg:grid-cols-3"},
+                filtered.map(p=>React.createElement("div",{key:p.id,className:"anim-pop"},
+                  React.createElement(Card,{className:"overflow-hidden"},
+                    React.createElement(Link,{to:`/product/${p.id}`,className:"block"},
+                      React.createElement("img",{src:p.image,alt:p.name,className:"h-44 w-full object-cover"})
+                    ),
+                    React.createElement("div",{className:"p-4"},
+                      React.createElement("div",{className:"flex items-start justify-between gap-3"},
+                        React.createElement("div",null,
+                          React.createElement(Link,{to:`/product/${p.id}`,className:"font-extrabold hover:underline"},p.name),
+                          React.createElement("div",{className:"mt-1 text-sm text-slate-300"},egp(p.price))
                         ),
-                        React.createElement("div", { className: "p-4" },
-                          React.createElement("div", { className: "flex items-start justify-between gap-3" },
-                            React.createElement("div", null,
-                              React.createElement(Link, { to: `/product/${p.id}`, className: "font-extrabold hover:underline" }, p.name),
-                              React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, egp(p.price))
-                            ),
-                            React.createElement(Badge, { tone: "indigo" }, p.category)
-                          ),
-                          React.createElement("div", { className: "mt-3 flex gap-2" },
-                            React.createElement(Button, { className: "flex-1", onClick: () => add(p) }, "Add to Cart"),
-                            React.createElement(Button, { variant: "ghost", onClick: () => toast.push("info", "Demo UI ✨") }, "♡")
-                          )
-                        )
+                        React.createElement(Badge,{tone:"indigo"},p.category)
+                      ),
+                      React.createElement("div",{className:"mt-3 flex gap-2"},
+                        React.createElement(Button,{className:"flex-1",onClick:()=>add(p)},"Add to Cart"),
+                        React.createElement(Button,{variant:"ghost",onClick:()=>toast.push("info","جرّب تسأل البوت 💬")},"💡")
                       )
                     )
                   )
-                )
+                ))
+              )
           )
         );
       }
@@ -539,29 +675,33 @@
         const p = store.products.find((x) => x.id === id);
 
         if (!p) {
-          return React.createElement(React.Fragment, null,
-            React.createElement(StoreHeader, { cartCount: store.cartCount }),
-            React.createElement(Empty, { title: "المنتج غير موجود", hint: "ممكن اتمسح من الأدمن.", action: React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر") })
+          return React.createElement(React.Fragment,null,
+            React.createElement(StoreHeader,{cartCount:store.cartCount}),
+            React.createElement(Empty,{
+              title:"المنتج غير موجود",
+              hint:"ممكن اتمسح من الأدمن.",
+              action:React.createElement(Button,{onClick:()=>nav("/")}, "رجوع للمتجر")
+            })
           );
         }
 
-        return React.createElement(React.Fragment, null,
-          React.createElement(StoreHeader, { cartCount: store.cartCount }),
-          React.createElement(Card, { className: "overflow-hidden anim-pop" },
-            React.createElement("div", { className: "grid lg:grid-cols-2" },
-              React.createElement("img", { src: p.image, alt: p.name, className: "h-64 lg:h-full w-full object-cover" }),
-              React.createElement("div", { className: "p-6" },
-                React.createElement("div", { className: "flex items-center justify-between gap-3" },
-                  React.createElement("div", null,
-                    React.createElement("div", { className: "text-2xl font-black" }, p.name),
-                    React.createElement("div", { className: "mt-2 text-slate-300" }, egp(p.price))
+        return React.createElement(React.Fragment,null,
+          React.createElement(StoreHeader,{cartCount:store.cartCount}),
+          React.createElement(Card,{className:"overflow-hidden anim-pop"},
+            React.createElement("div",{className:"grid lg:grid-cols-2"},
+              React.createElement("img",{src:p.image,alt:p.name,className:"h-64 lg:h-full w-full object-cover"}),
+              React.createElement("div",{className:"p-6"},
+                React.createElement("div",{className:"flex items-center justify-between gap-3"},
+                  React.createElement("div",null,
+                    React.createElement("div",{className:"text-2xl font-black"},p.name),
+                    React.createElement("div",{className:"mt-2 text-slate-300"},egp(p.price))
                   ),
-                  React.createElement(Badge, { tone: "indigo" }, p.category)
+                  React.createElement(Badge,{tone:"indigo"},p.category)
                 ),
-                React.createElement("p", { className: "mt-4 text-sm text-slate-300 leading-6" }, p.description || "وصف مش متوفر."),
-                React.createElement("div", { className: "mt-6 flex gap-2" },
-                  React.createElement(Button, { className: "flex-1", onClick: () => { store.addToCart(p); toast.push("success", "اتضاف للسلة ✅"); } }, "Add to Cart"),
-                  React.createElement(Button, { variant: "ghost", onClick: () => nav("/") }, "رجوع")
+                React.createElement("p",{className:"mt-4 text-sm text-slate-300 leading-6"},p.description||"وصف مش متوفر."),
+                React.createElement("div",{className:"mt-6 flex gap-2"},
+                  React.createElement(Button,{className:"flex-1",onClick:()=>{store.addToCart(p); toast.push("success","اتضاف للسلة ✅");}},"Add to Cart"),
+                  React.createElement(Button,{variant:"ghost",onClick:()=>nav("/")}, "رجوع")
                 )
               )
             )
@@ -573,41 +713,43 @@
         const nav = useNavigate();
         const items = store.cart;
 
-        return React.createElement(React.Fragment, null,
-          React.createElement(StoreHeader, { cartCount: store.cartCount }),
-          React.createElement(PageTitle, { title: "السلة", subtitle: "عدّل الكميات واحذف. الإجمالي بيتحسب تلقائي." }),
-          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-3" },
-            React.createElement("div", { className: "lg:col-span-2 space-y-3" },
-              items.length === 0
-                ? React.createElement(Empty, { title: "السلة فاضية", hint: "روح اختار منتجات من المتجر.", action: React.createElement(Button, { onClick: () => nav("/") }, "فتح المتجر") })
-                : items.map((it) =>
-                    React.createElement(Card, { key: it.id, className: "p-4 anim-pop" },
-                      React.createElement("div", { className: "flex gap-3 items-center" },
-                        React.createElement("img", { src: it.image, alt: it.name, className: "h-16 w-16 rounded-2xl object-cover ring-soft" }),
-                        React.createElement("div", { className: "flex-1 min-w-0" },
-                          React.createElement("div", { className: "font-extrabold truncate" }, it.name),
-                          React.createElement("div", { className: "text-sm text-slate-300 flex items-center gap-2 mt-1" },
-                            React.createElement("span", null, egp(it.price)),
-                            React.createElement(Badge, { tone: "slate" }, it.category)
-                          )
-                        ),
-                        React.createElement("div", { className: "flex items-center gap-2" },
-                          React.createElement(Input, { type: "number", min: 1, max: 99, value: it.qty, onChange: (e) => store.updateQty(it.id, Number(e.target.value || 1)), className: "w-20 text-center" }),
-                          React.createElement(Button, { variant: "danger", onClick: () => { store.removeFromCart(it.id); toast.push("success", "اتمسح من السلة"); } }, "حذف")
+        return React.createElement(React.Fragment,null,
+          React.createElement(StoreHeader,{cartCount:store.cartCount}),
+          React.createElement(PageTitle,{title:"السلة",subtitle:"عدّل الكميات واحذف. الإجمالي بيتحسب تلقائي."}),
+          React.createElement("div",{className:"mt-4 grid gap-4 lg:grid-cols-3"},
+            React.createElement("div",{className:"lg:col-span-2 space-y-3"},
+              items.length===0
+                ? React.createElement(Empty,{
+                    title:"السلة فاضية",
+                    hint:"روح اختار منتجات من المتجر.",
+                    action:React.createElement(Button,{onClick:()=>nav("/")}, "فتح المتجر")
+                  })
+                : items.map(it=>React.createElement(Card,{key:it.id,className:"p-4 anim-pop"},
+                    React.createElement("div",{className:"flex gap-3 items-center"},
+                      React.createElement("img",{src:it.image,alt:it.name,className:"h-16 w-16 rounded-2xl object-cover ring-soft"}),
+                      React.createElement("div",{className:"flex-1 min-w-0"},
+                        React.createElement("div",{className:"font-extrabold truncate"},it.name),
+                        React.createElement("div",{className:"text-sm text-slate-300 flex items-center gap-2 mt-1"},
+                          React.createElement("span",null,egp(it.price)),
+                          React.createElement(Badge,{tone:"slate"},it.category)
                         )
+                      ),
+                      React.createElement("div",{className:"flex items-center gap-2"},
+                        React.createElement(Input,{type:"number",min:1,max:99,value:it.qty,onChange:(e)=>store.updateQty(it.id,Number(e.target.value||1)),className:"w-20 text-center"}),
+                        React.createElement(Button,{variant:"danger",onClick:()=>{store.removeFromCart(it.id); toast.push("success","اتمسح من السلة");}},"حذف")
                       )
                     )
-                  )
+                  ))
             ),
-            React.createElement(Card, { className: "p-5 h-fit anim-pop" },
-              React.createElement("div", { className: "text-lg font-black" }, "ملخص الطلب"),
-              React.createElement("div", { className: "mt-4 space-y-2 text-sm text-slate-300" },
-                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "عدد القطع"), React.createElement("span", null, store.cartCount)),
-                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "الإجمالي"), React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(store.cartTotal)))
+            React.createElement(Card,{className:"p-5 h-fit anim-pop"},
+              React.createElement("div",{className:"text-lg font-black"},"ملخص الطلب"),
+              React.createElement("div",{className:"mt-4 space-y-2 text-sm text-slate-300"},
+                React.createElement("div",{className:"flex justify-between"},React.createElement("span",null,"عدد القطع"),React.createElement("span",null,store.cartCount)),
+                React.createElement("div",{className:"flex justify-between"},React.createElement("span",null,"الإجمالي"),React.createElement("span",{className:"font-extrabold text-slate-100"},egp(store.cartTotal)))
               ),
-              React.createElement("div", { className: "mt-5 space-y-2" },
-                React.createElement(Button, { className: "w-full", disabled: items.length === 0, onClick: () => nav("/checkout") }, "Checkout"),
-                React.createElement(Button, { className: "w-full", variant: "ghost", disabled: items.length === 0, onClick: () => { store.clearCart(); toast.push("success", "السلة اتصفرت"); } }, "تصفير السلة")
+              React.createElement("div",{className:"mt-5 space-y-2"},
+                React.createElement(Button,{className:"w-full",disabled:items.length===0,onClick:()=>nav("/checkout")},"Checkout"),
+                React.createElement(Button,{className:"w-full",variant:"ghost",disabled:items.length===0,onClick:()=>{store.clearCart(); toast.push("success","السلة اتصفرت");}},"تصفير السلة")
               )
             )
           )
@@ -616,68 +758,66 @@
 
       function CheckoutPage({ store, toast }) {
         const nav = useNavigate();
-        const [name, setName] = useState("");
-        const [mobile, setMobile] = useState("");
-        const [address, setAddress] = useState("");
-        const [placing, setPlacing] = useState(false);
-        const [orderId, setOrderId] = useState(null);
+        const [name,setName]=useState("");
+        const [mobile,setMobile]=useState("");
+        const [address,setAddress]=useState("");
+        const [placing,setPlacing]=useState(false);
+        const [orderId,setOrderId]=useState(null);
 
-        if (store.cart.length === 0 && !orderId) {
-          return React.createElement(React.Fragment, null,
-            React.createElement(StoreHeader, { cartCount: store.cartCount }),
-            React.createElement(Empty, { title: "مفيش حاجة تتعمل Checkout", hint: "السلة فاضية.", action: React.createElement(Button, { onClick: () => nav("/") }, "روح للمتجر") })
+        if (store.cart.length===0 && !orderId) {
+          return React.createElement(React.Fragment,null,
+            React.createElement(StoreHeader,{cartCount:store.cartCount}),
+            React.createElement(Empty,{title:"مفيش حاجة تتعمل Checkout",hint:"السلة فاضية.",action:React.createElement(Button,{onClick:()=>nav("/")}, "روح للمتجر")})
           );
         }
 
         const submit = async (e) => {
           e.preventDefault();
-          if (!name.trim() || !mobile.trim() || !address.trim()) return toast.push("error", "من فضلك املا البيانات كلها");
+          if (!name.trim() || !mobile.trim() || !address.trim()) return toast.push("error","من فضلك املا البيانات كلها");
           setPlacing(true);
-          await new Promise((r) => setTimeout(r, 450));
-          const id = store.createOrder({ customer: { name: name.trim(), mobile: mobile.trim(), address: address.trim() } });
+          await new Promise(r=>setTimeout(r,450));
+          const id = store.createOrder({customer:{name:name.trim(),mobile:mobile.trim(),address:address.trim()}});
           setOrderId(id);
           setPlacing(false);
-          toast.push("success", "تم تأكيد الطلب ✅");
+          toast.push("success","تم تأكيد الطلب ✅");
         };
 
-        return React.createElement(React.Fragment, null,
-          React.createElement(StoreHeader, { cartCount: store.cartCount }),
-          React.createElement(PageTitle, { title: "Checkout Demo", subtitle: "عند التأكيد: Order يتسجل + السلة تتصفر." }),
-          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-2" },
-            React.createElement(Card, { className: "p-6 anim-pop" },
+        return React.createElement(React.Fragment,null,
+          React.createElement(StoreHeader,{cartCount:store.cartCount}),
+          React.createElement(PageTitle,{title:"Checkout Demo",subtitle:"عند التأكيد: Order يتسجل + السلة تتصفر."}),
+          React.createElement("div",{className:"mt-4 grid gap-4 lg:grid-cols-2"},
+            React.createElement(Card,{className:"p-6 anim-pop"},
               orderId
-                ? React.createElement("div", { className: "text-center" },
-                    React.createElement("div", { className: "text-2xl font-black" }, "تم الطلب بنجاح 🎉"),
-                    React.createElement("div", { className: "mt-2 text-slate-300" }, "رقم الطلب:"),
-                    React.createElement("div", { className: "mt-3 text-xl font-extrabold tracking-wide" }, orderId),
-                    React.createElement("div", { className: "mt-5 flex gap-2 justify-center" },
-                      React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر"),
-                      React.createElement(Button, { variant: "ghost", onClick: () => nav("/admin") }, "روح للأدمن")
+                ? React.createElement("div",{className:"text-center"},
+                    React.createElement("div",{className:"text-2xl font-black"},"تم الطلب بنجاح 🎉"),
+                    React.createElement("div",{className:"mt-2 text-slate-300"},"رقم الطلب:"),
+                    React.createElement("div",{className:"mt-3 text-xl font-extrabold tracking-wide"},orderId),
+                    React.createElement("div",{className:"mt-5 flex gap-2 justify-center"},
+                      React.createElement(Button,{onClick:()=>nav("/")}, "رجوع للمتجر"),
+                      React.createElement(Button,{variant:"ghost",onClick:()=>nav("/admin")}, "روح للأدمن")
                     )
                   )
-                : React.createElement("form", { onSubmit: submit, className: "space-y-3" },
-                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الاسم"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
-                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الموبايل"), React.createElement(Input, { value: mobile, onChange: (e) => setMobile(e.target.value) })),
-                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "العنوان"), React.createElement(Input, { value: address, onChange: (e) => setAddress(e.target.value) })),
-                    React.createElement(Button, { className: "w-full", type: "submit", disabled: placing }, placing ? "جارٍ التأكيد…" : "تأكيد الطلب")
+                : React.createElement("form",{onSubmit:submit,className:"space-y-3"},
+                    React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"الاسم"),React.createElement(Input,{value:name,onChange:(e)=>setName(e.target.value)})),
+                    React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"الموبايل"),React.createElement(Input,{value:mobile,onChange:(e)=>setMobile(e.target.value)})),
+                    React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"العنوان"),React.createElement(Input,{value:address,onChange:(e)=>setAddress(e.target.value)})),
+                    React.createElement(Button,{className:"w-full",type:"submit",disabled:placing},placing?"جارٍ التأكيد…":"تأكيد الطلب")
                   )
             ),
-            React.createElement(Card, { className: "p-6 h-fit anim-pop" },
-              React.createElement("div", { className: "text-lg font-black" }, "محتويات الطلب"),
-              React.createElement("div", { className: "mt-4 space-y-2 max-h-[340px] overflow-auto scrollbar-thin pr-1" },
-                store.cart.map((it) =>
-                  React.createElement("div", { key: it.id, className: "flex items-center justify-between gap-3 text-sm" },
-                    React.createElement("div", { className: "min-w-0" },
-                      React.createElement("div", { className: "font-semibold truncate" }, it.name),
-                      React.createElement("div", { className: "text-slate-300" }, `${it.qty} × ${egp(it.price)}`)
-                    ),
-                    React.createElement("div", { className: "font-extrabold" }, egp(it.qty * it.price))
-                  )
-                )
+            React.createElement(Card,{className:"p-6 h-fit anim-pop"},
+              React.createElement("div",{className:"text-lg font-black"},"محتويات الطلب"),
+              React.createElement("div",{className:"mt-4 space-y-2 max-h-[340px] overflow-auto scrollbar-thin pr-1"},
+                store.cart.map(it=>React.createElement("div",{key:it.id,className:"flex items-center justify-between gap-3 text-sm"},
+                  React.createElement("div",{className:"min-w-0"},
+                    React.createElement("div",{className:"font-semibold truncate"},it.name),
+                    React.createElement("div",{className:"text-slate-300"},`${it.qty} × ${egp(it.price)}`)
+                  ),
+                  React.createElement("div",{className:"font-extrabold"},egp(it.qty*it.price))
+                ))
               ),
-              React.createElement("div", { className: "mt-4 pt-4 border-t border-white/10 flex justify-between" },
-                React.createElement("span", { className: "text-slate-300 text-sm" }, "الإجمالي"),
-                React.createElement("span", { className: "font-extrabold" }, egp(store.cartTotal))
+              React.createElement("div",{className:"mt-4 pt-4 border-t border-white/10 flex justify-between"},
+                React.createElement("span",{className:"text-slate-300 text-sm"},"الإجمالي"),
+                React.createElement("span",{className:"font-extrabold"},egp(store.cartTotal))
               )
             )
           )
@@ -688,126 +828,123 @@
          Admin
       ========================= */
       function RequireAdmin({ store, children }) {
-        if (!store.admin.authed) return React.createElement(Navigate, { to: "/admin/login", replace: true });
+        if (!store.admin.authed) return React.createElement(Navigate,{to:"/admin/login"});
         return children;
       }
 
       function AdminLogin({ store, toast }) {
         const nav = useNavigate();
-        const [pw, setPw] = useState("");
-        const [loading, setLoading] = useState(false);
+        const [pw,setPw]=useState("");
+        const [loading,setLoading]=useState(false);
 
         const submit = async (e) => {
           e.preventDefault();
           setLoading(true);
-          await new Promise((r) => setTimeout(r, 280));
+          await new Promise(r=>setTimeout(r,280));
           const ok = store.adminLogin(pw);
           setLoading(false);
-          if (!ok) return toast.push("error", "كلمة السر غلط ❌");
-          toast.push("success", "تم تسجيل الدخول ✅");
+          if (!ok) return toast.push("error","كلمة السر غلط ❌");
+          toast.push("success","تم تسجيل الدخول ✅");
           nav("/admin");
         };
 
-        return React.createElement(Shell, null,
-          React.createElement(Card, { className: "p-6 max-w-xl mx-auto anim-pop" },
-            React.createElement("div", { className: "text-2xl font-black" }, "Admin Login"),
-            React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, "Password ثابت: admin123"),
-            React.createElement("form", { onSubmit: submit, className: "mt-6 space-y-3" },
-              React.createElement("div", null,
-                React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Password"),
-                React.createElement(Input, { type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "admin123" })
+        return React.createElement(Shell,null,
+          React.createElement(Card,{className:"p-6 max-w-xl mx-auto anim-pop"},
+            React.createElement("div",{className:"text-2xl font-black"},"Admin Login"),
+            React.createElement("div",{className:"mt-1 text-sm text-slate-300"},"Password ثابت: admin123"),
+            React.createElement("form",{onSubmit:submit,className:"mt-6 space-y-3"},
+              React.createElement("div",null,
+                React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Password"),
+                React.createElement(Input,{type:"password",value:pw,onChange:(e)=>setPw(e.target.value),placeholder:"admin123"})
               ),
-              React.createElement(Button, { className: "w-full", type: "submit", disabled: loading }, loading ? "جارٍ الدخول…" : "Login"),
-              React.createElement(Button, { className: "w-full", type: "button", variant: "ghost", onClick: () => nav("/") }, "رجوع للمتجر")
+              React.createElement(Button,{className:"w-full",type:"submit",disabled:loading},loading?"جارٍ الدخول…":"Login"),
+              React.createElement(Button,{className:"w-full",type:"button",variant:"ghost",onClick:()=>nav("/")}, "رجوع للمتجر")
             )
           )
         );
       }
 
       function ProductForm({ initial, onSave, onCancel }) {
-        const [name, setName] = useState(initial?.name || "");
-        const [price, setPrice] = useState(initial?.price || 0);
-        const [category, setCategory] = useState(initial?.category || "Electronics");
-        const [image, setImage] = useState(initial?.image || seedProducts[0].image);
-        const [description, setDescription] = useState(initial?.description || "");
+        const [name,setName]=useState(initial?.name||"");
+        const [price,setPrice]=useState(initial?.price||0);
+        const [category,setCategory]=useState(initial?.category||"Electronics");
+        const [image,setImage]=useState(initial?.image||seedProducts[0].image);
+        const [description,setDescription]=useState(initial?.description||"");
 
         const submit = (e) => {
           e.preventDefault();
           if (!name.trim()) return alert("اكتب اسم المنتج");
-          if (!price || Number(price) < 1) return alert("السعر لازم يكون أكبر من 0");
-          onSave({ name: name.trim(), price: Number(price), category, image: image.trim(), description: description.trim() });
+          if (!price || Number(price)<1) return alert("السعر لازم يكون أكبر من 0");
+          onSave({ name:name.trim(), price:Number(price), category, image:image.trim(), description:description.trim() });
         };
 
-        return React.createElement("form", { onSubmit: submit, className: "space-y-3" },
-          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
-            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Name"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
-            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Price"), React.createElement(Input, { type: "number", value: price, onChange: (e) => setPrice(e.target.value) }))
+        return React.createElement("form",{onSubmit:submit,className:"space-y-3"},
+          React.createElement("div",{className:"grid sm:grid-cols-2 gap-3"},
+            React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Name"),React.createElement(Input,{value:name,onChange:(e)=>setName(e.target.value)})),
+            React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Price"),React.createElement(Input,{type:"number",value:price,onChange:(e)=>setPrice(e.target.value)}))
           ),
-          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
-            React.createElement("div", null,
-              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Category"),
-              React.createElement(Select, { value: category, onChange: (e) => setCategory(e.target.value) }, PRODUCT_CATS.map((c) => React.createElement("option", { key: c, value: c }, c)))
+          React.createElement("div",{className:"grid sm:grid-cols-2 gap-3"},
+            React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Category"),
+              React.createElement(Select,{value:category,onChange:(e)=>setCategory(e.target.value)},PRODUCT_CATS.map(c=>React.createElement("option",{key:c,value:c},c)))
             ),
-            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Image URL"), React.createElement(Input, { value: image, onChange: (e) => setImage(e.target.value) }))
+            React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Image URL"),React.createElement(Input,{value:image,onChange:(e)=>setImage(e.target.value)}))
           ),
-          React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Description"), React.createElement(Input, { value: description, onChange: (e) => setDescription(e.target.value), placeholder: "وصف بسيط…" })),
-          React.createElement("div", { className: "flex gap-2 pt-2" },
-            React.createElement(Button, { type: "submit", className: "flex-1" }, "Save"),
-            React.createElement(Button, { type: "button", variant: "ghost", className: "flex-1", onClick: onCancel }, "Cancel")
+          React.createElement("div",null,React.createElement("div",{className:"text-sm text-slate-300 mb-1"},"Description"),React.createElement(Input,{value:description,onChange:(e)=>setDescription(e.target.value),placeholder:"وصف بسيط…"})),
+          React.createElement("div",{className:"flex gap-2 pt-2"},
+            React.createElement(Button,{type:"submit",className:"flex-1"},"Save"),
+            React.createElement(Button,{type:"button",variant:"ghost",className:"flex-1",onClick:onCancel},"Cancel")
           )
         );
       }
 
       function AdminProducts({ store, toast }) {
-        const [open, setOpen] = useState(false);
-        const [editing, setEditing] = useState(null);
+        const [open,setOpen]=useState(false);
+        const [editing,setEditing]=useState(null);
 
-        const openAdd = () => { setEditing(null); setOpen(true); };
-        const openEdit = (p) => { setEditing(p); setOpen(true); };
+        const openAdd = ()=>{ setEditing(null); setOpen(true); };
+        const openEdit = (p)=>{ setEditing(p); setOpen(true); };
 
-        return React.createElement(React.Fragment, null,
-          React.createElement(PageTitle, { title: "Products", subtitle: "CRUD على LocalStorage", right: React.createElement(Button, { onClick: openAdd }, "Add Product") }),
-          React.createElement("div", { className: "mt-4" },
-            store.products.length === 0
-              ? React.createElement(Empty, { title: "مفيش منتجات", hint: "ضيف أول منتج.", action: React.createElement(Button, { onClick: openAdd }, "Add Product") })
-              : React.createElement(Card, { className: "p-4 overflow-auto scrollbar-thin anim-pop" },
-                  React.createElement("table", { className: "w-full text-sm" },
-                    React.createElement("thead", null,
-                      React.createElement("tr", { className: "text-slate-300" }, ["Name", "Category", "Price", "Actions"].map((h) => React.createElement("th", { key: h, className: "text-right font-semibold py-2 px-2" }, h)))
+        return React.createElement(React.Fragment,null,
+          React.createElement(PageTitle,{title:"Products",subtitle:"CRUD على LocalStorage",right:React.createElement(Button,{onClick:openAdd},"Add Product")}),
+          React.createElement("div",{className:"mt-4"},
+            store.products.length===0
+              ? React.createElement(Empty,{title:"مفيش منتجات",hint:"ضيف أول منتج.",action:React.createElement(Button,{onClick:openAdd},"Add Product")})
+              : React.createElement(Card,{className:"p-4 overflow-auto scrollbar-thin anim-pop"},
+                  React.createElement("table",{className:"w-full text-sm"},
+                    React.createElement("thead",null,
+                      React.createElement("tr",{className:"text-slate-300"},["Name","Category","Price","Actions"].map(h=>React.createElement("th",{key:h,className:"text-right font-semibold py-2 px-2"},h)))
                     ),
-                    React.createElement("tbody", null,
-                      store.products.map((p) =>
-                        React.createElement("tr", { key: p.id, className: "border-t border-white/10" },
-                          React.createElement("td", { className: "py-3 px-2" },
-                            React.createElement("div", { className: "flex items-center gap-3" },
-                              React.createElement("img", { src: p.image, className: "h-10 w-10 rounded-2xl object-cover ring-soft" }),
-                              React.createElement("div", null,
-                                React.createElement("div", { className: "font-extrabold" }, p.name),
-                                React.createElement("div", { className: "text-xs text-slate-400" }, p.id)
-                              )
-                            )
-                          ),
-                          React.createElement("td", { className: "py-3 px-2" }, React.createElement(Badge, { tone: "indigo" }, p.category)),
-                          React.createElement("td", { className: "py-3 px-2 font-extrabold" }, egp(p.price)),
-                          React.createElement("td", { className: "py-3 px-2" },
-                            React.createElement("div", { className: "flex gap-2" },
-                              React.createElement(Button, { variant: "ghost", onClick: () => openEdit(p) }, "Edit"),
-                              React.createElement(Button, { variant: "danger", onClick: () => { if (confirm("متأكد تمسح المنتج؟")) { store.productsCRUD.remove(p.id); toast.push("success", "اتمسح المنتج"); } } }, "Delete")
+                    React.createElement("tbody",null,
+                      store.products.map(p=>React.createElement("tr",{key:p.id,className:"border-t border-white/10"},
+                        React.createElement("td",{className:"py-3 px-2"},
+                          React.createElement("div",{className:"flex items-center gap-3"},
+                            React.createElement("img",{src:p.image,className:"h-10 w-10 rounded-2xl object-cover ring-soft"}),
+                            React.createElement("div",null,
+                              React.createElement("div",{className:"font-extrabold"},p.name),
+                              React.createElement("div",{className:"text-xs text-slate-400"},p.id)
                             )
                           )
+                        ),
+                        React.createElement("td",{className:"py-3 px-2"},React.createElement(Badge,{tone:"indigo"},p.category)),
+                        React.createElement("td",{className:"py-3 px-2 font-extrabold"},egp(p.price)),
+                        React.createElement("td",{className:"py-3 px-2"},
+                          React.createElement("div",{className:"flex gap-2"},
+                            React.createElement(Button,{variant:"ghost",onClick:()=>openEdit(p)},"Edit"),
+                            React.createElement(Button,{variant:"danger",onClick:()=>{ if(confirm("متأكد تمسح المنتج؟")){ store.productsCRUD.remove(p.id); toast.push("success","اتمسح المنتج"); } }},"Delete")
+                          )
                         )
-                      )
+                      ))
                     )
                   )
                 )
           ),
-          React.createElement(Modal, { open, onClose: () => setOpen(false), title: editing ? "Edit Product" : "Add Product" },
-            React.createElement(ProductForm, {
-              initial: editing,
-              onCancel: () => setOpen(false),
-              onSave: (data) => {
-                if (editing) { store.productsCRUD.update(editing.id, data); toast.push("success", "تم التعديل ✅"); }
-                else { store.productsCRUD.add(data); toast.push("success", "تمت الإضافة ✅"); }
+          React.createElement(Modal,{open,onClose:()=>setOpen(false),title:editing?"Edit Product":"Add Product"},
+            React.createElement(ProductForm,{
+              initial:editing,
+              onCancel:()=>setOpen(false),
+              onSave:(data)=>{
+                if(editing){ store.productsCRUD.update(editing.id,data); toast.push("success","تم التعديل ✅"); }
+                else { store.productsCRUD.add(data); toast.push("success","تمت الإضافة ✅"); }
                 setOpen(false);
               }
             })
@@ -816,50 +953,57 @@
       }
 
       function AdminOrders({ store, toast }) {
-        const statuses = ["new", "processing", "shipped", "cancelled"];
-        return React.createElement(React.Fragment, null,
-          React.createElement(PageTitle, { title: "Orders", subtitle: "عرض الطلبات + تغيير الحالة." }),
-          React.createElement("div", { className: "mt-4" },
-            store.orders.length === 0
-              ? React.createElement(Empty, { title: "مفيش Orders", hint: "اعمل Checkout من المتجر." })
-              : React.createElement("div", { className: "space-y-3" },
-                  store.orders.map((o) =>
-                    React.createElement(Card, { key: o.id, className: "p-5 anim-pop" },
-                      React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-3" },
-                        React.createElement("div", null,
-                          React.createElement("div", { className: "font-black text-lg" }, o.id),
-                          React.createElement("div", { className: "text-sm text-slate-300 mt-1" }, new Date(o.createdAt).toLocaleString("ar-EG"), " • ", (o.customer?.name || "—"))
-                        ),
-                        React.createElement(Select, {
-                          value: o.status,
-                          onChange: (e) => { store.ordersCRUD.setStatus(o.id, e.target.value); toast.push("success", `الحالة: ${e.target.value}`); },
-                          className: "w-48"
-                        }, statuses.map((s) => React.createElement("option", { key: s, value: s }, s)))
+        const statuses = ["new","processing","shipped","cancelled"];
+        return React.createElement(React.Fragment,null,
+          React.createElement(PageTitle,{title:"Orders",subtitle:"عرض الطلبات + تغيير الحالة."}),
+          React.createElement("div",{className:"mt-4"},
+            store.orders.length===0
+              ? React.createElement(Empty,{title:"مفيش Orders",hint:"اعمل Checkout من المتجر."})
+              : React.createElement("div",{className:"space-y-3"},
+                  store.orders.map(o=>React.createElement(Card,{key:o.id,className:"p-5 anim-pop"},
+                    React.createElement("div",{className:"flex flex-wrap items-start justify-between gap-3"},
+                      React.createElement("div",null,
+                        React.createElement("div",{className:"font-black text-lg"},o.id),
+                        React.createElement("div",{className:"text-sm text-slate-300 mt-1"},
+                          new Date(o.createdAt).toLocaleString("ar-EG")," • ",(o.customer?.name||"—")
+                        )
                       ),
-                      React.createElement("div", { className: "mt-3 text-sm text-slate-300" }, "الإجمالي: ", React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(o.total)))
-                    )
-                  )
+                      React.createElement(Select,{value:o.status,onChange:(e)=>{store.ordersCRUD.setStatus(o.id,e.target.value); toast.push("success",`الحالة: ${e.target.value}`);},className:"w-48"},
+                        statuses.map(s=>React.createElement("option",{key:s,value:s},s))
+                      )
+                    ),
+                    React.createElement("div",{className:"mt-3 text-sm text-slate-300"},"الإجمالي: ",React.createElement("span",{className:"font-extrabold text-slate-100"},egp(o.total)))
+                  ))
                 )
           )
         );
       }
 
       function AdminStats({ store }) {
-        const totalSales = useMemo(() => store.orders.reduce((s, o) => s + (o.total || 0), 0), [store.orders]);
-        const topCategory = useMemo(() => {
-          const map = new Map();
-          for (const o of store.orders) for (const it of (o.items || [])) map.set(it.category, (map.get(it.category) || 0) + (it.qty || 0));
-          let best = null, bestV = -1;
-          for (const [k, v] of map.entries()) if (v > bestV) { bestV = v; best = k; }
+        const totalSales = useMemo(()=>store.orders.reduce((s,o)=>s+(o.total||0),0),[store.orders]);
+        const topCategory = useMemo(()=>{
+          const map=new Map();
+          for(const o of store.orders) for(const it of (o.items||[])) map.set(it.category,(map.get(it.category)||0)+(it.qty||0));
+          let best=null,bestV=-1;
+          for(const [k,v] of map.entries()) if(v>bestV){bestV=v;best=k;}
           return best ? `${best} (${bestV})` : "—";
-        }, [store.orders]);
+        },[store.orders]);
 
-        return React.createElement(React.Fragment, null,
-          React.createElement(PageTitle, { title: "Stats", subtitle: "عدد الطلبات + إجمالي المبيعات + أكثر تصنيف." }),
-          React.createElement("div", { className: "mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
-            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "عدد الطلبات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, store.orders.length)),
-            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "إجمالي المبيعات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, egp(totalSales))),
-            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "أكثر تصنيف مبيعًا"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, topCategory))
+        return React.createElement(React.Fragment,null,
+          React.createElement(PageTitle,{title:"Stats",subtitle:"عدد الطلبات + إجمالي المبيعات + أكثر تصنيف."}),
+          React.createElement("div",{className:"mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"},
+            React.createElement(Card,{className:"p-5 anim-pop"},
+              React.createElement("div",{className:"text-sm text-slate-300"},"عدد الطلبات"),
+              React.createElement("div",{className:"mt-2 text-2xl font-black"},store.orders.length)
+            ),
+            React.createElement(Card,{className:"p-5 anim-pop"},
+              React.createElement("div",{className:"text-sm text-slate-300"},"إجمالي المبيعات"),
+              React.createElement("div",{className:"mt-2 text-2xl font-black"},egp(totalSales))
+            ),
+            React.createElement(Card,{className:"p-5 anim-pop"},
+              React.createElement("div",{className:"text-sm text-slate-300"},"أكثر تصنيف مبيعًا"),
+              React.createElement("div",{className:"mt-2 text-2xl font-black"},topCategory)
+            )
           )
         );
       }
@@ -867,43 +1011,42 @@
       function AdminLayout({ store, toast }) {
         const nav = useNavigate();
         const { pathname } = useLocation();
-        const [menu, setMenu] = useState(false);
+        const [menu,setMenu]=useState(false);
 
-        // Decide which admin page to render based on path
-        let content = React.createElement(AdminStats, { store });
-        if (pathname === "/admin/products") content = React.createElement(AdminProducts, { store, toast });
-        if (pathname === "/admin/orders") content = React.createElement(AdminOrders, { store, toast });
+        let content = React.createElement(AdminStats,{store});
+        if (pathname === "/admin/products") content = React.createElement(AdminProducts,{store,toast});
+        if (pathname === "/admin/orders") content = React.createElement(AdminOrders,{store,toast});
 
         const linkClass = (to, exact) => {
           const active = exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
           return cn("px-3 py-2 rounded-2xl text-sm font-semibold block", active ? "bg-white/10" : "hover:bg-white/5");
         };
 
-        return React.createElement(Shell, null,
-          React.createElement("div", { className: "grid lg:grid-cols-[280px_1fr] gap-4" },
-            React.createElement(Card, { className: "p-4 h-fit lg:sticky lg:top-6 anim-pop" },
-              React.createElement("div", { className: "flex items-center justify-between" },
-                React.createElement("div", { className: "font-black" }, "Admin"),
-                React.createElement("button", { className: "lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: () => setMenu(v => !v) }, menu ? "إخفاء" : "قائمة")
+        return React.createElement(Shell,null,
+          React.createElement("div",{className:"grid lg:grid-cols-[280px_1fr] gap-4"},
+            React.createElement(Card,{className:"p-4 h-fit lg:sticky lg:top-6 anim-pop"},
+              React.createElement("div",{className:"flex items-center justify-between"},
+                React.createElement("div",{className:"font-black"},"Admin"),
+                React.createElement("button",{className:"lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm",onClick:()=>setMenu(v=>!v)},menu?"إخفاء":"قائمة")
               ),
-              React.createElement("div", { className: cn("mt-3 space-y-1", menu ? "block" : "hidden lg:block") },
-                React.createElement("a", { href:"#/admin", className: linkClass("/admin", true) }, "Stats"),
-                React.createElement("a", { href:"#/admin/products", className: linkClass("/admin/products") }, "Products"),
-                React.createElement("a", { href:"#/admin/orders", className: linkClass("/admin/orders") }, "Orders"),
-                React.createElement("div", { className: "pt-3 mt-3 border-t border-white/10 flex gap-2" },
-                  React.createElement(Button, { variant: "ghost", className: "flex-1", onClick: () => nav("/") }, "Store"),
-                  React.createElement(Button, { variant: "danger", className: "flex-1", onClick: () => { store.adminLogout(); toast.push("success", "تم تسجيل الخروج"); nav("/"); } }, "Logout")
+              React.createElement("div",{className:cn("mt-3 space-y-1",menu?"block":"hidden lg:block")},
+                React.createElement("a",{href:"#/admin",className:linkClass("/admin",true)},"Stats"),
+                React.createElement("a",{href:"#/admin/products",className:linkClass("/admin/products")},"Products"),
+                React.createElement("a",{href:"#/admin/orders",className:linkClass("/admin/orders")},"Orders"),
+                React.createElement("div",{className:"pt-3 mt-3 border-t border-white/10 flex gap-2"},
+                  React.createElement(Button,{variant:"ghost",className:"flex-1",onClick:()=>nav("/")},"Store"),
+                  React.createElement(Button,{variant:"danger",className:"flex-1",onClick:()=>{store.adminLogout(); toast.push("success","تم تسجيل الخروج"); nav("/");}},"Logout")
                 )
               )
             ),
-            React.createElement("div", null,
-              React.createElement(Card, { className: "p-4 mb-4 anim-pop" },
-                React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
-                  React.createElement("div", null,
-                    React.createElement("div", { className: "font-black" }, "Dashboard"),
-                    React.createElement("div", { className: "text-sm text-slate-300" }, pathname)
+            React.createElement("div",null,
+              React.createElement(Card,{className:"p-4 mb-4 anim-pop"},
+                React.createElement("div",{className:"flex items-center justify-between gap-3 flex-wrap"},
+                  React.createElement("div",null,
+                    React.createElement("div",{className:"font-black"},"Dashboard"),
+                    React.createElement("div",{className:"text-sm text-slate-300"},pathname)
                   ),
-                  React.createElement(Badge, { tone: "emerald" }, "UI Only + LocalStorage")
+                  React.createElement(Badge,{tone:"emerald"},"UI Only + LocalStorage")
                 )
               ),
               content
@@ -911,222 +1054,16 @@
           )
         );
       }
-function ChatWidget({ store, toast, navigate }) {
-  const [open, setOpen] = React.useState(false);
-  const [text, setText] = React.useState("");
-  const [msgs, setMsgs] = React.useState(() => ([
-    { role: "bot", content: "أهلًا 👋 أنا مساعد المتجر. اسألني: (ترشيحات إلكترونيات) أو (أرخص حاجة) أو (منتجات للبيت) أو (عايز حاجة تحت 500) 🙂" }
-  ]));
 
-  // helpers
-  const norm = (s) => (s || "").toLowerCase().trim();
-  const hasAny = (s, arr) => arr.some(w => s.includes(w));
-  const parseBudget = (s) => {
-    // يلقط رقم زي 500 / 1500 / 2,000
-    const m = s.replace(/,/g, "").match(/(\d{2,6})/);
-    return m ? Number(m[1]) : null;
-  };
-
-  const suggest = ({ category=null, maxPrice=null, sort="smart" } = {}) => {
-    let list = store.products.slice();
-
-    if (category) list = list.filter(p => (p.category || "").toLowerCase() === category.toLowerCase());
-    if (maxPrice != null) list = list.filter(p => Number(p.price) <= maxPrice);
-
-    if (sort === "cheap") list.sort((a,b) => a.price - b.price);
-    else if (sort === "expensive") list.sort((a,b) => b.price - a.price);
-    else {
-      // smart: خلي الأرخص/الأعلى تقييمًا (مفيش تقييم) فنعمل ترتيب قريب: أقرب للسعر المتوسط
-      const avg = list.reduce((s,p)=>s+Number(p.price||0),0)/(list.length||1);
-      list.sort((a,b)=>Math.abs(a.price-avg)-Math.abs(b.price-avg));
-    }
-
-    return list.slice(0, 3);
-  };
-
-  const answerFAQ = (s) => {
-    if (hasAny(s, ["شحن", "توصيل", "delivery"])) {
-      return "التوصيل Demo في المشروع. تقدر تكمل Checkout وهيتسجل Order في LocalStorage ✅";
-    }
-    if (hasAny(s, ["مرتجع", "استرجاع", "refund", "return"])) {
-      return "حالياً Demo: اعتبر سياسة الاسترجاع خلال 14 يوم بشرط سلامة المنتج. (تقدر تغيّر النص براحتك)";
-    }
-    if (hasAny(s, ["طرق دفع", "دفع", "payment"])) {
-      return "Demo: الدفع عند الاستلام/تحويل (رمزي). المهم إن الطلب بيتسجل 👌";
-    }
-    return null;
-  };
-
-  const renderProductCard = (p) => {
-    return {
-      type: "product",
-      id: p.id,
-      name: p.name,
-      price: p.price,
-      category: p.category,
-      image: p.image
-    };
-  };
-
-  const botRespond = (raw) => {
-    const s = norm(raw);
-    // FAQ
-    const faq = answerFAQ(s);
-    if (faq) return [{ role:"bot", content: faq }];
-
-    // cart / checkout navigation
-    if (hasAny(s, ["السلة", "cart"])) {
-      return [
-        { role:"bot", content:"تمام. خليك رايح على السلة 🛒" },
-        { role:"bot", content:{ type:"action", label:"افتح السلة", onClick: () => navigate("/cart") } }
-      ];
-    }
-    if (hasAny(s, ["checkout", "الدفع", "اتمام", "إتمام", "طلب"])) {
-      return [
-        { role:"bot", content:"حاضر. هوديك لصفحة الـCheckout ✅" },
-        { role:"bot", content:{ type:"action", label:"افتح Checkout", onClick: () => navigate("/checkout") } }
-      ];
-    }
-
-    // Budget detection
-    const budget = parseBudget(s);
-
-    // Category detection (Arabic + English-ish)
-    const catMap = [
-      { key:"Electronics", words:["الكترون", "إلكترون", "سماعه", "سماعات", "ساعة", "watch", "headphone", "electronics"] },
-      { key:"Fashion", words:["ملابس", "هودي", "شوز", "حذاء", "fashion", "hoodie", "sneaker"] },
-      { key:"Home", words:["بيت", "منزل", "home", "بطانية", "معطر", "diffuser"] },
-      { key:"Beauty", words:["بيوتي", "مكياج", "بشرة", "lipstick", "skincare", "beauty"] },
-      { key:"Sports", words:["رياضة", "جيم", "sports", "bands", "زجاجة", "bottle"] }
-    ];
-
-    let chosenCat = null;
-    for (const c of catMap) {
-      if (hasAny(s, c.words)) { chosenCat = c.key; break; }
-    }
-
-    // Sorting intent
-    let sort = "smart";
-    if (hasAny(s, ["أرخص", "ارخص", "cheap", "اقل سعر"])) sort = "cheap";
-    if (hasAny(s, ["أغلى", "اغلى", "expensive", "اعلى سعر"])) sort = "expensive";
-
-    // Search by name intent
-    if (s.startsWith("ابحث") || s.startsWith("بحث") || s.startsWith("search")) {
-      const q = s.replace(/^ابحث|^بحث|^search/,"").trim();
-      const hits = store.products.filter(p => (p.name||"").toLowerCase().includes(q)).slice(0,3);
-      if (!hits.length) return [{ role:"bot", content:`مش لاقي "${q}". جرّب كلمة أبسط.` }];
-      return [
-        { role:"bot", content:`لقيتلك ${hits.length} نتيجة:` },
-        ...hits.map(p => ({ role:"bot", content: renderProductCard(p) }))
-      ];
-    }
-
-    // Suggestions default
-    const picks = suggest({ category: chosenCat, maxPrice: budget, sort });
-    if (!picks.length) {
-      return [{ role:"bot", content:"مش لاقي منتجات مطابقة. جرّب تصنيف تاني أو زوّد الميزانية." }];
-    }
-
-    const summaryBits = [];
-    if (chosenCat) summaryBits.push(`تصنيف: ${chosenCat}`);
-    if (budget != null) summaryBits.push(`تحت: ${budget}`);
-    if (sort !== "smart") summaryBits.push(`ترتيب: ${sort === "cheap" ? "الأرخص" : "الأغلى"}`);
-
-    return [
-      { role:"bot", content: `اقتراحاتي 🎯 ${summaryBits.length ? "(" + summaryBits.join(" • ") + ")" : ""}` },
-      ...picks.map(p => ({ role:"bot", content: renderProductCard(p) })),
-      { role:"bot", content:"عايز ترشيحات أكتر؟ قولّي: (إلكترونيات) أو (تحت 1000) أو (أرخص حاجة)" }
-    ];
-  };
-
-  const send = () => {
-    const v = text.trim();
-    if (!v) return;
-    setMsgs(m => [{ role:"user", content:v }, ...m]);
-    setText("");
-
-    // simulate thinking
-    setTimeout(() => {
-      const replies = botRespond(v);
-      setMsgs(m => [...replies, ...m]);
-    }, 240);
-  };
-
-  return React.createElement(
-    React.Fragment,
-    null,
-    // Floating button
-    React.createElement("button", {
-      onClick: () => setOpen(o => !o),
-      className: "fixed bottom-4 right-4 z-[9999] rounded-2xl px-4 py-3 font-extrabold bg-indigo-500/90 hover:bg-indigo-500 shadow-soft ring-soft"
-    }, open ? "✕" : "💬 اسألني"),
-    open && React.createElement("div", {
-      className: "fixed bottom-20 right-4 z-[9999] w-[min(360px,calc(100vw-2rem))] anim-pop"
-    },
-      React.createElement("div", { className:"glass ring-soft rounded-3xl overflow-hidden shadow-soft" },
-        React.createElement("div", { className:"p-3 border-b border-white/10 flex items-center justify-between" },
-          React.createElement("div", { className:"font-black" }, "مساعد المتجر"),
-          React.createElement("div", { className:"text-xs text-slate-300" }, "Local bot")
-        ),
-        React.createElement("div", { className:"p-3 h-80 overflow-auto scrollbar-thin space-y-2 flex flex-col-reverse" },
-          msgs.map((m, idx) => {
-            const isUser = m.role === "user";
-            const bubbleBase = "max-w-[85%] rounded-2xl px-3 py-2 text-sm ring-soft";
-            const bubbleCls = isUser ? cn(bubbleBase, "self-start bg-white/10") : cn(bubbleBase, "self-end bg-indigo-500/15");
-
-            // rich content
-            if (typeof m.content === "object" && m.content?.type === "action") {
-              return React.createElement("div", { key: idx, className: "self-end" },
-                React.createElement("button", { className:"px-3 py-2 rounded-2xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-bold", onClick: m.content.onClick }, m.content.label)
-              );
-            }
-
-            if (typeof m.content === "object" && m.content?.type === "product") {
-              const p = m.content;
-              return React.createElement("div", { key: idx, className:"self-end w-full" },
-                React.createElement("div", { className:"glass ring-soft rounded-2xl p-3 flex gap-3 items-center" },
-                  React.createElement("img", { src:p.image, className:"h-12 w-12 rounded-2xl object-cover ring-soft" }),
-                  React.createElement("div", { className:"flex-1 min-w-0" },
-                    React.createElement("div", { className:"font-extrabold truncate" }, p.name),
-                    React.createElement("div", { className:"text-xs text-slate-300 flex items-center gap-2 mt-1" },
-                      React.createElement("span", null, egp(p.price)),
-                      React.createElement("span", { className:"px-2 py-1 rounded-full bg-white/8" }, p.category)
-                    )
-                  ),
-                  React.createElement("div", { className:"flex flex-col gap-2" },
-                    React.createElement("button", {
-                      className:"px-3 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 text-xs font-bold",
-                      onClick: () => { 
-                        const real = store.products.find(x => x.id === p.id);
-                        if (real) { store.addToCart(real); toast.push("success", "اتضاف للسلة ✅"); }
-                      }
-                    }, "Add"),
-                    React.createElement("a", {
-                      className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold text-center",
-                      href: "#/product/" + p.id
-                    }, "Details")
-                  )
-                )
-              );
-            }
-
-            return React.createElement("div", { key: idx, className: bubbleCls }, String(m.content));
+      function NotFound() {
+        return React.createElement(Shell,null,
+          React.createElement(Empty,{
+            title:"الصفحة غير موجودة",
+            hint:"ارجع للمتجر.",
+            action:React.createElement(Link,{to:"/",className:"inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white"},"Home")
           })
-        ),
-        React.createElement("div", { className:"p-3 border-t border-white/10 flex gap-2" },
-          React.createElement("input", {
-            value: text,
-            onChange: (e) => setText(e.target.value),
-            onKeyDown: (e) => { if (e.key === "Enter") send(); },
-            className:"flex-1 rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
-            placeholder:"اكتب سؤالك… مثل: تحت 500 أو أرخص إلكترونيات"
-          }),
-          React.createElement("button", { className:"px-4 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 font-extrabold", onClick: send }, "إرسال")
-        )
-      )
-    )
-  );
-}
+        );
+      }
 
       /* =========================
          App
@@ -1134,407 +1071,27 @@ function ChatWidget({ store, toast, navigate }) {
       function App() {
         const store = useAppStore();
         const toast = useToast();
-        const navigate = useNavigate();
 
+        return React.createElement(HashRouter,null,
+          React.createElement(Toasts,{items:toast.items}),
+          React.createElement(ChatWidget,{store,toast}),
+          React.createElement(Routes,null,
+            React.createElement(Route,{index:true,element:React.createElement(Shell,null,React.createElement(Storefront,{store,toast}))}),
+            React.createElement(Route,{path:"/product/:id",element:React.createElement(Shell,null,React.createElement(ProductDetails,{store,toast}))}),
+            React.createElement(Route,{path:"/cart",element:React.createElement(Shell,null,React.createElement(CartPage,{store,toast}))}),
+            React.createElement(Route,{path:"/checkout",element:React.createElement(Shell,null,React.createElement(CheckoutPage,{store,toast}))}),
 
-        return React.createElement(HashRouter, null,
-          React.createElement(Toasts, { items: toast.items }),
-          React.createElement(ChatWidget, { store, toast, navigate })
-          React.createElement(Routes, null,
-            React.createElement(Route, { index: true, element: React.createElement(Shell, null, React.createElement(Storefront, { store, toast })) }),
-            React.createElement(Route, { path: "/product/:id", element: React.createElement(Shell, null, React.createElement(ProductDetails, { store, toast })) }),
-            React.createElement(Route, { path: "/cart", element: React.createElement(Shell, null, React.createElement(CartPage, { store, toast })) }),
-            React.createElement(Route, { path: "/checkout", element: React.createElement(Shell, null, React.createElement(CheckoutPage, { store, toast })) }),
+            React.createElement(Route,{path:"/admin/login",element:React.createElement(AdminLogin,{store,toast})}),
+            React.createElement(Route,{path:"/admin",element:React.createElement(RequireAdmin,{store},React.createElement(AdminLayout,{store,toast}))}),
+            React.createElement(Route,{path:"/admin/products",element:React.createElement(RequireAdmin,{store},React.createElement(AdminLayout,{store,toast}))}),
+            React.createElement(Route,{path:"/admin/orders",element:React.createElement(RequireAdmin,{store},React.createElement(AdminLayout,{store,toast}))}),
 
-            React.createElement(Route, { path: "/admin/login", element: React.createElement(AdminLogin, { store, toast }) }),
-            React.createElement(Route, { path: "/admin", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
-            React.createElement(Route, { path: "/admin/products", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
-            React.createElement(Route, { path: "/admin/orders", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
-
-            // fallback
-            React.createElement(Route, {
-              path: "/404",
-              element: React.createElement(Shell, null, React.createElement(Empty, { title: "الصفحة غير موجودة", hint: "ارجع للمتجر.", action: React.createElement(Link, { to: "/", className: "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white" }, "Home") }))
-            })
+            React.createElement(Route,{path:"/404",element:React.createElement(NotFound)})
           )
         );
       }
 
       ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
     </script>
-    <!-- ============ MINI STORE CHATBOT (FRONT-END ONLY) ============ -->
-<style>
-  .cb-fab{position:fixed;bottom:18px;right:18px;z-index:9999}
-  .cb-btn{width:56px;height:56px;border-radius:16px;background:#111827;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);cursor:pointer}
-  .cb-panel{position:fixed;bottom:86px;right:18px;width:360px;max-width:calc(100vw - 36px);height:520px;max-height:calc(100vh - 140px);background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;z-index:9999;display:none}
-  .cb-head{background:#111827;color:#fff;padding:14px 14px 12px;display:flex;align-items:center;justify-content:space-between}
-  .cb-title{font-weight:800;font-size:14px}
-  .cb-sub{font-size:11px;color:#cbd5e1;margin-top:2px}
-  .cb-x{width:34px;height:34px;border-radius:12px;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;cursor:pointer}
-  .cb-body{height:calc(100% - 128px);background:#f8fafc;padding:12px;overflow:auto}
-  .cb-foot{border-top:1px solid #e5e7eb;background:#fff;padding:10px}
-  .cb-row{display:flex;gap:8px}
-  .cb-input{flex:1;height:44px;border:1px solid #e5e7eb;border-radius:14px;padding:0 12px;font-size:13px;outline:none}
-  .cb-send{height:44px;padding:0 14px;border-radius:14px;background:#059669;color:#fff;border:none;font-weight:800;cursor:pointer}
-  .cb-bubble{max-width:85%;padding:10px 12px;border-radius:16px;font-size:13px;line-height:1.35;border:1px solid transparent;margin-bottom:10px}
-  .cb-me{margin-left:auto;background:#111827;color:#fff;border-color:rgba(255,255,255,.08)}
-  .cb-bot{margin-right:auto;background:#fff;color:#111827;border-color:#e5e7eb}
-  .cb-meta{font-size:11px;color:#6b7280;margin-top:6px}
-  .cb-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
-  .cb-chip{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer}
-  .cb-card{border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden;margin-top:10px}
-  .cb-card .top{display:flex;gap:10px;padding:10px}
-  .cb-img{width:56px;height:56px;border-radius:12px;background:#e5e7eb;object-fit:cover}
-  .cb-name{font-weight:800;font-size:13px}
-  .cb-cat{font-size:11px;color:#6b7280;margin-top:2px}
-  .cb-price{font-weight:900;margin-top:6px}
-  .cb-actions{display:flex;gap:8px;padding:10px;border-top:1px solid #e5e7eb}
-  .cb-a{flex:1;height:36px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:800;font-size:12px;cursor:pointer}
-  .cb-a.primary{background:#111827;color:#fff;border-color:#111827}
-  @media (max-width:420px){.cb-panel{width:calc(100vw - 36px)}}
-</style>
-
-<div class="cb-fab">
-  <button class="cb-btn" id="cbOpen" aria-label="Open Chat">
-    💬
-  </button>
-</div>
-
-<div class="cb-panel" id="cbPanel" dir="rtl">
-  <div class="cb-head">
-    <div>
-      <div class="cb-title">مساعد المتجر</div>
-      <div class="cb-sub">اسألني عن الأسعار، الاقتراحات، والتصنيفات</div>
-    </div>
-    <div class="cb-x" id="cbClose" title="Close">✕</div>
-  </div>
-
-  <div class="cb-body" id="cbBody">
-    <div class="cb-chips">
-      <div class="cb-chip" data-q="ايه التصنيفات عندكم؟">التصنيفات</div>
-      <div class="cb-chip" data-q="رشحلي حاجه رخيصه">اقتراحات رخيصة</div>
-      <div class="cb-chip" data-q="سعر سماعه">سعر منتج</div>
-      <div class="cb-chip" data-q="الشحن بياخد قد ايه؟">الشحن</div>
-      <div class="cb-chip" data-q="سياسة الاسترجاع">الاسترجاع</div>
-    </div>
-  </div>
-
-  <div class="cb-foot">
-    <div class="cb-row">
-      <input class="cb-input" id="cbInput" placeholder="اكتب سؤالك هنا…" />
-      <button class="cb-send" id="cbSend">إرسال</button>
-    </div>
-    <div class="cb-meta">Tip: اكتب “بكام + اسم المنتج” أو “رشح + تصنيف”.</div>
-  </div>
-</div>
-
-<script>
-(function(){
-  // ========= 1) PRODUCTS SOURCE =========
-  // لو عندك منتجات في الصفحة كمتغير global اسمه products هنستخدمه.
-  // أو لو عندك LocalStorage: store_products
-  // وإلا هنستخدم demo data.
-  function loadProducts(){
-    try{
-      if (Array.isArray(window.products) && window.products.length) return window.products;
-      const ls = localStorage.getItem("store_products");
-      if(ls){
-        const parsed = JSON.parse(ls);
-        if(Array.isArray(parsed) && parsed.length) return parsed;
-      }
-    }catch(e){}
-    // Demo fallback
-    return [
-      { id:"p1", name:"سماعة بلوتوث", price:799, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/ear/200/200", stock:12, description:"سماعة قوية وبطارية طويلة" },
-      { id:"p2", name:"كيبورد ميكانيكال", price:1299, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/key/200/200", stock:5, description:"سويتشات ناعمة وإضاءة RGB" },
-      { id:"p3", name:"تيشيرت قطن", price:299, category:"ملابس", imageUrl:"https://picsum.photos/seed/shirt/200/200", stock:25, description:"قطن 100% ومريح" },
-      { id:"p4", name:"شنطة ظهر", price:649, category:"أكسسوارات", imageUrl:"https://picsum.photos/seed/bag/200/200", stock:8, description:"مساحة كبيرة وخامة متينة" },
-      { id:"p5", name:"ماوس جيمينج", price:499, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/mouse/200/200", stock:0, description:"DPI عالي وإمساك ممتاز" },
-      { id:"p6", name:"زجاجة مياه", price:149, category:"منزل", imageUrl:"https://picsum.photos/seed/bottle/200/200", stock:30, description:"خفيفة وسهلة الحمل" },
-    ];
-  }
-
-  function moneyEGP(n){
-    try { return new Intl.NumberFormat("ar-EG",{style:"currency",currency:"EGP"}).format(Number(n)||0); }
-    catch(e){ return (Number(n)||0) + " EGP"; }
-  }
-
-  // ========= 2) UI ELEMENTS =========
-  const panel = document.getElementById("cbPanel");
-  const openBtn = document.getElementById("cbOpen");
-  const closeBtn = document.getElementById("cbClose");
-  const body = document.getElementById("cbBody");
-  const input = document.getElementById("cbInput");
-  const send = document.getElementById("cbSend");
-
-  const CHAT_KEY = "store_chat_history_v1";
-
-  function scrollDown(){ body.scrollTop = body.scrollHeight; }
-
-  function bubble(text, who="bot"){
-    const d = document.createElement("div");
-    d.className = "cb-bubble " + (who==="me" ? "cb-me" : "cb-bot");
-    d.textContent = text;
-    body.appendChild(d);
-    scrollDown();
-    saveHistory();
-  }
-
-  function productCard(p){
-    const wrap = document.createElement("div");
-    wrap.className = "cb-bot";
-
-    const card = document.createElement("div");
-    card.className = "cb-card";
-
-    const top = document.createElement("div");
-    top.className = "top";
-
-    const img = document.createElement("img");
-    img.className = "cb-img";
-    img.src = p.imageUrl || "";
-    img.alt = p.name || "product";
-    img.onerror = () => { img.style.display="none"; };
-
-    const info = document.createElement("div");
-    const name = document.createElement("div");
-    name.className = "cb-name";
-    name.textContent = p.name;
-
-    const cat = document.createElement("div");
-    cat.className = "cb-cat";
-    cat.textContent = (p.category || "—") + (p.stock === 0 ? " • غير متاح" : "");
-
-    const price = document.createElement("div");
-    price.className = "cb-price";
-    price.textContent = moneyEGP(p.price);
-
-    info.appendChild(name);
-    info.appendChild(cat);
-    info.appendChild(price);
-
-    top.appendChild(img);
-    top.appendChild(info);
-
-    const actions = document.createElement("div");
-    actions.className = "cb-actions";
-
-    const btnView = document.createElement("button");
-    btnView.className = "cb-a";
-    btnView.textContent = "عرض";
-    btnView.onclick = () => {
-      // لو عندك صفحة منتجات: /products/{id}
-      // عدّل اللينك حسب مشروعك
-      const url = (p.id ? (`/products/${p.id}`) : "#");
-      window.location.href = url;
-    };
-
-    const btnAdd = document.createElement("button");
-    btnAdd.className = "cb-a primary";
-    btnAdd.textContent = "أضف للسلة";
-    btnAdd.onclick = () => {
-      // لو عندك دالة addToCart على الصفحة
-      if (typeof window.addToCart === "function") {
-        window.addToCart(p.id);
-        bubble("✅ اتضاف للسلة.", "bot");
-      } else {
-        // fallback: LocalStorage cart
-        try{
-          const key = "cart_items_v1";
-          const raw = localStorage.getItem(key);
-          const cart = raw ? JSON.parse(raw) : [];
-          const existing = cart.find(x => x.id === p.id);
-          if(existing) existing.qty += 1;
-          else cart.push({ id: p.id, qty: 1, name: p.name, price: p.price, imageUrl: p.imageUrl });
-          localStorage.setItem(key, JSON.stringify(cart));
-          bubble("✅ اتضاف للسلة (LocalStorage).", "bot");
-        }catch(e){
-          bubble("حصلت مشكلة وإحنا بنضيف للسلة 😅", "bot");
-        }
-      }
-    };
-
-    actions.appendChild(btnView);
-    actions.appendChild(btnAdd);
-
-    card.appendChild(top);
-    card.appendChild(actions);
-
-    wrap.appendChild(card);
-    body.appendChild(wrap);
-    scrollDown();
-    saveHistory();
-  }
-
-  function saveHistory(){
-    try{
-      // نحفظ نصوص/كروت بس كـ HTML بسيط
-      localStorage.setItem(CHAT_KEY, body.innerHTML);
-    }catch(e){}
-  }
-  function loadHistory(){
-    try{
-      const raw = localStorage.getItem(CHAT_KEY);
-      if(raw) body.innerHTML = raw;
-    }catch(e){}
-  }
-
-  // ========= 3) BOT LOGIC (FRONT-END RULES) =========
-  function normalize(s){
-    return (s||"")
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu," ")
-      .replace(/\s+/g," ")
-      .trim();
-  }
-
-  function hasAny(msg, arr){
-    return arr.some(w => msg.includes(w));
-  }
-
-  function extractKeywords(msg){
-    return msg.split(" ").filter(w => w.length >= 3).slice(0, 6);
-  }
-
-  function findProducts(products, msg){
-    const keys = extractKeywords(msg);
-    if(!keys.length) return [];
-    return products.filter(p => {
-      const hay = normalize((p.name||"") + " " + (p.description||"") + " " + (p.category||""));
-      return keys.some(k => hay.includes(k));
-    });
-  }
-
-  function uniqueCategories(products){
-    const set = new Set();
-    products.forEach(p => p.category && set.add(p.category));
-    return Array.from(set).sort((a,b)=> a.localeCompare(b,"ar"));
-  }
-
-  function recommend(products, msg){
-    // لو الرسالة فيها تصنيف موجود، نرشح منه
-    const cats = uniqueCategories(products);
-    const foundCat = cats.find(c => normalize(c).includes(msg) || msg.includes(normalize(c)));
-    let list = products.filter(p => p.stock !== 0);
-
-    if(foundCat){
-      list = list.filter(p => p.category === foundCat);
-    }
-
-    // لو قال رخيص/أرخص: sort by price
-    if(hasAny(msg, ["رخيص","ارخص","cheap","اقتصادي","اقل"])){
-      list = list.sort((a,b)=> (a.price||0) - (b.price||0));
-    } else {
-      // default: المتاح الأعلى ثم الأرخص
-      list = list.sort((a,b)=> (b.stock||0) - (a.stock||0) || (a.price||0)-(b.price||0));
-    }
-
-    return list.slice(0, 4);
-  }
-
-  function botReply(raw){
-    const products = loadProducts();
-    const msg = normalize(raw);
-
-    if(!msg) return { text: "اكتب سؤالك، وأنا هساعدك ✅" };
-
-    // FAQ
-    if(hasAny(msg, ["شحن","توصيل","delivery","shipping","مدة","بياخد"])){
-      return { text: "🚚 الشحن غالبًا 1-3 أيام حسب العنوان. ابعتلي محافظتك/منطقتك أقولك تقدير أدق." };
-    }
-    if(hasAny(msg, ["استرجاع","استبدال","ارجاع","refund","return"])){
-      return { text: "🔁 الاسترجاع/الاستبدال خلال 14 يوم بشرط يكون المنتج بحالته. قولّي رقم الطلب لو موجود." };
-    }
-    if(hasAny(msg, ["تصنيفات","اقسام","قسم","category","categories","فئات","فئة"])){
-      const cats = uniqueCategories(products);
-      return { text: cats.length ? `📦 التصنيفات المتاحة: ${cats.join("، ")}` : "حاليًا مفيش تصنيفات." };
-    }
-
-    // Price questions
-    if(hasAny(msg, ["سعر","بكام","price","كام","ثمن","cost"])){
-      const matches = findProducts(products, msg);
-      if(!matches.length){
-        return { text: "قولّي اسم المنتج أو كلمة من اسمه (مثال: سماعة/شنطة)، وأنا أطلعلك السعر فورًا 💰" };
-      }
-      return {
-        text: "لقيتلك دول 👇",
-        cards: matches.slice(0,4)
-      };
-    }
-
-    // Recommend
-    if(hasAny(msg, ["اقترح","رشح","suggest","recommend","انصح","اختارلي","عايز"])){
-      const recs = recommend(products, msg);
-      if(!recs.length) return { text: "مش لاقي منتجات متاحة دلوقتي. جرّب تسأل عن تصنيف معين." };
-      return {
-        text: "✨ دي ترشيحات مناسبة:",
-        cards: recs
-      };
-    }
-
-    // Search by name
-    const matches = findProducts(products, msg);
-    if(matches.length){
-      return { text: "لقيت منتجات قريبة من كلامك:", cards: matches.slice(0,4) };
-    }
-
-    // Fallback help
-    return {
-      text:
-        "ممكن تساعدني بكلمة أوضح؟ جرّب:\n" +
-        "• “بكام سماعة”\n" +
-        "• “اقترح إلكترونيات رخيصة”\n" +
-        "• “ايه التصنيفات؟”"
-    };
-  }
-
-  // ========= 4) EVENTS =========
-  function open(){
-    panel.style.display = "block";
-    input.focus();
-    scrollDown();
-  }
-  function close(){ panel.style.display = "none"; }
-
-  openBtn.addEventListener("click", open);
-  closeBtn.addEventListener("click", close);
-
-  send.addEventListener("click", () => {
-    const v = input.value;
-    input.value = "";
-    bubble(v, "me");
-    const res = botReply(v);
-    bubble(res.text, "bot");
-    if(res.cards && res.cards.length){
-      res.cards.forEach(productCard);
-    }
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if(e.key === "Enter"){
-      e.preventDefault();
-      send.click();
-    }
-  });
-
-  document.addEventListener("click", (e) => {
-    const chip = e.target.closest && e.target.closest(".cb-chip");
-    if(chip){
-      const q = chip.getAttribute("data-q");
-      input.value = q;
-      send.click();
-    }
-  });
-
-  // Load previous chat and greet
-  loadHistory();
-  if(!localStorage.getItem("store_chat_greeted_v1")){
-    bubble("أهلًا 👋 أنا مساعد المتجر. اسألني عن الأسعار أو خليّني أرشحلك منتجات.", "bot");
-    localStorage.setItem("store_chat_greeted_v1","1");
-  }
-})();
-</script>
-<!-- ============ /MINI STORE CHATBOT ============ -->
-
   </body>
 </html>
