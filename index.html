@@ -1,1073 +1,597 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat Frontend Only</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>إزالة خلفية الصور - Frontend Only</title>
   <style>
     :root{
       --bg:#0b1020;
-      --panel:#101a33;
-      --panel2:#0f1830;
+      --card:#101a33;
       --text:#e9eeff;
       --muted:#9fb0ff;
-      --line:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.10);
       --accent:#6b7bff;
       --accent2:#66e3ff;
       --good:#7CFFB2;
       --warn:#FFD36C;
       --bad:#FF6B6B;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
       --radius:18px;
-      --msgUser:#6b7bff;
-      --msgBot:#1b2a55;
-      --msgCard: rgba(255,255,255,.04);
-      --focus: 0 0 0 3px rgba(107,123,255,.22);
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif;
     }
-    [data-theme="light"]{
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --panel2:#ffffff;
-      --text:#101426;
-      --muted:#5b678a;
-      --line:rgba(16,20,38,.10);
-      --accent:#3b5bff;
-      --accent2:#00bcd4;
-      --shadow: 0 10px 30px rgba(16,20,38,.10);
-      --msgBot:#eef2ff;
-      --msgCard: rgba(16,20,38,.03);
-    }
-
-    *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family:var(--font);
+      margin:0; font-family:var(--font); color:var(--text);
       background:
         radial-gradient(1100px 700px at 10% 0%, rgba(102,227,255,.12), transparent 55%),
         radial-gradient(900px 650px at 90% 10%, rgba(107,123,255,.16), transparent 55%),
         radial-gradient(850px 650px at 40% 100%, rgba(124,255,178,.10), transparent 55%),
         var(--bg);
-      color:var(--text);
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:18px;
     }
-
     .app{
-      width:min(1200px, 100%);
-      height:min(760px, 92vh);
+      width:min(1150px, 100%);
       display:grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: 430px 1fr;
       gap:14px;
     }
-
-    /* Sidebar */
-    .sidebar{
+    .card{
       background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow:hidden;
-      display:flex;
-      flex-direction:column;
       backdrop-filter: blur(10px);
     }
-    .sideTop{
-      padding:16px 16px 12px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-    .logo{
-      width:44px;height:44px;border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: 0 10px 24px rgba(107,123,255,.25);
-      position:relative;
-      overflow:hidden;
-      flex:0 0 auto;
-    }
-    .logo:before{
-      content:"";
-      position:absolute;inset:-20%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.45), transparent 45%);
-      transform: rotate(12deg);
-    }
-    .brand{
-      display:flex;flex-direction:column;gap:2px;
-      min-width:0;
-    }
-    .brand b{
-      font-size:15px;
-      letter-spacing:.2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .brand span{
-      font-size:12px;color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .sideActions{
-      margin-inline-start:auto;
-      display:flex;gap:8px;
-    }
-    .iconBtn{
-      width:38px;height:38px;border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color:var(--text);
-      cursor:pointer;
-      display:grid;place-items:center;
-      transition:.15s ease;
-      user-select:none;
-    }
-    .iconBtn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.06); }
-    .iconBtn:active{ transform: translateY(0px) scale(.98); }
-    .iconBtn:focus{ outline:none; box-shadow: var(--focus); }
-
-    .searchWrap{
-      padding:12px 16px 14px;
-      display:flex;
-      gap:10px;
-    }
-    .input{
-      width:100%;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--text);
-      padding:12px 12px;
-      font-size:13px;
-      outline:none;
-      transition:.15s ease;
-    }
-    .input:focus{ box-shadow: var(--focus); border-color: rgba(107,123,255,.35); }
-    .pill{
-      border-radius:14px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      padding:10px 12px;
-      font-size:12px;
-      color:var(--muted);
-      display:flex; align-items:center; gap:8px;
-      user-select:none;
-      white-space:nowrap;
-    }
-    .pill .dot{
-      width:8px;height:8px;border-radius:999px;
-      background: var(--good);
-      box-shadow: 0 0 0 3px rgba(124,255,178,.18);
-    }
-
-    .rooms{
-      padding: 0 10px 12px;
-      overflow:auto;
-      flex:1;
-    }
-    .room{
-      display:flex;
-      gap:12px;
-      padding:12px 12px;
-      border-radius:16px;
-      border:1px solid transparent;
-      cursor:pointer;
-      transition:.15s ease;
-      align-items:center;
-      margin-top:8px;
-      background: transparent;
-      user-select:none;
-    }
-    .room:hover{
-      background: rgba(255,255,255,.04);
-      border-color: rgba(255,255,255,.06);
-    }
-    .room.active{
-      background: linear-gradient(135deg, rgba(107,123,255,.18), rgba(102,227,255,.10));
-      border-color: rgba(107,123,255,.25);
-    }
-    .avatar{
-      width:44px;height:44px;border-radius:16px;
-      background: rgba(255,255,255,.06);
-      border:1px solid var(--line);
-      display:grid;place-items:center;
-      flex:0 0 auto;
-      position:relative;
-      overflow:hidden;
-    }
-    .avatar:before{
-      content:"";
-      position:absolute;inset:-30%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%);
-    }
-    .roomMeta{
-      min-width:0;
-      display:flex; flex-direction:column; gap:3px;
-    }
-    .roomMeta b{
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .roomMeta span{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .badge{
-      margin-inline-start:auto;
-      font-size:11px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--muted);
-    }
-
-    .sideFooter{
-      padding:12px 16px;
-      border-top:1px solid var(--line);
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
-    .nameTag{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-    }
-    .nameTag b{ font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .nameTag span{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-
-    /* Chat panel */
-    .chat{
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      backdrop-filter: blur(10px);
-      position:relative;
-    }
-    .chatTop{
+    header{
+      grid-column: 1 / -1;
+      display:flex; align-items:center; justify-content:space-between;
       padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      gap:12px;
     }
-    .chatTop .title{
-      display:flex; flex-direction:column; gap:2px;
-      min-width:0;
-      flex:1;
+    .title{
+      display:flex; flex-direction:column; gap:4px;
     }
-    .chatTop .title b{
-      font-size:14px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    .chatTop .title span{
-      font-size:12px; color:var(--muted);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    .chip{
-      font-size:12px;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--muted);
-      display:flex; gap:8px; align-items:center;
-      user-select:none;
-    }
-    .chip i{
-      width:8px;height:8px;border-radius:999px;
-      background: var(--good);
-      box-shadow: 0 0 0 3px rgba(124,255,178,.18);
-      display:inline-block;
-    }
-
-    .messages{
-      flex:1;
-      overflow:auto;
-      padding:18px 16px 8px;
-      scroll-behavior:smooth;
-    }
-    .dayDivider{
-      display:flex;
-      justify-content:center;
-      margin: 10px 0 16px;
-      color: var(--muted);
-      font-size:12px;
-    }
-    .dayDivider span{
-      padding:8px 12px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background: rgba(255,255,255,.03);
-    }
-
-    .msgRow{
-      display:flex;
-      margin: 10px 0;
-      gap:10px;
-      align-items:flex-end;
-    }
-    .msgRow.user{ justify-content:flex-start; }
-    .msgRow.bot{ justify-content:flex-end; }
-
-    .bubble{
-      max-width: min(680px, 78%);
-      padding: 12px 12px 10px;
-      border-radius: 18px;
-      border:1px solid var(--line);
-      background: var(--msgCard);
-      position:relative;
-      box-shadow: 0 6px 20px rgba(0,0,0,.12);
-      overflow:hidden;
-    }
-    .user .bubble{
-      background: linear-gradient(135deg, rgba(107,123,255,.28), rgba(107,123,255,.16));
-      border-color: rgba(107,123,255,.25);
-    }
-    .bot .bubble{
-      background: linear-gradient(135deg, rgba(27,42,85,.86), rgba(27,42,85,.55));
-      border-color: rgba(255,255,255,.08);
-    }
-    [data-theme="light"] .bot .bubble{
-      background: linear-gradient(135deg, rgba(238,242,255,.95), rgba(238,242,255,.70));
-      border-color: rgba(16,20,38,.08);
-    }
-
-    .bubble .text{
-      font-size:14px;
-      line-height:1.6;
-      white-space:pre-wrap;
-      word-wrap:break-word;
-    }
-    .metaRow{
-      margin-top:6px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      color: rgba(255,255,255,.70);
-      font-size:11px;
-    }
-    [data-theme="light"] .metaRow{ color: rgba(16,20,38,.55); }
-    .metaRow .tag{
-      padding:5px 9px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size:11px;
-    }
-    .user .metaRow .tag{ color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.16); }
-
-    .typing{
-      display:inline-flex;
-      gap:6px;
-      align-items:center;
-      font-size:13px;
-      color: var(--muted);
-      margin: 4px 0 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border:1px dashed rgba(255,255,255,.16);
-      width: fit-content;
-      background: rgba(255,255,255,.03);
-    }
-    .dots{
-      display:inline-flex; gap:4px;
-    }
-    .dots span{
-      width:6px;height:6px;border-radius:999px;
-      background: var(--muted);
-      opacity:.55;
-      animation: bounce 1.2s infinite ease-in-out;
-    }
-    .dots span:nth-child(2){ animation-delay:.15s; }
-    .dots span:nth-child(3){ animation-delay:.3s; }
-    @keyframes bounce{
-      0%, 80%, 100%{ transform: translateY(0); opacity:.45; }
-      40%{ transform: translateY(-5px); opacity:.9; }
-    }
-
-    .composer{
-      border-top:1px solid var(--line);
-      padding: 12px 14px;
-      display:flex;
-      gap:10px;
-      align-items:flex-end;
-      background: rgba(255,255,255,.02);
-    }
-    .textarea{
-      flex:1;
-      min-height:48px;
-      max-height:140px;
-      resize:none;
-      padding:12px 12px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--text);
-      outline:none;
-      font-size:14px;
-      line-height:1.5;
-      transition:.15s ease;
-    }
-    .textarea:focus{ box-shadow: var(--focus); border-color: rgba(107,123,255,.35); }
+    .title b{ font-size:16px; }
+    .title span{ font-size:12px; color:var(--muted); line-height:1.4; }
     .btn{
-      border:none;
-      cursor:pointer;
-      padding: 12px 14px;
-      border-radius:16px;
+      cursor:pointer; border:none;
+      padding:10px 12px;
+      border-radius:14px;
       color:white;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: 0 12px 26px rgba(107,123,255,.22);
       font-weight:700;
+      box-shadow: 0 12px 26px rgba(107,123,255,.22);
       transition:.15s ease;
       user-select:none;
-      display:flex; gap:10px; align-items:center;
     }
     .btn:hover{ transform: translateY(-1px); }
     .btn:active{ transform: translateY(0) scale(.99); }
-    .btn:focus{ outline:none; box-shadow: var(--focus); }
     .btn.secondary{
-      background: rgba(255,255,255,.04);
-      color: var(--text);
+      background: rgba(255,255,255,.05);
       border:1px solid var(--line);
       box-shadow:none;
+      color:var(--text);
       font-weight:600;
     }
-
-    .hintBar{
-      padding: 0 16px 12px;
+    .panel{
+      padding:16px;
       display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+      flex-direction:column;
+      gap:12px;
     }
-    .hint{
-      font-size:12px;
-      color: var(--muted);
+    .drop{
+      border:1px dashed rgba(255,255,255,.20);
+      border-radius: 16px;
+      padding:14px;
+      background: rgba(255,255,255,.03);
+      text-align:center;
+      transition:.15s ease;
+    }
+    .drop.drag{ border-color: rgba(107,123,255,.55); box-shadow: 0 0 0 3px rgba(107,123,255,.18); }
+    .drop .big{ font-size:14px; margin-bottom:6px; }
+    .drop .small{ font-size:12px; color:var(--muted); }
+    input[type="file"]{ display:none; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .label{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.03);
+      display:flex; gap:8px; align-items:center;
+    }
+    .toggle{
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .mode{
+      cursor:pointer;
       border:1px solid var(--line);
       background: rgba(255,255,255,.03);
-      padding: 8px 10px;
-      border-radius: 999px;
-      cursor:pointer;
+      border-radius: 14px;
+      padding:10px 12px;
+      font-size:12px;
+      color: var(--muted);
       user-select:none;
       transition:.15s ease;
     }
-    .hint:hover{ transform: translateY(-1px); background: rgba(255,255,255,.05); }
-
+    .mode.active{
+      color: var(--text);
+      border-color: rgba(107,123,255,.45);
+      background: rgba(107,123,255,.14);
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      padding:16px;
+    }
+    .previewBox{
+      border:1px solid var(--line);
+      border-radius: 16px;
+      overflow:hidden;
+      background: rgba(255,255,255,.03);
+      min-height: 340px;
+      display:flex; flex-direction:column;
+    }
+    .boxHead{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      font-size:12px;
+      color: var(--muted);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .canvasWrap{
+      flex:1; display:flex; align-items:center; justify-content:center;
+      padding:10px;
+      background:
+        linear-gradient(45deg, rgba(255,255,255,.06) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,.06) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.06) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.06) 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+    }
+    canvas{ max-width:100%; max-height: 420px; border-radius:12px; }
+    .status{
+      padding:10px 12px;
+      border-top:1px solid var(--line);
+      color: var(--muted);
+      font-size:12px;
+      display:flex; align-items:center; gap:10px; justify-content:space-between;
+    }
+    .bar{
+      height:10px; width: 210px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      overflow:hidden;
+      border:1px solid var(--line);
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .2s ease;
+    }
     .toast{
-      position:absolute;
-      left:14px;
-      bottom:14px;
-      background: rgba(0,0,0,.50);
-      color:#fff;
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      background: rgba(0,0,0,.55);
       border:1px solid rgba(255,255,255,.12);
       padding:10px 12px;
       border-radius: 14px;
       font-size:12px;
+      color:#fff;
       opacity:0;
       transform: translateY(10px);
       pointer-events:none;
       transition:.2s ease;
       backdrop-filter: blur(10px);
     }
-    [data-theme="light"] .toast{
-      background: rgba(16,20,38,.70);
+    .toast.show{ opacity:1; transform: translateY(0); }
+    .hint{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.6;
     }
-    .toast.show{
-      opacity:1;
-      transform: translateY(0);
+    .range{
+      width: 240px;
+      accent-color: var(--accent);
     }
-
-    /* responsive */
     @media (max-width: 980px){
-      .app{
-        grid-template-columns: 1fr;
-        height: 94vh;
-      }
-      .sidebar{ display:none; }
+      .app{ grid-template-columns: 1fr; }
+      .grid2{ grid-template-columns: 1fr; }
+      .bar{ width: 180px; }
+      .range{ width: 100%; }
     }
   </style>
 </head>
 
 <body>
-  <div class="app" id="app" data-theme="dark">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sideTop">
-        <div class="logo" aria-hidden="true"></div>
-        <div class="brand">
-          <b id="appName">NebulaChat</b>
-          <span>Frontend-only • Local Storage</span>
+  <div class="app">
+    <header class="card">
+      <div class="title">
+        <b>🧼 إزالة خلفية الصور (Frontend Only)</b>
+        <span>AI داخل المتصفح (إن اشتغل) + بديل إزالة باللون للخلفيات السادة. بدون Backend.</span>
+      </div>
+      <div class="row">
+        <button class="btn secondary" id="demoBtn">صورة تجريبية</button>
+        <button class="btn" id="downloadBtn" disabled>تحميل PNG</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="panel">
+        <div class="drop" id="drop">
+          <div class="big">اسحب الصورة هنا 📥 أو <label for="file" style="color:var(--accent2); cursor:pointer; font-weight:700;">اختار ملف</label></div>
+          <div class="small">PNG / JPG / WEBP</div>
+          <input id="file" type="file" accept="image/*" />
         </div>
-        <div class="sideActions">
-          <button class="iconBtn" id="toggleThemeBtn" title="تبديل الوضع">
-            ☀️
-          </button>
-          <button class="iconBtn" id="exportBtn" title="تصدير المحادثة">
-            ⤓
-          </button>
+
+        <div class="toggle">
+          <div class="mode active" data-mode="ai">🤖 AI Remove BG (داخل المتصفح)</div>
+          <div class="mode" data-mode="color">🎨 Remove by Color (للخلفية السادة)</div>
+        </div>
+
+        <div class="hint" id="modeHint">
+          وضع AI يعتمد على تحميل موديل داخل المتصفح. لو ما اشتغلش عندك، استخدم Remove by Color.
+        </div>
+
+        <div class="card" style="border-radius:16px; box-shadow:none;">
+          <div class="panel" style="gap:10px">
+            <div class="row" style="justify-content:space-between;">
+              <span class="label">⚙️ إعدادات Remove by Color</span>
+              <span class="label">Target: <input type="color" id="keyColor" value="#ffffff" style="width:36px;height:24px;border:0;background:transparent;"/></span>
+            </div>
+
+            <div class="row" style="justify-content:space-between;">
+              <span class="label">Tolerance</span>
+              <input class="range" id="tolerance" type="range" min="0" max="140" value="35" />
+              <span class="label" id="tolVal">35</span>
+            </div>
+
+            <div class="row" style="justify-content:space-between;">
+              <span class="label">Soft Edge</span>
+              <input class="range" id="softness" type="range" min="0" max="40" value="10" />
+              <span class="label" id="softVal">10</span>
+            </div>
+
+            <div class="row">
+              <button class="btn secondary" id="applyColorBtn">تطبيق Remove by Color</button>
+              <button class="btn secondary" id="resetBtn">Reset</button>
+            </div>
+
+            <div class="hint">نصيحة: لو الخلفية بيضاء، خلي Target أبيض وارفع Tolerance تدريجيًا لحد ما الخلفية تختفي من غير ما تقطع الشخص.</div>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="searchWrap">
-        <input class="input" id="roomSearch" placeholder="ابحث عن غرفة..." />
-        <div class="pill" title="الحالة">
-          <span class="dot"></span>
-          <span>Online</span>
-        </div>
-      </div>
-
-      <div class="rooms" id="rooms"></div>
-
-      <div class="sideFooter">
-        <div class="avatar" aria-hidden="true">👤</div>
-        <div class="nameTag">
-          <b id="userNameLabel">ضيف</b>
-          <span id="userIdLabel">local-user</span>
-        </div>
-        <button class="iconBtn" id="editNameBtn" title="تغيير الاسم">✎</button>
-      </div>
-    </aside>
-
-    <!-- Chat -->
-    <main class="chat">
-      <div class="chatTop">
-        <div class="avatar" id="roomAvatar" aria-hidden="true">💬</div>
-        <div class="title">
-          <b id="roomTitle">عام</b>
-          <span id="roomSubtitle">اكتب سؤالك.. والرد هيكون محلي (بدون إنترنت)</span>
+    <section class="card">
+      <div class="grid2">
+        <div class="previewBox">
+          <div class="boxHead">
+            <span>الصورة الأصلية</span>
+            <span class="label" id="origInfo">—</span>
+          </div>
+          <div class="canvasWrap">
+            <canvas id="origCanvas"></canvas>
+          </div>
+          <div class="status">
+            <span id="statusLeft">جاهز</span>
+            <div class="bar"><div id="progressBar"></div></div>
+          </div>
         </div>
 
-        <div class="chip" title="محلي 100%">
-          <i></i> Frontend Only
+        <div class="previewBox">
+          <div class="boxHead">
+            <span>النتيجة (شفافية)</span>
+            <span class="label" id="outInfo">PNG</span>
+          </div>
+          <div class="canvasWrap">
+            <canvas id="outCanvas"></canvas>
+          </div>
+          <div class="status">
+            <span id="statusRight">بانتظار صورة…</span>
+            <span class="label">💡 اضغط تحميل لحفظ PNG</span>
+          </div>
         </div>
-
-        <button class="iconBtn" id="clearBtn" title="مسح المحادثة">🗑️</button>
       </div>
-
-      <div class="messages" id="messages"></div>
-
-      <div class="hintBar" id="hintBar"></div>
-
-      <div class="composer">
-        <textarea class="textarea" id="composer" placeholder="اكتب رسالة... (Enter للإرسال، Shift+Enter لسطر جديد)"></textarea>
-        <button class="btn" id="sendBtn">إرسال 🚀</button>
-      </div>
-
-      <div class="toast" id="toast">تم ✅</div>
-    </main>
+    </section>
   </div>
 
-<script>
-(() => {
-  const $ = (s) => document.querySelector(s);
-  const elApp = $("#app");
-  const elRooms = $("#rooms");
-  const elRoomSearch = $("#roomSearch");
-  const elMessages = $("#messages");
-  const elComposer = $("#composer");
-  const elSend = $("#sendBtn");
-  const elRoomTitle = $("#roomTitle");
-  const elRoomSubtitle = $("#roomSubtitle");
-  const elRoomAvatar = $("#roomAvatar");
-  const elHintBar = $("#hintBar");
-  const elToggleTheme = $("#toggleThemeBtn");
-  const elClear = $("#clearBtn");
-  const elExport = $("#exportBtn");
-  const elEditName = $("#editNameBtn");
-  const elUserNameLabel = $("#userNameLabel");
-  const elUserIdLabel = $("#userIdLabel");
-  const elAppName = $("#appName");
-  const elToast = $("#toast");
+  <div class="toast" id="toast">تم ✅</div>
 
-  const LS_KEY = "nebula_chat_v1";
-  const THEME_KEY = "nebula_theme";
-  const PROFILE_KEY = "nebula_profile";
+  <!-- AI MODE: RMBG (if available via CDN) -->
+  <!-- This may fail on some environments; we handle gracefully. -->
+  <script type="module">
+    const $ = (s)=>document.querySelector(s);
+    const drop = $("#drop");
+    const fileInput = $("#file");
+    const downloadBtn = $("#downloadBtn");
+    const demoBtn = $("#demoBtn");
+    const resetBtn = $("#resetBtn");
+    const applyColorBtn = $("#applyColorBtn");
+    const keyColor = $("#keyColor");
+    const tolerance = $("#tolerance");
+    const softness = $("#softness");
+    const tolVal = $("#tolVal");
+    const softVal = $("#softVal");
 
-  const nowTime = () => {
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mm = String(d.getMinutes()).padStart(2,"0");
-    return `${hh}:${mm}`;
-  };
+    const origCanvas = $("#origCanvas");
+    const outCanvas  = $("#outCanvas");
+    const origCtx = origCanvas.getContext("2d");
+    const outCtx  = outCanvas.getContext("2d");
 
-  const todayLabel = () => {
-    const d = new Date();
-    const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  };
+    const statusLeft = $("#statusLeft");
+    const statusRight = $("#statusRight");
+    const progressBar = $("#progressBar");
+    const toast = $("#toast");
+    const origInfo = $("#origInfo");
+    const modeHint = $("#modeHint");
 
-  const uid = () => "u_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+    let mode = "ai";
+    let imgBitmap = null;
+    let origImageData = null;
 
-  const showToast = (msg="تم ✅") => {
-    elToast.textContent = msg;
-    elToast.classList.add("show");
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=> elToast.classList.remove("show"), 1400);
-  };
-
-  const defaultRooms = [
-    { id:"general", name:"عام", avatar:"💬", subtitle:"دردشة عامة وفضفضة لطيفة" },
-    { id:"pricing", name:"الأسعار", avatar:"💰", subtitle:"اسأل عن أسعار وهمية (Demo)" },
-    { id:"support", name:"الدعم", avatar:"🛠️", subtitle:"حل مشاكل بسرعة (Frontend)" },
-    { id:"ideas", name:"اقتراحات", avatar:"✨", subtitle:"أفكار منتجات ومقترحات" },
-    { id:"cv", name:"CV Builder", avatar:"📄", subtitle:"نصائح سريعة للسيرة الذاتية" },
-  ];
-
-  const defaultHints = {
-    general: ["اقترح علي فكرة مشروع", "عايز أبدأ أتعلم برمجة", "ازاي أحسن تصميم الموقع؟", "اديني خطة يومية بسيطة"],
-    pricing: ["سعر المنتج A كام؟", "هل في خصم؟", "رشحلي باقة اقتصادية", "عايز مقارنة بين خطتين"],
-    support: ["الموقع بيطلع شاشة سودا", "Uncaught TypeError..", "ازاي أظبط CORS؟", "مش عارف أشغل React"],
-    ideas: ["اقترح منتجات للمتجر", "اعمل عروض تسويق", "أفكار لمحتوى تيك توك", "اقتراح أسماء برند"],
-    cv: ["اكتب ملخص CV", "نصائح للـ ATS", "صيغة خبرة بدون مبالغة", "ازاي أرتب المشاريع؟"]
-  };
-
-  const loadProfile = () => {
-    try{
-      const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
-      if(p && p.name && p.id) return p;
-    }catch(e){}
-    const p = { name:"ضيف", id: uid() };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
-    return p;
-  };
-
-  const saveProfile = (p) => localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
-
-  const loadState = () => {
-    try{
-      const s = JSON.parse(localStorage.getItem(LS_KEY) || "null");
-      if(s && s.rooms && s.messages) return s;
-    }catch(e){}
-    const init = {
-      rooms: defaultRooms,
-      activeRoomId: "general",
-      messages: {
-        general: [
-          {
-            id: uid(),
-            role: "bot",
-            text: "أهلاً 👋\nده شات Frontend فقط. مفيش سيرفر ولا API. كل حاجة محلية.\nجرّب تكتب سؤال، وأنا هرد بقواعد ذكية بسيطة + اقتراحات 😉",
-            time: nowTime(),
-            tag: "System"
-          }
-        ],
-        pricing: [],
-        support: [],
-        ideas: [],
-        cv: []
-      },
-      createdAt: Date.now()
+    const showToast = (msg) => {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>toast.classList.remove("show"), 1400);
     };
-    localStorage.setItem(LS_KEY, JSON.stringify(init));
-    return init;
-  };
 
-  const saveState = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
+    const setProgress = (p) => {
+      progressBar.style.width = Math.max(0, Math.min(100, p)) + "%";
+    };
 
-  const themeInit = () => {
-    const t = localStorage.getItem(THEME_KEY) || "dark";
-    elApp.setAttribute("data-theme", t);
-    elToggleTheme.textContent = t === "dark" ? "☀️" : "🌙";
-  };
+    const setMode = (m) => {
+      mode = m;
+      document.querySelectorAll(".mode").forEach(x => x.classList.toggle("active", x.dataset.mode === m));
+      if(m === "ai"){
+        modeHint.textContent = "وضع AI: يحاول إزالة الخلفية بموديل داخل المتصفح. لو فشل التحميل استخدم Remove by Color.";
+      } else {
+        modeHint.textContent = "وضع Remove by Color: ممتاز لو الخلفية لون واحد (أبيض/أخضر/أزرق). اختر اللون ثم اضبط Tolerance.";
+      }
+      showToast(m === "ai" ? "AI Mode 🤖" : "Color Mode 🎨");
+    };
 
-  const toggleTheme = () => {
-    const current = elApp.getAttribute("data-theme");
-    const next = current === "dark" ? "light" : "dark";
-    elApp.setAttribute("data-theme", next);
-    localStorage.setItem(THEME_KEY, next);
-    elToggleTheme.textContent = next === "dark" ? "☀️" : "🌙";
-    showToast(next === "dark" ? "Dark ✅" : "Light ✅");
-  };
-
-  const escapeHtml = (s) => s
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
-
-  const renderRooms = () => {
-    const q = (elRoomSearch.value || "").trim().toLowerCase();
-    elRooms.innerHTML = "";
-
-    state.rooms
-      .filter(r => !q || r.name.toLowerCase().includes(q) || r.subtitle.toLowerCase().includes(q))
-      .forEach(r => {
-        const div = document.createElement("div");
-        div.className = "room" + (r.id === state.activeRoomId ? " active" : "");
-        div.innerHTML = `
-          <div class="avatar" aria-hidden="true">${escapeHtml(r.avatar)}</div>
-          <div class="roomMeta">
-            <b>${escapeHtml(r.name)}</b>
-            <span>${escapeHtml(r.subtitle)}</span>
-          </div>
-          <span class="badge">${(state.messages[r.id] || []).length}</span>
-        `;
-        div.addEventListener("click", () => {
-          state.activeRoomId = r.id;
-          saveState();
-          renderAll();
-        });
-        elRooms.appendChild(div);
-      });
-  };
-
-  const renderHints = () => {
-    const hints = defaultHints[state.activeRoomId] || ["اكتب سؤالك…"];
-    elHintBar.innerHTML = "";
-    hints.slice(0, 6).forEach(h => {
-      const b = document.createElement("div");
-      b.className = "hint";
-      b.textContent = h;
-      b.addEventListener("click", () => {
-        elComposer.value = h;
-        elComposer.focus();
-      });
-      elHintBar.appendChild(b);
-    });
-  };
-
-  const renderHeader = () => {
-    const room = state.rooms.find(r => r.id === state.activeRoomId) || state.rooms[0];
-    elRoomTitle.textContent = room.name;
-    elRoomSubtitle.textContent = room.subtitle + " • (محلي)";
-    elRoomAvatar.textContent = room.avatar;
-  };
-
-  const renderMessages = () => {
-    const list = state.messages[state.activeRoomId] || [];
-    elMessages.innerHTML = "";
-
-    // Day divider
-    const divider = document.createElement("div");
-    divider.className = "dayDivider";
-    divider.innerHTML = `<span>${todayLabel()}</span>`;
-    elMessages.appendChild(divider);
-
-    list.forEach(m => {
-      const row = document.createElement("div");
-      row.className = "msgRow " + (m.role === "user" ? "user" : "bot");
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.innerHTML = `
-        <div class="text">${escapeHtml(m.text)}</div>
-        <div class="metaRow">
-          <span>${escapeHtml(m.time || "")}</span>
-          <span class="tag">${escapeHtml(m.tag || (m.role === "user" ? profile.name : "Bot"))}</span>
-        </div>
-      `;
-      row.appendChild(bubble);
-      elMessages.appendChild(row);
+    document.querySelectorAll(".mode").forEach(btn=>{
+      btn.addEventListener("click", ()=> setMode(btn.dataset.mode));
     });
 
-    elMessages.scrollTop = elMessages.scrollHeight;
-  };
+    const fitCanvas = (c, w, h) => { c.width = w; c.height = h; };
 
-  const addMessage = (role, text, tag) => {
-    const msg = {
-      id: uid(),
-      role,
-      text: String(text || "").trim(),
-      time: nowTime(),
-      tag: tag || (role === "user" ? profile.name : "Bot")
+    const drawOriginal = async (fileOrUrl) => {
+      statusLeft.textContent = "تحميل الصورة…";
+      statusRight.textContent = "بانتظار المعالجة…";
+      setProgress(15);
+
+      let blob;
+      if(typeof fileOrUrl === "string"){
+        const res = await fetch(fileOrUrl);
+        blob = await res.blob();
+      } else {
+        blob = fileOrUrl;
+      }
+
+      imgBitmap = await createImageBitmap(blob);
+      fitCanvas(origCanvas, imgBitmap.width, imgBitmap.height);
+      fitCanvas(outCanvas, imgBitmap.width, imgBitmap.height);
+
+      origCtx.clearRect(0,0,origCanvas.width, origCanvas.height);
+      origCtx.drawImage(imgBitmap, 0, 0);
+
+      origImageData = origCtx.getImageData(0,0,origCanvas.width, origCanvas.height);
+
+      outCtx.clearRect(0,0,outCanvas.width,outCanvas.height);
+      outCtx.drawImage(imgBitmap, 0, 0);
+
+      origInfo.textContent = `${imgBitmap.width}×${imgBitmap.height}`;
+      setProgress(25);
+      downloadBtn.disabled = false;
+      statusLeft.textContent = "جاهز";
+      statusRight.textContent = "اختر وضع ثم اضغط تطبيق/إزالة";
+      showToast("تم تحميل الصورة ✅");
     };
-    if(!state.messages[state.activeRoomId]) state.messages[state.activeRoomId] = [];
-    state.messages[state.activeRoomId].push(msg);
-    saveState();
-    renderAll();
-  };
 
-  const renderTyping = (on) => {
-    const id = "typingRow";
-    const existing = document.getElementById(id);
-    if(on){
-      if(existing) return;
-      const wrap = document.createElement("div");
-      wrap.id = id;
-      wrap.className = "typing";
-      wrap.innerHTML = `
-        <span>يكتب الآن</span>
-        <span class="dots"><span></span><span></span><span></span></span>
-      `;
-      elMessages.appendChild(wrap);
-      elMessages.scrollTop = elMessages.scrollHeight;
-    } else {
-      existing?.remove();
+    // ---------- AI remove background (try) ----------
+    let aiReady = false;
+    let aiRemove = null;
+
+    async function initAI(){
+      // Try to load an in-browser background removal library from CDN.
+      // If it fails, we keep color mode as fallback.
+      try{
+        statusLeft.textContent = "تحميل AI…";
+        setProgress(5);
+
+        // Attempt: @imgly/background-removal (WASM) from jsdelivr
+        // Some browsers/envs may block WASM or CORS; handled in catch.
+        const mod = await import("https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.2.5/+esm");
+        // mod.removeBackground(imageBlob|ImageData) -> Blob
+        aiRemove = mod.removeBackground;
+        aiReady = true;
+        statusLeft.textContent = "AI جاهز ✅";
+        setProgress(0);
+      }catch(e){
+        aiReady = false;
+        statusLeft.textContent = "AI غير متاح هنا";
+        setProgress(0);
+      }
     }
-  };
 
-  // --------- "Smart" local bot (rules + lightweight intent) ----------
-  const normalize = (s) => (s || "")
-    .toLowerCase()
-    .replace(/[أإآ]/g,"ا")
-    .replace(/ى/g,"ي")
-    .replace(/ة/g,"ه")
-    .replace(/[^\p{L}\p{N}\s\?\!]/gu," ")
-    .replace(/\s+/g," ")
-    .trim();
+    async function applyAI(){
+      if(!imgBitmap) return;
+      statusRight.textContent = "AI بيشيل الخلفية…";
+      setProgress(35);
 
-  const containsAny = (s, arr) => arr.some(w => s.includes(w));
-  const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
+      if(!aiReady || typeof aiRemove !== "function"){
+        statusRight.textContent = "AI فشل… استخدم Remove by Color";
+        showToast("AI غير متاح ❌");
+        setMode("color");
+        setProgress(0);
+        return;
+      }
 
-  // Demo product catalog (local)
-  const catalog = [
-    { name:"AirPods Pro (Demo)", price: 1299, cat:"اكسسوارات" },
-    { name:"iPhone 15 (Demo)", price: 38999, cat:"موبايلات" },
-    { name:"Samsung A55 (Demo)", price: 16999, cat:"موبايلات" },
-    { name:"Gaming Mouse (Demo)", price: 999, cat:"اكسسوارات" },
-    { name:"Mechanical Keyboard (Demo)", price: 2199, cat:"اكسسوارات" },
-    { name:"Laptop i5 (Demo)", price: 25999, cat:"لابتوبات" },
-  ];
+      try{
+        // Convert current original canvas to blob
+        const blob = await new Promise(res => origCanvas.toBlob(res, "image/png"));
+        setProgress(55);
 
-  const formatEGP = (n) => {
-    const x = Number(n || 0);
-    return x.toLocaleString("ar-EG") + " ج";
-  };
+        const outBlob = await aiRemove(blob);
+        setProgress(80);
 
-  const buildPricingAnswer = (qNorm) => {
-    // Try match product by keyword
-    const hit = catalog.find(p => qNorm.includes(normalize(p.name).split(" ")[0])) ||
-                catalog.find(p => qNorm.includes(normalize(p.cat)));
-    if(hit){
-      return `تمام ✅\nالسعر التقريبي لـ "${hit.name}" هو: ${formatEGP(hit.price)}\nالتصنيف: ${hit.cat}\n\n(ده Demo محلي. لو عايز، قولّي ميزانيتك وأنا أرشحلك خيارين.)`;
+        const outBmp = await createImageBitmap(outBlob);
+        outCtx.clearRect(0,0,outCanvas.width,outCanvas.height);
+        outCtx.drawImage(outBmp, 0, 0);
+
+        statusRight.textContent = "تمت إزالة الخلفية ✅";
+        showToast("خلصنا 🧼");
+        setProgress(0);
+      }catch(err){
+        statusRight.textContent = "AI عمل مشكلة… جرّب Remove by Color";
+        showToast("AI Error ❌");
+        setMode("color");
+        setProgress(0);
+      }
     }
-    // Generic
-    const cheap = catalog.filter(p => p.price <= 5000);
-    const mid = catalog.filter(p => p.price > 5000 && p.price <= 20000);
-    const pro = catalog.filter(p => p.price > 20000);
-    return `عندك 3 باقات (Demo) 💡\n- اقتصادية: ${pick(cheap).name} حوالي ${formatEGP(pick(cheap).price)}\n- متوسطة: ${pick(mid).name} حوالي ${formatEGP(pick(mid).price)}\n- قوية: ${pick(pro).name} حوالي ${formatEGP(pick(pro).price)}\n\nقولّي: (موبايل/لاب/اكسسوار) + ميزانيتك؟`;
-  };
 
-  const buildSupportAnswer = (qNorm) => {
-    if(containsAny(qNorm, ["شاشه سودا","black screen","شاشة سوده","routes","typeerror"])){
-      return `تمام، دي خطوات سريعة غالبًا بتصلح موضوع الشاشة السودا في React/Vite ✅
-1) افتح DevTools Console وشوف أول Error (مش آخر واحد).
-2) تأكد إن import بتاع Routes صح:
-   - لو React Router v6: لازم <BrowserRouter> يغلف التطبيق.
-3) تأكد إن react-router-dom متثبت:
-   npm i react-router-dom
-4) جرّب تمسح الكاش + node_modules:
-   - احذف node_modules و package-lock ثم:
-   npm i
-5) لو error بيقول Routes undefined: غالبًا بتستورد Routes من مكان غلط أو نسخة router قديمة.
-
-لو تحب ابعتلي نص الـ import اللي عندك وأنا أقولك السطر اللي محتاج تعديل.`;
+    // ---------- Color key (chroma) fallback ----------
+    function hexToRgb(hex){
+      const v = hex.replace("#","");
+      const bigint = parseInt(v, 16);
+      return { r: (bigint>>16)&255, g:(bigint>>8)&255, b: bigint&255 };
     }
-    if(containsAny(qNorm, ["cors","كورس"])){
-      return `CORS في العادة مش بيتحل فرونت بس… لكن لو أنت شغال Demo:
-- استخدم Mock Data بدل API
-- أو Proxy في Vite (لو فيه backend)
-لو عايز Front فقط: اعمل بيانات وهمية + فلترة + بحث محلي.`;
+
+    function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+
+    function applyColorKey(){
+      if(!origImageData) return;
+
+      const {r:kr, g:kg, b:kb} = hexToRgb(keyColor.value);
+      const tol = parseInt(tolerance.value, 10);
+      const soft = parseInt(softness.value, 10);
+
+      statusRight.textContent = "إزالة بالخلفية (Color)…";
+      setProgress(35);
+
+      const src = origImageData.data;
+      const out = new ImageData(origImageData.width, origImageData.height);
+      const dst = out.data;
+
+      // Distance in RGB space; alpha fades within [tol - soft, tol + soft]
+      const t0 = Math.max(0, tol - soft);
+      const t1 = tol + soft;
+
+      for(let i=0; i<src.length; i+=4){
+        const r = src[i], g = src[i+1], b = src[i+2], a = src[i+3];
+
+        const dr = r-kr, dg = g-kg, db = b-kb;
+        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+
+        let alpha = a;
+
+        if(dist <= t0){
+          alpha = 0; // remove
+        } else if(dist < t1){
+          // soft edge: fade alpha
+          const k = (dist - t0) / (t1 - t0); // 0..1
+          alpha = Math.round(a * k);
+        }
+
+        dst[i] = r;
+        dst[i+1] = g;
+        dst[i+2] = b;
+        dst[i+3] = clamp(alpha, 0, 255);
+      }
+
+      outCtx.putImageData(out, 0, 0);
+      setProgress(0);
+      statusRight.textContent = "تمت الإزالة (Color) ✅";
+      showToast("اتشالت 🎨");
     }
-    return `قولي المشكلة في سطر واحد + اسم التقنية (React/Next/Vite/Vanilla) وأنا هديك خطوات عملية ✅`;
-  };
 
-  const buildIdeasAnswer = (qNorm) => {
-    if(containsAny(qNorm, ["اسم","names","برند","brand"])){
-      const names = ["LumaCart","NovaMarket","BlinkBuy","NexaStore","OrbitShop","ZenBasket","PulseMart"];
-      return `اقتراحات أسماء براند ✨\n${names.map(n=>"• "+n).join("\n")}\n\nتحب الاسم يكون عربي ولا إنجليزي؟ وعايزه رسمي ولا خفيف؟`;
+    // ---------- Download ----------
+    function downloadPNG(){
+      if(!imgBitmap) return;
+      outCanvas.toBlob((blob)=>{
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "no-bg.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast("تم التحميل ⤓");
+      }, "image/png");
     }
-    if(containsAny(qNorm, ["عروض","تسويق","marketing","ماركتنج"])){
-      return `3 أفكار تسويق سريعة 🚀
-1) عرض Bundle: اشترِ 2 وخد الثالث بـ 50%
-2) كوبون “WELCOME10” لأول طلب
-3) Countdown لعرض 24 ساعة في الهوم
 
-قولّي نوع المنتجات (موبايلات؟ ملابس؟) عشان أظبط الأفكار.`;
+    function resetAll(){
+      imgBitmap = null;
+      origImageData = null;
+      origCtx.clearRect(0,0,origCanvas.width,origCanvas.height);
+      outCtx.clearRect(0,0,outCanvas.width,outCanvas.height);
+      origInfo.textContent = "—";
+      statusRight.textContent = "بانتظار صورة…";
+      downloadBtn.disabled = true;
+      setProgress(0);
+      showToast("Reset ✅");
     }
-    return `أفكار جاهزة 💡
-• “متجر ذكي” بفلترة قوية + توصيات محلية
-• صفحة مقارنة منتجات (A vs B)
-• نظام نقاط ولاء بسيط (كل شراء = نقاط)
 
-عايز الفكرة تركز على: زيادة البيع ولا تجربة المستخدم؟`;
-  };
+    // ---------- UI events ----------
+    drop.addEventListener("click", ()=> fileInput.click());
+    fileInput.addEventListener("change", async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      await drawOriginal(f);
+      // auto process based on mode
+      if(mode === "ai") await applyAI();
+    });
 
-  const buildCVAnswer = (qNorm) => {
-    if(containsAny(qNorm, ["ats","اتس"])){
-      return `عشان الـ ATS يعدّي الـ CV ✅
-- استخدم عناوين واضحة: Summary / Experience / Projects / Skills
-- تجنّب جداول معقدة وصور كتير
-- اكتب أرقام: “خفضت الوقت 30%” بدل كلام عام
-لو تبعتلي مجالك (Web/Design/Marketing) أكتبلك Summary جاهز.`;
-    }
-    if(containsAny(qNorm, ["ملخص","summary"])){
-      return `اكتبلي 3 حاجات:
-1) مسمّى وظيفتك
-2) سنين الخبرة
-3) أهم 2 إنجاز
-وأطلعلك Summary قوي في سطرين.`;
-    }
-    return `CV سريع: ركّز على Projects + أرقام + Tech Stack. لو عندك GitHub/Behance حطهم فوق.`;
-  };
-
-  const buildGeneralAnswer = (qNorm) => {
-    if(containsAny(qNorm, ["مشروع","project","فكره","فكرة"])){
-      const ideas = [
-        "مولّد CV بقوالب متعددة + تصدير PDF من المتصفح",
-        "موقع مقارنة أسعار (Demo) بفلترة وبحث محلي",
-        "Dashboard مصروفات شخصية (LocalStorage) مع Charts",
-        "مساعد قرارات سريع يسأل 3 أسئلة ويطلع توصية",
-      ];
-      return `تمام 👌\nإليك 4 أفكار قابلة للنشر بسرعة:\n${ideas.map(i=>"• "+i).join("\n")}\n\nعايزها ويب ولا موبايل؟`;
-    }
-    if(containsAny(qNorm, ["ازاي","كيف","ابدأ","ابدأ"])){
-      return `خلّينا نمشيها بخطة صغيرة 🧭
-1) اختار هدف أسبوع: (مثلاً صفحة منتجات + سلة)
-2) كل يوم 45 دقيقة: UI ثم Logic
-3) في الآخر: نشر على GitHub Pages أو Netlify
-
-قولّي أنت شغال React ولا Vanilla؟`;
-    }
-    if(containsAny(qNorm, ["سلام","اهلا","هلا","hi","hello"])){
-      return pick([
-        "أهلاً وسهلاً 👋 قولّي ناوي تتكلم عن إيه؟",
-        "يا هلا! جاهز نرتّب أفكارك ولا تحب فضفضة خفيفة؟ 😄",
-        "أهلاً! اكتب سؤالك وأنا معاك خطوة بخطوة ✅"
-      ]);
-    }
-    return `وصلت ✅\nلو عايز رد أدق: قولّي “هدفك” من السؤال في سطر واحد.`;
-  };
-
-  const localBot = (userText) => {
-    const q = normalize(userText);
-
-    // room-aware responses
-    if(state.activeRoomId === "pricing") return buildPricingAnswer(q);
-    if(state.activeRoomId === "support") return buildSupportAnswer(q);
-    if(state.activeRoomId === "ideas") return buildIdeasAnswer(q);
-    if(state.activeRoomId === "cv") return buildCVAnswer(q);
-
-    // general room: detect intents
-    if(containsAny(q, ["سعر","بكام","price","خصم","discount"])) return buildPricingAnswer(q);
-    if(containsAny(q, ["خطا","error","typeerror","routes","شاشه","شاشة","vite","react"])) return buildSupportAnswer(q);
-    if(containsAny(q, ["تسويق","اسم","برند","marketing","names"])) return buildIdeasAnswer(q);
-    if(containsAny(q, ["cv","سيره","سيرة","resume","ats"])) return buildCVAnswer(q);
-
-    return buildGeneralAnswer(q);
-  };
-
-  const send = async () => {
-    const text = (elComposer.value || "").trim();
-    if(!text) return;
-    elComposer.value = "";
-    addMessage("user", text, profile.name);
-
-    // bot typing
-    renderTyping(true);
-    const delay = 550 + Math.random()*650;
-    await new Promise(r => setTimeout(r, delay));
-    renderTyping(false);
-
-    const reply = localBot(text);
-    addMessage("bot", reply, "Bot");
-  };
-
-  const clearChat = () => {
-    const ok = confirm("تمسح محادثة الغرفة دي؟");
-    if(!ok) return;
-    state.messages[state.activeRoomId] = [];
-    saveState();
-    renderAll();
-    showToast("اتمسحت 🗑️");
-  };
-
-  const exportChat = () => {
-    const payload = {
-      profile,
-      roomId: state.activeRoomId,
-      room: state.rooms.find(r=>r.id===state.activeRoomId),
-      messages: state.messages[state.activeRoomId] || [],
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `chat_${state.activeRoomId}_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    showToast("تم التصدير ⤓");
-  };
-
-  const editName = () => {
-    const name = prompt("اكتب اسمك:", profile.name || "ضيف");
-    if(!name) return;
-    profile.name = name.trim().slice(0, 24) || "ضيف";
-    saveProfile(profile);
-    renderProfile();
-    showToast("اتحدث ✅");
-  };
-
-  const renderProfile = () => {
-    elUserNameLabel.textContent = profile.name;
-    elUserIdLabel.textContent = profile.id;
-  };
-
-  const autosize = () => {
-    elComposer.style.height = "auto";
-    elComposer.style.height = Math.min(elComposer.scrollHeight, 140) + "px";
-  };
-
-  const renderAll = () => {
-    renderRooms();
-    renderHeader();
-    renderMessages();
-    renderHints();
-  };
-
-  // init
-  let state = loadState();
-  let profile = loadProfile();
-
-  themeInit();
-  renderProfile();
-  renderAll();
-
-  // events
-  elRoomSearch.addEventListener("input", renderRooms);
-  elToggleTheme.addEventListener("click", toggleTheme);
-  elClear.addEventListener("click", clearChat);
-  elExport.addEventListener("click", exportChat);
-  elEditName.addEventListener("click", editName);
-
-  elSend.addEventListener("click", send);
-  elComposer.addEventListener("input", autosize);
-  elComposer.addEventListener("keydown", (e) => {
-    if(e.key === "Enter" && !e.shiftKey){
+    // drag & drop
+    drop.addEventListener("dragover", (e)=>{ e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", ()=> drop.classList.remove("drag"));
+    drop.addEventListener("drop", async (e)=>{
       e.preventDefault();
-      send();
-    }
-  });
+      drop.classList.remove("drag");
+      const f = e.dataTransfer.files?.[0];
+      if(!f) return;
+      await drawOriginal(f);
+      if(mode === "ai") await applyAI();
+    });
 
-  // small UX: set app name by room
-  const setDynamicTitle = () => {
-    const r = state.rooms.find(x => x.id === state.activeRoomId);
-    document.title = `${r?.name || "Chat"} | NebulaChat`;
-  };
-  const _oldRenderAll = renderAll;
-  renderAll = () => { _oldRenderAll(); setDynamicTitle(); };
-  renderAll();
+    demoBtn.addEventListener("click", async ()=>{
+      // Cute demo: a public image with a clear subject. If blocked, user can upload.
+      const url = "https://images.unsplash.com/photo-1520975916090-3105956dac38?auto=format&fit=crop&w=900&q=80";
+      try{
+        await drawOriginal(url);
+        if(mode === "ai") await applyAI();
+      }catch(e){
+        showToast("الديمو اتمنع… ارفع صورة من جهازك");
+      }
+    });
 
-})();
-</script>
+    downloadBtn.addEventListener("click", downloadPNG);
+    resetBtn.addEventListener("click", resetAll);
+
+    tolVal.textContent = tolerance.value;
+    softVal.textContent = softness.value;
+    tolerance.addEventListener("input", ()=> tolVal.textContent = tolerance.value);
+    softness.addEventListener("input", ()=> softVal.textContent = softness.value);
+
+    applyColorBtn.addEventListener("click", ()=>{
+      setMode("color");
+      applyColorKey();
+    });
+
+    // If user switches to AI and image loaded, run AI
+    document.querySelector('[data-mode="ai"]').addEventListener("click", async ()=>{
+      if(imgBitmap) await applyAI();
+    });
+
+    // Init AI at startup
+    await initAI();
+  </script>
 </body>
 </html>
