@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LocalStore + Admin + Bot (Single File)</title>
+    <title>LocalStore + Admin + Smart Bot (Single File)</title>
 
-    <!-- Tailwind (demo) -->
+    <!-- Tailwind (CDN for demo on GitHub Pages) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React 18 (jsDelivr) -->
+    <!-- React 18 UMD -->
     <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
@@ -33,10 +33,7 @@
       .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
       .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.06); border-radius: 999px; }
 
-      @keyframes popIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-      }
+      @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
       .anim-pop { animation: popIn 220ms ease-out both; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       .anim-fade { animation: fadeIn 180ms ease-out both; }
@@ -47,7 +44,7 @@
     <div id="root"></div>
 
     <script>
-      // ===== Error overlay (لو في أي مشكلة هتظهر بدل الشاشة السودة) =====
+      /* ===== Error overlay بدل الشاشة السودة ===== */
       (function () {
         const box = document.createElement("pre");
         box.style.cssText =
@@ -62,17 +59,14 @@
 
       const React = window.React;
       const ReactDOM = window.ReactDOM;
-
       if (!React || !ReactDOM) {
-        document.body.innerHTML =
-          '<div style="color:white;font-family:system-ui;padding:24px">React CDN load failed. Open Console.</div>';
+        document.body.innerHTML = '<div style="color:white;font-family:system-ui;padding:24px">React CDN failed. Open Console.</div>';
       }
 
       const { useEffect, useMemo, useState, useContext, createContext } = React;
 
       /* =========================
-         Mini Hash Router (بدون أي مكتبة)
-         - يدعم params: /product/:id
+         Mini Hash Router (بدون مكتبات)
       ========================= */
       const RouterCtx = createContext(null);
       const RouteCtx = createContext({ params: {} });
@@ -110,22 +104,15 @@
         return React.createElement(RouterCtx.Provider, { value }, children);
       }
 
-      function useNavigate() {
-        const ctx = useContext(RouterCtx);
-        return ctx.navigate;
-      }
-      function useLocation() {
-        const ctx = useContext(RouterCtx);
-        return { pathname: ctx.path };
-      }
-      function useParams() {
-        return useContext(RouteCtx).params || {};
-      }
+      function useNavigate() { return useContext(RouterCtx).navigate; }
+      function useLocation() { return { pathname: useContext(RouterCtx).path }; }
+      function useParams() { return useContext(RouteCtx).params || {}; }
 
       function Link({ to, className, children }) {
         const href = "#" + (String(to || "/").startsWith("/") ? String(to || "/") : "/" + String(to || "/"));
         return React.createElement("a", { href, className }, children);
       }
+
       function NavLink({ to, end, className, children }) {
         const { pathname } = useLocation();
         const target = String(to || "/");
@@ -133,6 +120,7 @@
         const cls = typeof className === "function" ? className({ isActive: active }) : className;
         return React.createElement(Link, { to: target, className: cls }, children);
       }
+
       function Navigate({ to }) {
         const nav = useNavigate();
         useEffect(() => { nav(to); }, [to]);
@@ -140,33 +128,29 @@
       }
 
       function Routes({ children }) {
-        const ctx = useContext(RouterCtx);
-        const path = ctx.path;
+        const { path } = useContext(RouterCtx);
         const arr = React.Children.toArray(children).filter(Boolean);
 
         for (const el of arr) {
           if (!el?.props) continue;
-
           if (el.props.index) {
             if (path === "/") {
               return React.createElement(RouteCtx.Provider, { value: { params: {} } }, el.props.element);
             }
             continue;
           }
-
           const params = matchPath(el.props.path, path);
           if (params) {
             return React.createElement(RouteCtx.Provider, { value: { params } }, el.props.element);
           }
         }
-        // fallback: لو مفيش match
         return React.createElement(Navigate, { to: "/404" });
       }
 
-      function Route(_) { return null; } // purely declarative
+      function Route(_) { return null; } // declarative only
 
       /* =========================
-         Helpers + Seed Data
+         Helpers + Seed
       ========================= */
       const cn = (...xs) => xs.filter(Boolean).join(" ");
       const egp = (n) => new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(n || 0);
@@ -174,10 +158,10 @@
       const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
       const LS_KEYS = {
-        products: "ls_products_v6",
-        cart: "ls_cart_v6",
-        orders: "ls_orders_v6",
-        admin: "ls_admin_v6"
+        products: "ls_products_v7",
+        cart: "ls_cart_v7",
+        orders: "ls_orders_v7",
+        admin: "ls_admin_v7"
       };
 
       const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports"];
@@ -407,7 +391,7 @@
               React.createElement("div",{className:"h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black"},"LS"),
               React.createElement("div",null,
                 React.createElement("div",{className:"font-extrabold"},"LocalStore"),
-                React.createElement("div",{className:"text-xs text-slate-300"},"Single-file + LocalStorage + Bot")
+                React.createElement("div",{className:"text-xs text-slate-300"},"Single-file + LocalStorage + Smart Bot")
               )
             ),
             React.createElement("div",{className:"flex items-center gap-2"},
@@ -423,21 +407,49 @@
       }
 
       /* =========================
-         Chat Bot Widget (بدون Backend)
+         Smart Chat Bot (بدون Backend)
+         - ذاكرة + أوامر + نطاق سعر + fuzzy search + "وريني أكتر"
       ========================= */
       function ChatWidget({ store, toast }) {
         const nav = useNavigate();
         const [open, setOpen] = useState(false);
         const [text, setText] = useState("");
+
+        const [memory, setMemory] = useState(() => ({
+          lastResults: [],
+          lastQuery: { category: null, minPrice: null, maxPrice: null, sort: "smart", limit: 3 },
+          lastMode: "suggest"
+        }));
+
         const [msgs, setMsgs] = useState(() => ([
-          { role:"bot", content:"أهلًا 👋 أنا مساعد المتجر. قولّي: (أرخص حاجة) أو (إلكترونيات تحت 1000) أو (شحن/استرجاع) 🙂" }
+          { role: "bot", content: "أهلًا 👋 أنا مساعد المتجر. جرّب: (إلكترونيات من 1000 لـ 3000) أو (أرخص 3) أو (ضيف رقم 2 للسلة) 🙂" }
         ]));
 
         const norm = (s) => (s || "").toLowerCase().trim();
         const hasAny = (s, arr) => arr.some(w => s.includes(w));
-        const parseBudget = (s) => {
-          const m = s.replace(/,/g,"").match(/(\d{2,6})/);
-          return m ? Number(m[1]) : null;
+        const extractNumbers = (s) => (s.replace(/,/g, "").match(/\d{2,6}/g) || []).map(Number);
+
+        const scoreSimilarity = (a, b) => {
+          a = norm(a); b = norm(b);
+          if (!a || !b) return 0;
+          if (a === b) return 1;
+          const setA = new Set(a.split(""));
+          const setB = new Set(b.split(""));
+          let inter = 0;
+          for (const ch of setA) if (setB.has(ch)) inter++;
+          return inter / Math.max(setA.size, setB.size);
+        };
+
+        const detectCategory = (s) => {
+          const catMap = [
+            { key:"Electronics", words:["الكترون","إلكترون","سماعه","سماعات","ساعة","watch","headphone","electronics"] },
+            { key:"Fashion",     words:["ملابس","هودي","شوز","حذاء","fashion","hoodie","sneaker"] },
+            { key:"Home",        words:["بيت","منزل","home","بطانية","معطر","diffuser"] },
+            { key:"Beauty",      words:["بيوتي","مكياج","بشرة","lipstick","skincare","beauty"] },
+            { key:"Sports",      words:["رياضة","جيم","sports","bands","زجاجة","bottle"] }
+          ];
+          for (const c of catMap) if (hasAny(s, c.words)) return c.key;
+          return null;
         };
 
         const answerFAQ = (s) => {
@@ -447,78 +459,194 @@
           return null;
         };
 
-        const suggest = ({ category=null, maxPrice=null, sort="smart" } = {}) => {
+        const renderProduct = (p, idx) => ({
+          type: "product",
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          category: p.category,
+          image: p.image,
+          idx: idx + 1
+        });
+
+        const pickProducts = ({ category=null, minPrice=null, maxPrice=null, sort="smart", limit=3 } = {}) => {
           let list = store.products.slice();
-          if (category) list = list.filter(p => (p.category||"").toLowerCase() === category.toLowerCase());
+          if (category) list = list.filter(p => (p.category || "").toLowerCase() === category.toLowerCase());
+          if (minPrice != null) list = list.filter(p => Number(p.price) >= minPrice);
           if (maxPrice != null) list = list.filter(p => Number(p.price) <= maxPrice);
+
           if (sort === "cheap") list.sort((a,b)=>a.price-b.price);
           else if (sort === "expensive") list.sort((a,b)=>b.price-a.price);
           else {
             const avg = list.reduce((s,p)=>s+Number(p.price||0),0)/(list.length||1);
             list.sort((a,b)=>Math.abs(a.price-avg)-Math.abs(b.price-avg));
           }
-          return list.slice(0,3);
+          return list.slice(0, limit);
         };
 
-        const renderProduct = (p) => ({ type:"product", id:p.id, name:p.name, price:p.price, category:p.category, image:p.image });
-
-        const botRespond = (raw) => {
+        const parseIntent = (raw) => {
           const s = norm(raw);
-          const faq = answerFAQ(s);
-          if (faq) return [{ role:"bot", content: faq }];
+          const nums = extractNumbers(s);
 
-          if (hasAny(s, ["السلة","cart"])) {
+          if (hasAny(s, ["السلة","cart"])) return { type:"nav_cart" };
+          if (hasAny(s, ["checkout","الدفع","اتمام","إتمام","طلب"])) return { type:"nav_checkout" };
+
+          const faq = answerFAQ(s);
+          if (faq) return { type:"faq", text: faq };
+
+          // explicit search
+          if (s.startsWith("ابحث") || s.startsWith("بحث") || s.startsWith("search")) {
+            const q = s.replace(/^ابحث|^بحث|^search/,"").trim();
+            return { type:"search", q };
+          }
+
+          // commands by index
+          const addCmd = /ضيف|add/.test(s);
+          const detailsCmd = /تفاصيل|details/.test(s);
+          const moreCmd = /اكتر|more|زيادة|كمان/.test(s);
+
+          let indexRef = null;
+          const mIdx = s.match(/(رقم|#)\s*(\d{1,2})/);
+          if (mIdx) indexRef = Number(mIdx[2]);
+
+          if (addCmd && indexRef) return { type:"cmd_add_index", index:indexRef };
+          if (detailsCmd && indexRef) return { type:"cmd_details_index", index:indexRef };
+          if (moreCmd) return { type:"more" };
+
+          // price parsing
+          let minPrice = null, maxPrice = null;
+          if (nums.length >= 2 && (s.includes("من") || s.includes("الى") || s.includes("لـ") || s.includes("-"))) {
+            minPrice = Math.min(nums[0], nums[1]);
+            maxPrice = Math.max(nums[0], nums[1]);
+          } else if (nums.length >= 1) {
+            if (hasAny(s, ["تحت","اقل","less","under","<"])) maxPrice = nums[0];
+            else if (hasAny(s, ["فوق","اكثر","more","over",">"])) minPrice = nums[0];
+            else maxPrice = nums[0];
+          }
+
+          const category = detectCategory(s);
+
+          let sort = "smart";
+          if (hasAny(s, ["أرخص","ارخص","cheap","اقل"])) sort = "cheap";
+          if (hasAny(s, ["أغلى","اغلى","expensive","اعلى"])) sort = "expensive";
+
+          let limit = 3;
+          // "وريني 5"
+          if (nums.length && hasAny(s, ["وريني","show","اعرض"])) {
+            const maybe = nums[0];
+            if (maybe >= 1 && maybe <= 12) limit = maybe;
+          }
+
+          // "أرخص 3" or "أغلى 5"
+          if (nums.length && (sort === "cheap" || sort === "expensive")) {
+            const maybe = nums[0];
+            if (maybe >= 1 && maybe <= 12) limit = maybe;
+          }
+
+          return { type:"suggest", category, minPrice, maxPrice, sort, limit };
+        };
+
+        const reply = (raw) => {
+          const intent = parseIntent(raw);
+
+          if (intent.type === "nav_cart") {
             return [
               { role:"bot", content:"تمام 🛒 هوديك للسلة." },
               { role:"bot", content:{ type:"action", label:"افتح السلة", onClick: ()=>nav("/cart") } }
             ];
           }
-          if (hasAny(s, ["checkout","الدفع","اتمام","إتمام","طلب"])) {
+          if (intent.type === "nav_checkout") {
             return [
               { role:"bot", content:"حاضر ✅ هوديك للـCheckout." },
               { role:"bot", content:{ type:"action", label:"افتح Checkout", onClick: ()=>nav("/checkout") } }
             ];
           }
+          if (intent.type === "faq") return [{ role:"bot", content:intent.text }];
 
-          // name search
-          if (s.startsWith("ابحث") || s.startsWith("بحث") || s.startsWith("search")) {
-            const q = s.replace(/^ابحث|^بحث|^search/,"").trim();
-            const hits = store.products.filter(p => (p.name||"").toLowerCase().includes(q)).slice(0,3);
-            if (!hits.length) return [{ role:"bot", content:`مش لاقي "${q}". جرّب كلمة أبسط.` }];
+          if (intent.type === "cmd_add_index") {
+            const idx = intent.index;
+            const arr = memory.lastResults || [];
+            const hit = arr[idx-1];
+            if (!hit) return [{ role:"bot", content:"مش لاقي الرقم ده. اعرض اقتراحات وبعدين اختار رقم." }];
+            const real = store.products.find(p => p.id === hit.id);
+            if (real) { store.addToCart(real); toast.push("success", "اتضاف للسلة ✅"); }
+            return [{ role:"bot", content:`تمت الإضافة للسلة: ${hit.name} 🛒` }];
+          }
+
+          if (intent.type === "cmd_details_index") {
+            const idx = intent.index;
+            const arr = memory.lastResults || [];
+            const hit = arr[idx-1];
+            if (!hit) return [{ role:"bot", content:"مش لاقي الرقم ده. اعرض اقتراحات الأول." }];
             return [
-              { role:"bot", content:`لقيتلك ${hits.length} نتيجة:` },
-              ...hits.map(p => ({ role:"bot", content: renderProduct(p) }))
+              { role:"bot", content:`تمام، تفاصيل: ${hit.name}` },
+              { role:"bot", content:{ type:"action", label:"افتح التفاصيل", onClick: ()=>nav("/product/"+hit.id) } }
             ];
           }
 
-          const budget = parseBudget(s);
+          if (intent.type === "more") {
+            const q = memory.lastQuery || { category:null, minPrice:null, maxPrice:null, sort:"smart", limit:3 };
+            const already = memory.lastResults?.length || 0;
+            const newLimit = Math.min(already + 3, 12);
+            const picks = pickProducts({ ...q, limit: newLimit });
+            const shown = picks.slice(already, newLimit);
 
-          const catMap = [
-            { key:"Electronics", words:["الكترون","إلكترون","سماعه","سماعات","ساعة","watch","headphone","electronics"] },
-            { key:"Fashion",     words:["ملابس","هودي","شوز","حذاء","fashion","hoodie","sneaker"] },
-            { key:"Home",        words:["بيت","منزل","home","بطانية","معطر","diffuser"] },
-            { key:"Beauty",      words:["بيوتي","مكياج","بشرة","lipstick","skincare","beauty"] },
-            { key:"Sports",      words:["رياضة","جيم","sports","bands","زجاجة","bottle"] }
-          ];
-          let chosenCat = null;
-          for (const c of catMap) { if (hasAny(s, c.words)) { chosenCat = c.key; break; } }
+            setMemory(m => ({ ...m, lastResults: picks.map((p,i)=>({ ...p, _idx:i+1 })), lastQuery:{...q, limit:newLimit} }));
 
-          let sort = "smart";
-          if (hasAny(s, ["أرخص","ارخص","cheap","اقل سعر"])) sort = "cheap";
-          if (hasAny(s, ["أغلى","اغلى","expensive","اعلى سعر"])) sort = "expensive";
+            if (!shown.length) return [{ role:"bot", content:"ده آخر اللي عندي ضمن الفلتر الحالي." }];
+            return [
+              { role:"bot", content:`تمام، كمان ${shown.length} منتجات:` },
+              ...shown.map((p,i)=>({ role:"bot", content: renderProduct(p, already + i) }))
+            ];
+          }
 
-          const picks = suggest({ category: chosenCat, maxPrice: budget, sort });
-          if (!picks.length) return [{ role:"bot", content:"مش لاقي منتجات مطابقة. جرّب تصنيف تاني أو زوّد الميزانية." }];
+          if (intent.type === "search") {
+            const q = norm(intent.q);
+            if (!q) return [{ role:"bot", content:"اكتب كلمة بعد (ابحث). مثال: (ابحث سماعة)" }];
+
+            const ranked = store.products
+              .map(p => ({ p, score: scoreSimilarity(p.name, q) }))
+              .sort((a,b)=>b.score-a.score);
+
+            const hits = ranked.filter(x => x.score >= 0.35).slice(0, 5).map(x=>x.p);
+            if (!hits.length) return [{ role:"bot", content:`مش لاقي حاجة قريبة من "${intent.q}". جرّب كلمة تانية.` }];
+
+            setMemory(m => ({
+              ...m,
+              lastResults: hits.map((p,i)=>({ ...p, _idx:i+1 })),
+              lastMode:"search",
+              lastQuery:{ category:null, minPrice:null, maxPrice:null, sort:"smart", limit: hits.length }
+            }));
+
+            return [
+              { role:"bot", content:`لقيتلك ${hits.length} نتيجة (تقريبًا):` },
+              ...hits.map((p,i)=>({ role:"bot", content: renderProduct(p, i) })),
+              { role:"bot", content:"قولّي: (ضيف رقم 2 للسلة) أو (تفاصيل رقم 1) أو (وريني أكتر)" }
+            ];
+          }
+
+          // suggest
+          const picks = pickProducts(intent);
+          if (!picks.length) return [{ role:"bot", content:"مش لاقي منتجات مناسبة. جرّب تزود الميزانية أو تغير التصنيف." }];
+
+          setMemory(m => ({
+            ...m,
+            lastResults: picks.map((p,i)=>({ ...p, _idx:i+1 })),
+            lastQuery: { category:intent.category, minPrice:intent.minPrice, maxPrice:intent.maxPrice, sort:intent.sort, limit:intent.limit },
+            lastMode: "suggest"
+          }));
 
           const bits = [];
-          if (chosenCat) bits.push("تصنيف: " + chosenCat);
-          if (budget != null) bits.push("تحت: " + budget);
-          if (sort !== "smart") bits.push("ترتيب: " + (sort==="cheap" ? "الأرخص" : "الأغلى"));
+          if (intent.category) bits.push("تصنيف: " + intent.category);
+          if (intent.minPrice != null && intent.maxPrice != null) bits.push(`من ${intent.minPrice} لـ ${intent.maxPrice}`);
+          else if (intent.maxPrice != null) bits.push("تحت: " + intent.maxPrice);
+          else if (intent.minPrice != null) bits.push("فوق: " + intent.minPrice);
+          if (intent.sort && intent.sort !== "smart") bits.push("ترتيب: " + (intent.sort==="cheap"?"الأرخص":"الأغلى"));
 
           return [
             { role:"bot", content:`اقتراحاتي 🎯 ${bits.length ? "(" + bits.join(" • ") + ")" : ""}` },
-            ...picks.map(p => ({ role:"bot", content: renderProduct(p) })),
-            { role:"bot", content:"عايز أكتر؟ قولّي: (أرخص حاجة) أو (Home تحت 600) أو (إلكترونيات) 🙂" }
+            ...picks.map((p,i)=>({ role:"bot", content: renderProduct(p, i) })),
+            { role:"bot", content:"قولّي: (ضيف رقم 2 للسلة) أو (تفاصيل رقم 1) أو (وريني أكتر)" }
           ];
         };
 
@@ -528,7 +656,7 @@
           setMsgs(m => [{ role:"user", content:v }, ...m]);
           setText("");
           setTimeout(() => {
-            const replies = botRespond(v);
+            const replies = reply(v);
             setMsgs(m => [...replies, ...m]);
           }, 220);
         };
@@ -538,11 +666,11 @@
             onClick: () => setOpen(o => !o),
             className: "fixed bottom-4 right-4 z-[9999] rounded-2xl px-4 py-3 font-extrabold bg-indigo-500/90 hover:bg-indigo-500 shadow-soft ring-soft"
           }, open ? "✕" : "💬 اسألني"),
-          open && React.createElement("div", { className:"fixed bottom-20 right-4 z-[9999] w-[min(360px,calc(100vw-2rem))] anim-pop" },
+          open && React.createElement("div", { className:"fixed bottom-20 right-4 z-[9999] w-[min(390px,calc(100vw-2rem))] anim-pop" },
             React.createElement("div", { className:"glass ring-soft rounded-3xl overflow-hidden shadow-soft" },
               React.createElement("div", { className:"p-3 border-b border-white/10 flex items-center justify-between" },
                 React.createElement("div", { className:"font-black" }, "مساعد المتجر"),
-                React.createElement("div", { className:"text-xs text-slate-300" }, "Local Bot")
+                React.createElement("div", { className:"text-xs text-slate-300" }, "Smart • No Backend")
               ),
               React.createElement("div", { className:"p-3 h-80 overflow-auto scrollbar-thin space-y-2 flex flex-col-reverse" },
                 msgs.map((m, idx) => {
@@ -562,7 +690,7 @@
                       React.createElement("div",{className:"glass ring-soft rounded-2xl p-3 flex gap-3 items-center"},
                         React.createElement("img",{src:p.image,className:"h-12 w-12 rounded-2xl object-cover ring-soft"}),
                         React.createElement("div",{className:"flex-1 min-w-0"},
-                          React.createElement("div",{className:"font-extrabold truncate"},p.name),
+                          React.createElement("div",{className:"font-extrabold truncate"},`${p.idx}. ${p.name}`),
                           React.createElement("div",{className:"text-xs text-slate-300 flex items-center gap-2 mt-1"},
                             React.createElement("span",null,egp(p.price)),
                             React.createElement("span",{className:"px-2 py-1 rounded-full bg-white/8"},p.category)
@@ -573,9 +701,9 @@
                             className:"px-3 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 text-xs font-bold",
                             onClick:()=>{ const real=store.products.find(x=>x.id===p.id); if(real){store.addToCart(real); toast.push("success","اتضاف للسلة ✅");} }
                           },"Add"),
-                          React.createElement("a",{
-                            className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold text-center",
-                            href:"#/product/"+p.id
+                          React.createElement("button",{
+                            className:"px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold",
+                            onClick:()=>nav("/product/"+p.id)
                           },"Details")
                         )
                       )
@@ -591,7 +719,7 @@
                   onChange:(e)=>setText(e.target.value),
                   onKeyDown:(e)=>{ if(e.key==="Enter") send(); },
                   className:"flex-1 rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60",
-                  placeholder:"مثال: أرخص إلكترونيات تحت 1000"
+                  placeholder:"مثال: أرخص 3 إلكترونيات من 1000 لـ 3000"
                 }),
                 React.createElement("button",{className:"px-4 py-2 rounded-2xl bg-indigo-500/90 hover:bg-indigo-500 font-extrabold",onClick:send},"إرسال")
               )
