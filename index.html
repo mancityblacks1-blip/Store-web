@@ -1,937 +1,947 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CV Builder - قوالب متعددة - صفحة واحدة</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LocalStore + Admin (Single File, Hash Router)</title>
 
-  <style>
-    :root { --a4w: 210mm; --a4h: 297mm; }
+    <!-- Tailwind (demo) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    /* A4 canvas */
-    .a4 {
-      width: var(--a4w);
-      min-height: var(--a4h);
-      background: #fff;
-    }
-    @media (max-width: 1024px) {
-      .a4 { width: 100%; min-height: auto; }
-    }
+    <!-- React 18 (jsDelivr) -->
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
-    /* Smooth shadow */
-    .shadow-soft { box-shadow: 0 18px 40px rgba(0,0,0,.08); }
+    <style>
+      body {
+        background: radial-gradient(1200px 700px at 70% 0%, rgba(99, 102, 241, 0.25), transparent 60%),
+          radial-gradient(900px 600px at 20% 10%, rgba(16, 185, 129, 0.18), transparent 55%),
+          #070a14;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+      }
+      .ring-soft {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      }
+      .shadow-soft {
+        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+      }
+      .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+      .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
+      .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.06); border-radius: 999px; }
 
-    /* Print: single page + no extra margins */
-    @page { size: A4; margin: 0; }
-    @media print {
-      html, body { background: #fff !important; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .no-print { display: none !important; }
-      .print-shell { padding: 0 !important; max-width: 100% !important; }
-      .print-area { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
-      /* Prevent any accidental page breaks */
-      .print-area, .print-area * { page-break-inside: avoid; break-inside: avoid; }
-    }
+      @keyframes popIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .anim-pop { animation: popIn 220ms ease-out both; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .anim-fade { animation: fadeIn 180ms ease-out both; }
+    </style>
+  </head>
 
-    /* Scale wrapper used only for print-fit */
-    #printScaleWrap { transform-origin: top right; }
+  <body class="text-slate-100">
+    <div id="root"></div>
 
-    /* Tiny helpers */
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-  </style>
-</head>
+    <script>
+      // ===== Safety: error overlay (helps debug if anything happens) =====
+      (function () {
+        const box = document.createElement("pre");
+        box.style.cssText =
+          "position:fixed;inset:auto 12px 12px 12px;max-height:45vh;overflow:auto;" +
+          "background:rgba(0,0,0,.85);color:#fff;padding:12px;border-radius:12px;" +
+          "font:12px/1.4 system-ui;z-index:999999;white-space:pre-wrap;display:none";
+        document.addEventListener("DOMContentLoaded", () => document.body.appendChild(box));
+        function show(msg) { box.style.display = "block"; box.textContent = msg + "\n\n" + (box.textContent || ""); }
+        window.addEventListener("error", (e) => show("JS ERROR: " + (e.message || e.error) + "\n" + (e.filename || "") + ":" + (e.lineno || "")));
+        window.addEventListener("unhandledrejection", (e) => show("PROMISE REJECTION: " + (e.reason?.message || e.reason)));
+      })();
 
-<body class="bg-zinc-50 text-zinc-900">
-  <header class="no-print border-b border-zinc-200 bg-white">
-    <div class="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-      <div class="font-semibold">🧾 CV Builder</div>
-      <div class="flex items-center gap-2">
-        <button id="btnSave" class="h-10 px-4 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">
-          حفظ
-        </button>
-        <button id="btnReset" class="h-10 px-4 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">
-          إعادة ضبط
-        </button>
-        <button id="btnPdf" class="h-10 px-4 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 text-sm">
-          🖨️ PDF
-        </button>
-      </div>
-    </div>
-  </header>
+      const React = window.React;
+      const ReactDOM = window.ReactDOM;
 
-  <main class="mx-auto max-w-6xl px-4 py-6 print-shell">
-    <div class="grid gap-4 lg:grid-cols-3">
-      <!-- Form -->
-      <section class="no-print lg:col-span-1 space-y-4">
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="text-lg font-semibold">بيانات الـ CV</div>
-              <div class="text-sm text-zinc-600">قوالب متعددة + طباعة صفحة واحدة</div>
-            </div>
-            <div class="w-44">
-              <label class="block text-xs text-zinc-600 mb-1">القالب</label>
-              <select id="template" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300">
-                <option value="modern">Modern</option>
-                <option value="minimal">Minimal</option>
-                <option value="sidebar">Sidebar</option>
-              </select>
-            </div>
-          </div>
+      if (!React || !ReactDOM) {
+        document.body.innerHTML =
+          '<div style="color:white;font-family:system-ui;padding:24px">React CDN load failed. Open Console.</div>';
+      }
 
-          <div class="mt-4 grid gap-3">
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">الاسم</label>
-              <input id="fullName" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Ahmed Mohamed" />
-            </div>
+      const { useEffect, useMemo, useState, useContext, createContext } = React;
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">المسمى</label>
-                <input id="title" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Frontend Developer" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">المكان</label>
-                <input id="location" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="Cairo, Egypt" />
-              </div>
-            </div>
+      /* =========================
+         Mini Hash Router (single-file friendly)
+         - supports params: /product/:id
+         - supports simple exact matches
+      ========================= */
+      const RouterCtx = createContext(null);
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">الهاتف</label>
-                <input id="phone" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="01xxxxxxxxx" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">البريد</label>
-                <input id="email" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="name@email.com" />
-              </div>
-            </div>
+      const getHashPath = () => {
+        const h = (location.hash || "#/").slice(1);
+        return h.startsWith("/") ? h : "/" + h;
+      };
 
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">LinkedIn</label>
-                <input id="linkedin" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="linkedin.com/in/..." />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">GitHub</label>
-                <input id="github" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="github.com/..." />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">Portfolio</label>
-                <input id="portfolio" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="your-site.com" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">Summary</label>
-              <textarea id="summary" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-                placeholder="3-5 سطور قوية عنك، خبرتك، وأهم إنجازاتك..."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Experience -->
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">الخبرات</div>
-            <button id="addExp" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
-          </div>
-          <div id="expList" class="mt-3 space-y-3"></div>
-        </div>
-
-        <!-- Education -->
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">التعليم</div>
-            <button id="addEdu" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
-          </div>
-          <div id="eduList" class="mt-3 space-y-3"></div>
-        </div>
-
-        <!-- Projects -->
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">مشاريع</div>
-            <button id="addProj" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
-          </div>
-          <div id="projList" class="mt-3 space-y-3"></div>
-        </div>
-
-        <!-- Skills -->
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="font-semibold">المهارات</div>
-          <div class="mt-2 text-xs text-zinc-600">مفصولة بفواصل: React, Next.js, ...</div>
-          <input id="skills" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-            placeholder="React, Next.js, Tailwind, TypeScript..." />
-        </div>
-
-        <!-- Languages -->
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="font-semibold">اللغات</div>
-          <div class="mt-2 text-xs text-zinc-600">مثال: Arabic (Native), English (B2)</div>
-          <input id="languages" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-            placeholder="Arabic (Native), English (B2)" />
-        </div>
-
-        <div class="rounded-2xl border border-zinc-200 bg-zinc-900 text-white p-4 shadow-soft">
-          <div class="text-sm font-semibold">ملاحظة مهمة</div>
-          <div class="mt-1 text-xs text-zinc-200">
-            لو محتوى الـ CV كبير جدًا، قبل الطباعة هيتم تصغيره تلقائيًا عشان يطلع صفحة واحدة.
-          </div>
-        </div>
-      </section>
-
-      <!-- Preview -->
-      <section class="lg:col-span-2">
-        <div class="mx-auto a4 rounded-2xl border border-zinc-200 bg-white shadow-soft overflow-hidden print-area cv-page" id="cv">
-          <!-- Print scale wrapper -->
-          <div id="printScaleWrap">
-            <!-- Template containers -->
-            <div id="tplModern" class="hidden">
-              <div class="bg-zinc-900 text-white p-8">
-                <div class="flex items-start justify-between gap-6">
-                  <div class="min-w-0">
-                    <div class="text-3xl font-semibold leading-tight" id="mName">—</div>
-                    <div class="mt-1 text-lg text-zinc-200" id="mTitle">—</div>
-                    <div class="mt-4 text-sm text-zinc-200 space-y-1">
-                      <div id="mMeta1">—</div>
-                      <div id="mMeta2">—</div>
-                    </div>
-                  </div>
-                  <div class="w-52 text-right text-sm text-zinc-200">
-                    <div class="font-semibold text-white">Contacts</div>
-                    <div class="mt-2 space-y-1" id="mLinks">—</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="p-8">
-                <div class="grid gap-7 lg:grid-cols-2">
-                  <div class="space-y-6">
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
-                      <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="mSummary">—</div>
-                    </section>
-
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
-                      <div class="mt-3 space-y-4" id="mExp">—</div>
-                    </section>
-
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
-                      <div class="mt-3 space-y-3" id="mProj">—</div>
-                    </section>
-                  </div>
-
-                  <div class="space-y-6">
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
-                      <div class="mt-3 space-y-3" id="mEdu">—</div>
-                    </section>
-
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SKILLS</h2>
-                      <div class="mt-3 flex flex-wrap gap-2" id="mSkills">—</div>
-                    </section>
-
-                    <section>
-                      <h2 class="text-xs font-semibold tracking-widest text-zinc-500">LANGUAGES</h2>
-                      <div class="mt-2 text-sm text-zinc-700" id="mLang">—</div>
-                    </section>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="tplMinimal" class="hidden p-8">
-              <div class="flex items-start justify-between gap-6 border-b border-zinc-200 pb-5">
-                <div class="min-w-0">
-                  <div class="text-3xl font-semibold leading-tight" id="nName">—</div>
-                  <div class="mt-1 text-lg text-zinc-700" id="nTitle">—</div>
-                  <div class="mt-3 text-sm text-zinc-600" id="nMeta">—</div>
-                </div>
-                <div class="text-right text-sm text-zinc-700">
-                  <div class="font-semibold">Contacts</div>
-                  <div class="mt-2 space-y-1" id="nLinks">—</div>
-                </div>
-              </div>
-
-              <div class="mt-6 grid gap-7 lg:grid-cols-3">
-                <div class="lg:col-span-2 space-y-6">
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
-                    <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="nSummary">—</div>
-                  </section>
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
-                    <div class="mt-3 space-y-4" id="nExp">—</div>
-                  </section>
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
-                    <div class="mt-3 space-y-3" id="nProj">—</div>
-                  </section>
-                </div>
-
-                <div class="space-y-6">
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
-                    <div class="mt-3 space-y-3" id="nEdu">—</div>
-                  </section>
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SKILLS</h2>
-                    <div class="mt-3 flex flex-wrap gap-2" id="nSkills">—</div>
-                  </section>
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">LANGUAGES</h2>
-                    <div class="mt-2 text-sm text-zinc-700" id="nLang">—</div>
-                  </section>
-                </div>
-              </div>
-            </div>
-
-            <div id="tplSidebar" class="hidden">
-              <div class="grid grid-cols-12 min-h-[297mm]">
-                <aside class="col-span-4 bg-zinc-900 text-white p-8">
-                  <div class="text-2xl font-semibold leading-tight" id="sName">—</div>
-                  <div class="mt-1 text-sm text-zinc-200" id="sTitle">—</div>
-
-                  <div class="mt-5">
-                    <div class="text-xs font-semibold tracking-widest text-zinc-300">CONTACT</div>
-                    <div class="mt-2 text-sm text-zinc-200 space-y-1" id="sContact">—</div>
-                  </div>
-
-                  <div class="mt-6">
-                    <div class="text-xs font-semibold tracking-widest text-zinc-300">SKILLS</div>
-                    <div class="mt-3 flex flex-wrap gap-2" id="sSkills">—</div>
-                  </div>
-
-                  <div class="mt-6">
-                    <div class="text-xs font-semibold tracking-widest text-zinc-300">LANGUAGES</div>
-                    <div class="mt-2 text-sm text-zinc-200" id="sLang">—</div>
-                  </div>
-                </aside>
-
-                <section class="col-span-8 p-8">
-                  <section>
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">SUMMARY</h2>
-                    <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="sSummary">—</div>
-                  </section>
-
-                  <section class="mt-6">
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EXPERIENCE</h2>
-                    <div class="mt-3 space-y-4" id="sExp">—</div>
-                  </section>
-
-                  <section class="mt-6">
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">PROJECTS</h2>
-                    <div class="mt-3 space-y-3" id="sProj">—</div>
-                  </section>
-
-                  <section class="mt-6">
-                    <h2 class="text-xs font-semibold tracking-widest text-zinc-500">EDUCATION</h2>
-                    <div class="mt-3 space-y-3" id="sEdu">—</div>
-                  </section>
-                </section>
-              </div>
-            </div>
-          </div><!-- /printScaleWrap -->
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <script>
-    const LS_KEY = "cv_builder_onepage_v2";
-
-    // -------- State --------
-    const state = {
-      template: "modern",
-      fullName: "Ahmed Mohamed",
-      title: "Frontend Developer",
-      phone: "01000000000",
-      email: "ahmed@email.com",
-      location: "Cairo, Egypt",
-      linkedin: "linkedin.com/in/ahmed",
-      github: "github.com/ahmed",
-      portfolio: "ahmed.dev",
-      summary:
-`Frontend Developer with experience building responsive web apps using React and Next.js.
-I focus on clean UI, performance, and maintainable code.
-Seeking opportunities to ship modern products and delightful user experiences.`,
-      experiences: [
-        {
-          role: "Frontend Developer",
-          company: "Freelance",
-          period: "2024 - Present",
-          bullets: [
-            "Built responsive landing pages and dashboards with React + Tailwind.",
-            "Improved performance and Lighthouse scores through optimization.",
-            "Collaborated with clients to deliver features quickly and cleanly."
-          ]
+      function matchPath(pattern, path) {
+        // pattern like "/product/:id" or "/admin/products"
+        const pSeg = (pattern || "").split("/").filter(Boolean);
+        const aSeg = (path || "").split("/").filter(Boolean);
+        if (pSeg.length !== aSeg.length) return null;
+        const params = {};
+        for (let i = 0; i < pSeg.length; i++) {
+          const p = pSeg[i], a = aSeg[i];
+          if (p.startsWith(":")) params[p.slice(1)] = decodeURIComponent(a);
+          else if (p !== a) return null;
         }
-      ],
-      education: [
-        {
-          degree: "BSc Computer Science",
-          school: "Your University",
-          period: "2019 - 2023",
-          details: "Relevant: Data Structures, Web Development, Databases"
+        return params;
+      }
+
+      function HashRouter({ children }) {
+        const [path, setPath] = useState(getHashPath());
+
+        useEffect(() => {
+          const onHash = () => setPath(getHashPath());
+          window.addEventListener("hashchange", onHash);
+          return () => window.removeEventListener("hashchange", onHash);
+        }, []);
+
+        const navigate = (to) => {
+          const target = String(to || "/");
+          location.hash = "#" + (target.startsWith("/") ? target : "/" + target);
+        };
+
+        const value = useMemo(() => ({ path, navigate }), [path]);
+        return React.createElement(RouterCtx.Provider, { value }, children);
+      }
+
+      function useNavigate() {
+        const ctx = useContext(RouterCtx);
+        return ctx.navigate;
+      }
+      function useLocation() {
+        const ctx = useContext(RouterCtx);
+        return { pathname: ctx.path };
+      }
+
+      function Link({ to, className, children }) {
+        return React.createElement(
+          "a",
+          {
+            href: "#" + (String(to || "/").startsWith("/") ? String(to || "/") : "/" + String(to || "/")),
+            className
+          },
+          children
+        );
+      }
+
+      function NavLink({ to, end, className, children }) {
+        const { pathname } = useLocation();
+        const target = String(to || "/");
+        const active = end ? pathname === target : pathname === target || pathname.startsWith(target + "/");
+        const cls = typeof className === "function" ? className({ isActive: active }) : className;
+        return React.createElement(Link, { to: target, className: cls }, children);
+      }
+
+      function Navigate({ to, replace }) {
+        const nav = useNavigate();
+        useEffect(() => { nav(to); }, [to]);
+        return null;
+      }
+
+      function Routes({ children }) {
+        const ctx = useContext(RouterCtx);
+        const path = ctx.path;
+
+        const arr = React.Children.toArray(children).filter(Boolean);
+
+        for (const el of arr) {
+          if (!el?.props) continue;
+
+          // index route support: <Route index element={...} />
+          if (el.props.index) {
+            if (path === "/") return React.createElement(RouteCtx.Provider, { value: { params: {} } }, el.props.element);
+            continue;
+          }
+
+          const params = matchPath(el.props.path, path);
+          if (params) {
+            return React.createElement(RouteCtx.Provider, { value: { params } }, el.props.element);
+          }
         }
-      ],
-      projects: [
-        {
-          name: "E-commerce Store + Admin Dashboard",
-          link: "github.com/yourrepo",
-          bullets: [
-            "Next.js storefront with cart, checkout demo and admin dashboard.",
-            "Prisma + SQLite database with CRUD and stats."
-          ]
+        return null;
+      }
+
+      function Route(_) { return null; } // for readability only
+
+      const RouteCtx = createContext({ params: {} });
+      function useParams() {
+        return useContext(RouteCtx).params || {};
+      }
+
+      /* =========================
+         Helpers + Data
+      ========================= */
+      const cn = (...xs) => xs.filter(Boolean).join(" ");
+      const egp = (n) => new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(n || 0);
+      const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+      const LS_KEYS = {
+        products: "ls_products_v5",
+        cart: "ls_cart_v5",
+        orders: "ls_orders_v5",
+        admin: "ls_admin_v5"
+      };
+
+      const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports"];
+      const PRODUCT_CATS = ["Electronics", "Fashion", "Home", "Beauty", "Sports"];
+
+      const seedProducts = [
+        { id:"p1", name:"Nova Wireless Headphones", price:2899, category:"Electronics",
+          image:"https://images.unsplash.com/photo-1518441902117-f0a0a5b0b3e2?auto=format&fit=crop&w=900&q=80",
+          description:"صوت نضيف، Bass محترم، وراحة على الودن لساعات." },
+        { id:"p2", name:"Aero Smart Watch", price:2199, category:"Electronics",
+          image:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
+          description:"متابعة نشاطك، نومك، ونبضك… على معصمك." },
+        { id:"p3", name:"Urban Hoodie", price:799, category:"Fashion",
+          image:"https://images.unsplash.com/photo-1520975682031-a05dfb6b4b9d?auto=format&fit=crop&w=900&q=80",
+          description:"هودي مريح وشيك، مناسب للشتا والخروج." },
+        { id:"p4", name:"Minimal Sneakers", price:1299, category:"Fashion",
+          image:"https://images.unsplash.com/photo-1528701800489-20be9c3ea2b4?auto=format&fit=crop&w=900&q=80",
+          description:"سنيكرز عملي ومناسب لليوم كله." },
+        { id:"p5", name:"Cozy Throw Blanket", price:499, category:"Home",
+          image:"https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80",
+          description:"بطانية ناعمة… للكنبة والمزاج." },
+        { id:"p6", name:"Aroma Diffuser", price:650, category:"Home",
+          image:"https://images.unsplash.com/photo-1611078489935-0cb964de46c9?auto=format&fit=crop&w=900&q=80",
+          description:"ريحة هادية وإضاءة لطيفة للغرفة." },
+        { id:"p7", name:"Skincare Starter Kit", price:950, category:"Beauty",
+          image:"https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=900&q=80",
+          description:"روتين بسيط لبشرة أنضف." },
+        { id:"p8", name:"Matte Lipstick", price:320, category:"Beauty",
+          image:"https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
+          description:"ثبات كويس ولمسة مطفية شيك." },
+        { id:"p9", name:"Training Bottle 1L", price:240, category:"Sports",
+          image:"https://images.unsplash.com/photo-1542315192-1f61a1799a03?auto=format&fit=crop&w=900&q=80",
+          description:"اشرب مية كتير… جسمك هيشكرّك." },
+        { id:"p10", name:"Resistance Bands Set", price:410, category:"Sports",
+          image:"https://images.unsplash.com/photo-1599058917212-d750089bc07b?auto=format&fit=crop&w=900&q=80",
+          description:"تمارين في البيت بمرونة ومقاومة." }
+      ];
+
+      const LS = {
+        get(key, fallback) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw);
+          } catch { return fallback; }
+        },
+        set(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+      };
+
+      /* =========================
+         Toast
+      ========================= */
+      function useToast() {
+        const [items, setItems] = useState([]);
+        const push = (type, message) => {
+          const id = uid();
+          setItems((x) => [{ id, type, message }, ...x].slice(0, 4));
+          setTimeout(() => setItems((x) => x.filter((t) => t.id !== id)), 2600);
+        };
+        return { items, push };
+      }
+      function Toasts({ items }) {
+        return React.createElement(
+          "div",
+          { className: "fixed top-4 left-4 z-[9999] space-y-2 w-[min(380px,calc(100vw-2rem))]" },
+          items.map((t) =>
+            React.createElement(
+              "div",
+              { key: t.id, className: "glass ring-soft shadow-soft rounded-2xl px-4 py-3 text-sm flex items-start gap-3 anim-pop" },
+              React.createElement("div", {
+                className:
+                  "mt-0.5 h-2.5 w-2.5 rounded-full " +
+                  (t.type === "success" ? "bg-emerald-400" : t.type === "error" ? "bg-rose-400" : "bg-indigo-400")
+              }),
+              React.createElement("div", null, t.message)
+            )
+          )
+        );
+      }
+
+      /* =========================
+         Store (LocalStorage)
+      ========================= */
+      function useAppStore() {
+        const [products, setProducts] = useState(() => {
+          const existing = LS.get(LS_KEYS.products, null);
+          if (existing && Array.isArray(existing) && existing.length) return existing;
+          LS.set(LS_KEYS.products, seedProducts);
+          return seedProducts;
+        });
+        const [cart, setCart] = useState(() => LS.get(LS_KEYS.cart, []));
+        const [orders, setOrders] = useState(() => LS.get(LS_KEYS.orders, []));
+        const [admin, setAdmin] = useState(() => LS.get(LS_KEYS.admin, { authed: false }));
+
+        useEffect(() => LS.set(LS_KEYS.products, products), [products]);
+        useEffect(() => LS.set(LS_KEYS.cart, cart), [cart]);
+        useEffect(() => LS.set(LS_KEYS.orders, orders), [orders]);
+        useEffect(() => LS.set(LS_KEYS.admin, admin), [admin]);
+
+        const cartCount = useMemo(() => cart.reduce((s, i) => s + (i.qty || 0), 0), [cart]);
+        const cartTotal = useMemo(() => cart.reduce((s, i) => s + (i.qty || 0) * (i.price || 0), 0), [cart]);
+
+        const addToCart = (p) => {
+          setCart((prev) => {
+            const hit = prev.find((x) => x.id === p.id);
+            if (hit) return prev.map((x) => (x.id === p.id ? { ...x, qty: x.qty + 1 } : x));
+            return [...prev, { id: p.id, name: p.name, price: p.price, image: p.image, category: p.category, qty: 1 }];
+          });
+        };
+        const updateQty = (id, qty) => setCart((prev) => prev.map((x) => (x.id === id ? { ...x, qty: clamp(qty, 1, 99) } : x)));
+        const removeFromCart = (id) => setCart((prev) => prev.filter((x) => x.id !== id));
+        const clearCart = () => setCart([]);
+
+        const createOrder = ({ customer }) => {
+          const orderId = "ORD-" + Math.random().toString(10).slice(2, 8);
+          const order = { id: orderId, createdAt: new Date().toISOString(), status: "new", customer, items: cart, total: cartTotal };
+          setOrders((prev) => [order, ...prev]);
+          clearCart();
+          return orderId;
+        };
+
+        const adminLogin = (password) => {
+          if (password === "admin123") { setAdmin({ authed: true }); return true; }
+          return false;
+        };
+        const adminLogout = () => setAdmin({ authed: false });
+
+        const productsCRUD = {
+          add(p) { setProducts((prev) => [{ ...p, id: uid() }, ...prev]); },
+          update(id, patch) { setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x))); },
+          remove(id) {
+            setProducts((prev) => prev.filter((x) => x.id !== id));
+            setCart((prev) => prev.filter((x) => x.id !== id));
+          }
+        };
+        const ordersCRUD = {
+          setStatus(id, status) { setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o))); }
+        };
+
+        return { products, cart, orders, admin, cartCount, cartTotal, addToCart, updateQty, removeFromCart, clearCart, createOrder, adminLogin, adminLogout, productsCRUD, ordersCRUD };
+      }
+
+      /* =========================
+         UI components
+      ========================= */
+      function Card({ className, children }) {
+        return React.createElement("div", { className: cn("glass ring-soft rounded-3xl shadow-soft", className) }, children);
+      }
+      function Button({ className, variant = "primary", ...props }) {
+        const base =
+          "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed";
+        const styles =
+          variant === "primary" ? "bg-indigo-500/90 hover:bg-indigo-500 text-white"
+          : variant === "ghost" ? "bg-white/5 hover:bg-white/10 text-white"
+          : variant === "danger" ? "bg-rose-500/90 hover:bg-rose-500 text-white"
+          : "bg-emerald-500/90 hover:bg-emerald-500 text-white";
+        return React.createElement("button", { className: cn(base, styles, className), ...props });
+      }
+      function Input({ className, ...props }) {
+        return React.createElement("input", {
+          className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className),
+          ...props
+        });
+      }
+      function Select({ className, children, ...props }) {
+        return React.createElement(
+          "select",
+          { className: cn("w-full rounded-2xl bg-white/5 ring-soft px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/60", className), ...props },
+          children
+        );
+      }
+      function Badge({ tone = "slate", children }) {
+        const map = {
+          indigo: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/20",
+          emerald: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/20",
+          amber: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/20",
+          rose: "bg-rose-500/15 text-rose-200 ring-1 ring-rose-500/20",
+          slate: "bg-white/8 text-slate-200 ring-1 ring-white/10"
+        };
+        return React.createElement("span", { className: cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", map[tone] || map.slate) }, children);
+      }
+      function Shell({ children }) {
+        return React.createElement("div", { className: "min-h-screen" }, React.createElement("div", { className: "max-w-6xl mx-auto px-4 py-6" }, children));
+      }
+      function PageTitle({ title, subtitle, right }) {
+        return React.createElement(
+          "div",
+          { className: "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" },
+          React.createElement("div", null,
+            React.createElement("div", { className: "text-2xl font-black tracking-tight" }, title),
+            subtitle ? React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, subtitle) : null
+          ),
+          right ? React.createElement("div", null, right) : null
+        );
+      }
+      function Empty({ title, hint, action }) {
+        return React.createElement(
+          Card,
+          { className: "p-8 text-center anim-pop" },
+          React.createElement("div", { className: "text-xl font-extrabold" }, title || "مفيش بيانات"),
+          React.createElement("div", { className: "mt-2 text-sm text-slate-300" }, hint || "جرّب تاني ✨"),
+          action ? React.createElement("div", { className: "mt-5" }, action) : null
+        );
+      }
+      function LoadingSkeleton() {
+        return React.createElement(
+          "div",
+          { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+          Array.from({ length: 6 }).map((_, i) =>
+            React.createElement(
+              Card,
+              { key: i, className: "p-4 anim-pop" },
+              React.createElement("div", { className: "h-40 rounded-2xl bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-4 h-4 w-3/4 rounded bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-2 h-4 w-1/2 rounded bg-white/5 animate-pulse" }),
+              React.createElement("div", { className: "mt-4 h-9 rounded-2xl bg-white/5 animate-pulse" })
+            )
+          )
+        );
+      }
+
+      function StoreHeader({ cartCount }) {
+        return React.createElement(
+          Card,
+          { className: "p-4 mb-6 anim-pop" },
+          React.createElement(
+            "div",
+            { className: "flex items-center justify-between gap-3 flex-wrap" },
+            React.createElement(
+              Link,
+              { to: "/", className: "flex items-center gap-3" },
+              React.createElement("div", { className: "h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-500/25 grid place-items-center font-black" }, "LS"),
+              React.createElement("div", null,
+                React.createElement("div", { className: "font-extrabold" }, "LocalStore"),
+                React.createElement("div", { className: "text-xs text-slate-300" }, "Single-file Hash Router")
+              )
+            ),
+            React.createElement("div", { className: "flex items-center gap-2" },
+              React.createElement(NavLink, { to: "/", end: true, className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "المنتجات"),
+              React.createElement(NavLink, { to: "/cart", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2", isActive ? "bg-white/10" : "hover:bg-white/5") },
+                React.createElement("span", null, "السلة"),
+                React.createElement(Badge, { tone: "slate" }, cartCount)
+              ),
+              React.createElement(NavLink, { to: "/admin/login", className: ({ isActive }) => cn("px-3 py-2 rounded-2xl text-sm font-semibold", isActive ? "bg-white/10" : "hover:bg-white/5") }, "Admin")
+            )
+          )
+        );
+      }
+
+      function Modal({ open, onClose, title, children }) {
+        if (!open) return null;
+        return React.createElement(
+          "div",
+          { className: "fixed inset-0 z-[999] grid place-items-center p-4 anim-fade" },
+          React.createElement("div", { className: "absolute inset-0 bg-black/60", onClick: onClose }),
+          React.createElement("div", { className: "relative w-full max-w-2xl anim-pop" },
+            React.createElement(Card, { className: "p-5" },
+              React.createElement("div", { className: "flex items-center justify-between" },
+                React.createElement("div", { className: "font-black text-lg" }, title || "Modal"),
+                React.createElement("button", { className: "px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: onClose }, "✕")
+              ),
+              React.createElement("div", { className: "mt-4" }, children)
+            )
+          )
+        );
+      }
+
+      /* =========================
+         Pages
+      ========================= */
+      function Storefront({ store, toast }) {
+        const [q, setQ] = useState("");
+        const [cat, setCat] = useState("All");
+        const [sort, setSort] = useState("none");
+        const [loading, setLoading] = useState(true);
+
+        useEffect(() => { const t = setTimeout(() => setLoading(false), 260); return () => clearTimeout(t); }, []);
+
+        const filtered = useMemo(() => {
+          let list = store.products.slice();
+          if (q.trim()) {
+            const s = q.trim().toLowerCase();
+            list = list.filter((p) => p.name.toLowerCase().includes(s));
+          }
+          if (cat !== "All") list = list.filter((p) => p.category === cat);
+          if (sort === "price_asc") list.sort((a, b) => a.price - b.price);
+          if (sort === "price_desc") list.sort((a, b) => b.price - a.price);
+          return list;
+        }, [store.products, q, cat, sort]);
+
+        const add = (p) => { store.addToCart(p); toast.push("success", `اتضاف للسلة: ${p.name}`); };
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(PageTitle, {
+            title: "المنتجات",
+            subtitle: "Search + Filter + Sort. البيانات محفوظة في LocalStorage.",
+            right: React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-2 w-full sm:w-[560px]" },
+              React.createElement(Input, { value: q, onChange: (e) => setQ(e.target.value), placeholder: "Search بالاسم…" }),
+              React.createElement(Select, { value: cat, onChange: (e) => setCat(e.target.value) }, CATEGORIES.map((c) => React.createElement("option", { key: c, value: c }, c))),
+              React.createElement(Select, { value: sort, onChange: (e) => setSort(e.target.value) },
+                React.createElement("option", { value: "none" }, "Sort: بدون"),
+                React.createElement("option", { value: "price_asc" }, "السعر: الأقل للأعلى"),
+                React.createElement("option", { value: "price_desc" }, "السعر: الأعلى للأقل")
+              )
+            )
+          }),
+          React.createElement("div", { className: "mt-4" },
+            loading
+              ? React.createElement(LoadingSkeleton)
+              : filtered.length === 0
+              ? React.createElement(Empty, { title: "مفيش نتائج", hint: "جرّب تغيّر البحث أو الفلتر." })
+              : React.createElement("div", { className: "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+                  filtered.map((p) =>
+                    React.createElement("div", { key: p.id, className: "anim-pop" },
+                      React.createElement(Card, { className: "overflow-hidden" },
+                        React.createElement(Link, { to: `/product/${p.id}`, className: "block" },
+                          React.createElement("img", { src: p.image, alt: p.name, className: "h-44 w-full object-cover" })
+                        ),
+                        React.createElement("div", { className: "p-4" },
+                          React.createElement("div", { className: "flex items-start justify-between gap-3" },
+                            React.createElement("div", null,
+                              React.createElement(Link, { to: `/product/${p.id}`, className: "font-extrabold hover:underline" }, p.name),
+                              React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, egp(p.price))
+                            ),
+                            React.createElement(Badge, { tone: "indigo" }, p.category)
+                          ),
+                          React.createElement("div", { className: "mt-3 flex gap-2" },
+                            React.createElement(Button, { className: "flex-1", onClick: () => add(p) }, "Add to Cart"),
+                            React.createElement(Button, { variant: "ghost", onClick: () => toast.push("info", "Demo UI ✨") }, "♡")
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+          )
+        );
+      }
+
+      function ProductDetails({ store, toast }) {
+        const { id } = useParams();
+        const nav = useNavigate();
+        const p = store.products.find((x) => x.id === id);
+
+        if (!p) {
+          return React.createElement(React.Fragment, null,
+            React.createElement(StoreHeader, { cartCount: store.cartCount }),
+            React.createElement(Empty, { title: "المنتج غير موجود", hint: "ممكن اتمسح من الأدمن.", action: React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر") })
+          );
         }
-      ],
-      skills: ["React", "Next.js", "Tailwind", "TypeScript", "HTML", "CSS", "Git"],
-      languages: "Arabic (Native), English (B2)"
-    };
 
-    // -------- DOM helpers --------
-    const el = (id) => document.getElementById(id);
-
-    const inputs = {
-      template: el("template"),
-      fullName: el("fullName"),
-      title: el("title"),
-      phone: el("phone"),
-      email: el("email"),
-      location: el("location"),
-      linkedin: el("linkedin"),
-      github: el("github"),
-      portfolio: el("portfolio"),
-      summary: el("summary"),
-      skills: el("skills"),
-      languages: el("languages")
-    };
-
-    const expList = el("expList");
-    const eduList = el("eduList");
-    const projList = el("projList");
-
-    const addExp = el("addExp");
-    const addEdu = el("addEdu");
-    const addProj = el("addProj");
-
-    const btnPdf = el("btnPdf");
-    const btnSave = el("btnSave");
-    const btnReset = el("btnReset");
-
-    const printScaleWrap = el("printScaleWrap");
-    const cv = el("cv");
-
-    const tplModern = el("tplModern");
-    const tplMinimal = el("tplMinimal");
-    const tplSidebar = el("tplSidebar");
-
-    function escapeHtml(s) {
-      return String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function toast(msg) {
-      const t = document.createElement("div");
-      t.className = "fixed left-1/2 top-4 -translate-x-1/2 z-50 rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm shadow-soft";
-      t.textContent = msg;
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 1400);
-    }
-
-    // -------- Rendering bits --------
-    function renderChips(arr, tone = "light") {
-      if (!arr || arr.length === 0) return `<span class="text-sm text-zinc-500">—</span>`;
-      if (tone === "dark") {
-        return arr.map(s => `<span class="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-white">${escapeHtml(s)}</span>`).join("");
-      }
-      return arr.map(s => `<span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] text-zinc-700">${escapeHtml(s)}</span>`).join("");
-    }
-
-    function renderBullets(bullets, compact = true) {
-      if (!bullets || bullets.length === 0) return "";
-      const cls = compact ? "text-[12px]" : "text-sm";
-      return `
-        <ul class="mt-2 list-disc pr-5 ${cls} text-zinc-700 space-y-1">
-          ${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}
-        </ul>
-      `;
-    }
-
-    function expBlock(e) {
-      return `
-        <div>
-          <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(e.role)}</div>
-            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(e.period || "")}</div>
-          </div>
-          <div class="text-[12px] text-zinc-700">${escapeHtml(e.company || "")}</div>
-          ${renderBullets(e.bullets, true)}
-        </div>
-      `;
-    }
-
-    function eduBlock(e) {
-      return `
-        <div>
-          <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(e.degree)}</div>
-            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(e.period || "")}</div>
-          </div>
-          <div class="text-[12px] text-zinc-700">${escapeHtml(e.school || "")}</div>
-          ${e.details ? `<div class="mt-1 text-[12px] text-zinc-600">${escapeHtml(e.details)}</div>` : ""}
-        </div>
-      `;
-    }
-
-    function projBlock(p) {
-      return `
-        <div>
-          <div class="flex items-start justify-between gap-3">
-            <div class="font-semibold text-zinc-900 text-[13px]">${escapeHtml(p.name)}</div>
-            <div class="text-[11px] text-zinc-500 mono">${escapeHtml(p.link || "")}</div>
-          </div>
-          ${renderBullets(p.bullets, true)}
-        </div>
-      `;
-    }
-
-    function linksModern() {
-      const parts = [
-        ["LinkedIn", state.linkedin],
-        ["GitHub", state.github],
-        ["Portfolio", state.portfolio]
-      ].filter(([,v]) => (v||"").trim());
-
-      if (!parts.length) return `<div class="text-zinc-300">—</div>`;
-      return parts.map(([k,v]) =>
-        `<div class="truncate"><span class="text-zinc-300">${k}:</span> <span class="text-white">${escapeHtml(v)}</span></div>`
-      ).join("");
-    }
-
-    function linksLight() {
-      const parts = [
-        ["LinkedIn", state.linkedin],
-        ["GitHub", state.github],
-        ["Portfolio", state.portfolio]
-      ].filter(([,v]) => (v||"").trim());
-
-      if (!parts.length) return `<div class="text-zinc-500">—</div>`;
-      return parts.map(([k,v]) =>
-        `<div class="truncate"><span class="text-zinc-500">${k}:</span> <span class="text-zinc-900">${escapeHtml(v)}</span></div>`
-      ).join("");
-    }
-
-    function contactDark() {
-      const lines = [
-        state.location && `📍 ${state.location}`,
-        state.phone && `📞 ${state.phone}`,
-        state.email && `✉️ ${state.email}`,
-        state.linkedin && `in: ${state.linkedin}`,
-        state.github && `gh: ${state.github}`,
-        state.portfolio && `web: ${state.portfolio}`
-      ].filter(Boolean);
-
-      return lines.length ? lines.map(x => `<div class="truncate">${escapeHtml(x)}</div>`).join("") : `<div class="text-zinc-300">—</div>`;
-    }
-
-    function setTemplate(t) {
-      state.template = t;
-
-      tplModern.classList.toggle("hidden", t !== "modern");
-      tplMinimal.classList.toggle("hidden", t !== "minimal");
-      tplSidebar.classList.toggle("hidden", t !== "sidebar");
-    }
-
-    function renderPreview() {
-      setTemplate(state.template);
-
-      const name = (state.fullName || "—").trim();
-      const title = (state.title || "—").trim();
-      const meta1 = [state.location, state.phone].filter(Boolean).join(" • ") || "—";
-      const meta2 = [state.email].filter(Boolean).join(" • ") || "—";
-
-      // modern IDs
-      const mName = el("mName"), mTitle = el("mTitle"), mMeta1 = el("mMeta1"), mMeta2 = el("mMeta2"), mLinks = el("mLinks");
-      const mSummary = el("mSummary"), mExp = el("mExp"), mProj = el("mProj"), mEdu = el("mEdu"), mSkills = el("mSkills"), mLang = el("mLang");
-
-      // minimal IDs
-      const nName = el("nName"), nTitle = el("nTitle"), nMeta = el("nMeta"), nLinks = el("nLinks");
-      const nSummary = el("nSummary"), nExp = el("nExp"), nProj = el("nProj"), nEdu = el("nEdu"), nSkills = el("nSkills"), nLang = el("nLang");
-
-      // sidebar IDs
-      const sName = el("sName"), sTitle = el("sTitle"), sContact = el("sContact"), sSkills = el("sSkills"), sLang = el("sLang");
-      const sSummary = el("sSummary"), sExp = el("sExp"), sProj = el("sProj"), sEdu = el("sEdu");
-
-      // content blocks
-      const expHtml = state.experiences.length ? state.experiences.map(expBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
-      const eduHtml = state.education.length ? state.education.map(eduBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
-      const projHtml = state.projects.length ? state.projects.map(projBlock).join("") : `<div class="text-[12px] text-zinc-500">—</div>`;
-
-      const sum = (state.summary || "").trim() || "—";
-      const lang = (state.languages || "").trim() || "—";
-
-      // modern
-      if (mName) {
-        mName.textContent = name;
-        mTitle.textContent = title;
-        mMeta1.textContent = meta1;
-        mMeta2.textContent = meta2;
-        mLinks.innerHTML = linksModern();
-        mSummary.textContent = sum;
-        mExp.innerHTML = expHtml;
-        mEdu.innerHTML = eduHtml;
-        mProj.innerHTML = projHtml;
-        mSkills.innerHTML = renderChips(state.skills, "light");
-        mLang.textContent = lang;
+        return React.createElement(React.Fragment, null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(Card, { className: "overflow-hidden anim-pop" },
+            React.createElement("div", { className: "grid lg:grid-cols-2" },
+              React.createElement("img", { src: p.image, alt: p.name, className: "h-64 lg:h-full w-full object-cover" }),
+              React.createElement("div", { className: "p-6" },
+                React.createElement("div", { className: "flex items-center justify-between gap-3" },
+                  React.createElement("div", null,
+                    React.createElement("div", { className: "text-2xl font-black" }, p.name),
+                    React.createElement("div", { className: "mt-2 text-slate-300" }, egp(p.price))
+                  ),
+                  React.createElement(Badge, { tone: "indigo" }, p.category)
+                ),
+                React.createElement("p", { className: "mt-4 text-sm text-slate-300 leading-6" }, p.description || "وصف مش متوفر."),
+                React.createElement("div", { className: "mt-6 flex gap-2" },
+                  React.createElement(Button, { className: "flex-1", onClick: () => { store.addToCart(p); toast.push("success", "اتضاف للسلة ✅"); } }, "Add to Cart"),
+                  React.createElement(Button, { variant: "ghost", onClick: () => nav("/") }, "رجوع")
+                )
+              )
+            )
+          )
+        );
       }
 
-      // minimal
-      if (nName) {
-        nName.textContent = name;
-        nTitle.textContent = title;
-        nMeta.textContent = [state.location, state.phone, state.email].filter(Boolean).join(" • ") || "—";
-        nLinks.innerHTML = linksLight();
-        nSummary.textContent = sum;
-        nExp.innerHTML = expHtml;
-        nEdu.innerHTML = eduHtml;
-        nProj.innerHTML = projHtml;
-        nSkills.innerHTML = renderChips(state.skills, "light");
-        nLang.textContent = lang;
+      function CartPage({ store, toast }) {
+        const nav = useNavigate();
+        const items = store.cart;
+
+        return React.createElement(React.Fragment, null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(PageTitle, { title: "السلة", subtitle: "عدّل الكميات واحذف. الإجمالي بيتحسب تلقائي." }),
+          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-3" },
+            React.createElement("div", { className: "lg:col-span-2 space-y-3" },
+              items.length === 0
+                ? React.createElement(Empty, { title: "السلة فاضية", hint: "روح اختار منتجات من المتجر.", action: React.createElement(Button, { onClick: () => nav("/") }, "فتح المتجر") })
+                : items.map((it) =>
+                    React.createElement(Card, { key: it.id, className: "p-4 anim-pop" },
+                      React.createElement("div", { className: "flex gap-3 items-center" },
+                        React.createElement("img", { src: it.image, alt: it.name, className: "h-16 w-16 rounded-2xl object-cover ring-soft" }),
+                        React.createElement("div", { className: "flex-1 min-w-0" },
+                          React.createElement("div", { className: "font-extrabold truncate" }, it.name),
+                          React.createElement("div", { className: "text-sm text-slate-300 flex items-center gap-2 mt-1" },
+                            React.createElement("span", null, egp(it.price)),
+                            React.createElement(Badge, { tone: "slate" }, it.category)
+                          )
+                        ),
+                        React.createElement("div", { className: "flex items-center gap-2" },
+                          React.createElement(Input, { type: "number", min: 1, max: 99, value: it.qty, onChange: (e) => store.updateQty(it.id, Number(e.target.value || 1)), className: "w-20 text-center" }),
+                          React.createElement(Button, { variant: "danger", onClick: () => { store.removeFromCart(it.id); toast.push("success", "اتمسح من السلة"); } }, "حذف")
+                        )
+                      )
+                    )
+                  )
+            ),
+            React.createElement(Card, { className: "p-5 h-fit anim-pop" },
+              React.createElement("div", { className: "text-lg font-black" }, "ملخص الطلب"),
+              React.createElement("div", { className: "mt-4 space-y-2 text-sm text-slate-300" },
+                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "عدد القطع"), React.createElement("span", null, store.cartCount)),
+                React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "الإجمالي"), React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(store.cartTotal)))
+              ),
+              React.createElement("div", { className: "mt-5 space-y-2" },
+                React.createElement(Button, { className: "w-full", disabled: items.length === 0, onClick: () => nav("/checkout") }, "Checkout"),
+                React.createElement(Button, { className: "w-full", variant: "ghost", disabled: items.length === 0, onClick: () => { store.clearCart(); toast.push("success", "السلة اتصفرت"); } }, "تصفير السلة")
+              )
+            )
+          )
+        );
       }
 
-      // sidebar
-      if (sName) {
-        sName.textContent = name;
-        sTitle.textContent = title;
-        sContact.innerHTML = contactDark();
-        sSkills.innerHTML = renderChips(state.skills, "dark");
-        sLang.textContent = lang;
-        sSummary.textContent = sum;
-        sExp.innerHTML = expHtml;
-        sProj.innerHTML = projHtml;
-        sEdu.innerHTML = eduHtml;
+      function CheckoutPage({ store, toast }) {
+        const nav = useNavigate();
+        const [name, setName] = useState("");
+        const [mobile, setMobile] = useState("");
+        const [address, setAddress] = useState("");
+        const [placing, setPlacing] = useState(false);
+        const [orderId, setOrderId] = useState(null);
+
+        if (store.cart.length === 0 && !orderId) {
+          return React.createElement(React.Fragment, null,
+            React.createElement(StoreHeader, { cartCount: store.cartCount }),
+            React.createElement(Empty, { title: "مفيش حاجة تتعمل Checkout", hint: "السلة فاضية.", action: React.createElement(Button, { onClick: () => nav("/") }, "روح للمتجر") })
+          );
+        }
+
+        const submit = async (e) => {
+          e.preventDefault();
+          if (!name.trim() || !mobile.trim() || !address.trim()) return toast.push("error", "من فضلك املا البيانات كلها");
+          setPlacing(true);
+          await new Promise((r) => setTimeout(r, 450));
+          const id = store.createOrder({ customer: { name: name.trim(), mobile: mobile.trim(), address: address.trim() } });
+          setOrderId(id);
+          setPlacing(false);
+          toast.push("success", "تم تأكيد الطلب ✅");
+        };
+
+        return React.createElement(React.Fragment, null,
+          React.createElement(StoreHeader, { cartCount: store.cartCount }),
+          React.createElement(PageTitle, { title: "Checkout Demo", subtitle: "عند التأكيد: Order يتسجل + السلة تتصفر." }),
+          React.createElement("div", { className: "mt-4 grid gap-4 lg:grid-cols-2" },
+            React.createElement(Card, { className: "p-6 anim-pop" },
+              orderId
+                ? React.createElement("div", { className: "text-center" },
+                    React.createElement("div", { className: "text-2xl font-black" }, "تم الطلب بنجاح 🎉"),
+                    React.createElement("div", { className: "mt-2 text-slate-300" }, "رقم الطلب:"),
+                    React.createElement("div", { className: "mt-3 text-xl font-extrabold tracking-wide" }, orderId),
+                    React.createElement("div", { className: "mt-5 flex gap-2 justify-center" },
+                      React.createElement(Button, { onClick: () => nav("/") }, "رجوع للمتجر"),
+                      React.createElement(Button, { variant: "ghost", onClick: () => nav("/admin") }, "روح للأدمن")
+                    )
+                  )
+                : React.createElement("form", { onSubmit: submit, className: "space-y-3" },
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الاسم"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "الموبايل"), React.createElement(Input, { value: mobile, onChange: (e) => setMobile(e.target.value) })),
+                    React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "العنوان"), React.createElement(Input, { value: address, onChange: (e) => setAddress(e.target.value) })),
+                    React.createElement(Button, { className: "w-full", type: "submit", disabled: placing }, placing ? "جارٍ التأكيد…" : "تأكيد الطلب")
+                  )
+            ),
+            React.createElement(Card, { className: "p-6 h-fit anim-pop" },
+              React.createElement("div", { className: "text-lg font-black" }, "محتويات الطلب"),
+              React.createElement("div", { className: "mt-4 space-y-2 max-h-[340px] overflow-auto scrollbar-thin pr-1" },
+                store.cart.map((it) =>
+                  React.createElement("div", { key: it.id, className: "flex items-center justify-between gap-3 text-sm" },
+                    React.createElement("div", { className: "min-w-0" },
+                      React.createElement("div", { className: "font-semibold truncate" }, it.name),
+                      React.createElement("div", { className: "text-slate-300" }, `${it.qty} × ${egp(it.price)}`)
+                    ),
+                    React.createElement("div", { className: "font-extrabold" }, egp(it.qty * it.price))
+                  )
+                )
+              ),
+              React.createElement("div", { className: "mt-4 pt-4 border-t border-white/10 flex justify-between" },
+                React.createElement("span", { className: "text-slate-300 text-sm" }, "الإجمالي"),
+                React.createElement("span", { className: "font-extrabold" }, egp(store.cartTotal))
+              )
+            )
+          )
+        );
       }
 
-      // reset print scale (screen)
-      printScaleWrap.style.transform = "scale(1)";
-    }
-
-    // -------- Dynamic Forms --------
-    function expCard(e, idx) {
-      const bulletsText = (e.bullets || []).join("\n");
-      return `
-        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold">خبرة #${idx + 1}</div>
-            <button data-exp-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
-          </div>
-          <div class="mt-3 grid gap-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">المسمى</label>
-                <input data-exp="role" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.role)}" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">الفترة</label>
-                <input data-exp="period" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.period)}" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">الشركة</label>
-              <input data-exp="company" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.company)}" />
-            </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">نقاط (كل سطر نقطة)</label>
-              <textarea data-exp="bullets" data-i="${idx}" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300">${escapeHtml(bulletsText)}</textarea>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function eduCard(e, idx) {
-      return `
-        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold">تعليم #${idx + 1}</div>
-            <button data-edu-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
-          </div>
-          <div class="mt-3 grid gap-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">الدرجة</label>
-                <input data-edu="degree" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.degree)}" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">الفترة</label>
-                <input data-edu="period" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.period)}" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">الجهة</label>
-              <input data-edu="school" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.school)}" />
-            </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">تفاصيل</label>
-              <input data-edu="details" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.details || "")}" />
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function projCard(p, idx) {
-      const bulletsText = (p.bullets || []).join("\n");
-      return `
-        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold">مشروع #${idx + 1}</div>
-            <button data-proj-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
-          </div>
-          <div class="mt-3 grid gap-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">اسم المشروع</label>
-                <input data-proj="name" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(p.name)}" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">لينك (اختياري)</label>
-                <input data-proj="link" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(p.link || "")}" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">نقاط (كل سطر نقطة)</label>
-              <textarea data-proj="bullets" data-i="${idx}" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300">${escapeHtml(bulletsText)}</textarea>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderDynamicForms() {
-      expList.innerHTML = state.experiences.map(expCard).join("");
-      eduList.innerHTML = state.education.map(eduCard).join("");
-      projList.innerHTML = state.projects.map(projCard).join("");
-    }
-
-    // -------- Sync --------
-    function syncInputsFromState() {
-      inputs.template.value = state.template;
-      inputs.fullName.value = state.fullName;
-      inputs.title.value = state.title;
-      inputs.phone.value = state.phone;
-      inputs.email.value = state.email;
-      inputs.location.value = state.location;
-      inputs.linkedin.value = state.linkedin;
-      inputs.github.value = state.github;
-      inputs.portfolio.value = state.portfolio;
-      inputs.summary.value = state.summary;
-      inputs.skills.value = state.skills.join(", ");
-      inputs.languages.value = state.languages;
-    }
-
-    function syncStateFromInputs() {
-      state.template = inputs.template.value;
-      state.fullName = inputs.fullName.value;
-      state.title = inputs.title.value;
-      state.phone = inputs.phone.value;
-      state.email = inputs.email.value;
-      state.location = inputs.location.value;
-      state.linkedin = inputs.linkedin.value;
-      state.github = inputs.github.value;
-      state.portfolio = inputs.portfolio.value;
-      state.summary = inputs.summary.value;
-      state.skills = (inputs.skills.value || "")
-        .split(",").map(s => s.trim()).filter(Boolean);
-      state.languages = inputs.languages.value;
-    }
-
-    function syncAll() {
-      syncStateFromInputs();
-      renderDynamicForms();
-      renderPreview();
-    }
-
-    // -------- Save/Load --------
-    function save() {
-      localStorage.setItem(LS_KEY, JSON.stringify(state));
-      toast("✅ تم الحفظ");
-    }
-    function load() {
-      try {
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        Object.assign(state, data);
-      } catch {}
-    }
-    function reset() {
-      if (!confirm("إعادة ضبط كل البيانات؟")) return;
-      localStorage.removeItem(LS_KEY);
-      location.reload();
-    }
-
-    // -------- One-page print fit --------
-    function fitToSinglePage() {
-      // Reset
-      printScaleWrap.style.transform = "scale(1)";
-
-      // Only fit when A4 is active (desktop/print)
-      const wrap = printScaleWrap;
-      const maxH = cv.clientHeight; // should approximate A4 height in px in current render
-      const contentH = wrap.scrollHeight;
-
-      if (!maxH || !contentH) return;
-
-      // If content exceeds, scale down; cap to avoid too tiny
-      if (contentH > maxH) {
-        let scale = maxH / contentH;
-        scale = Math.max(0.72, Math.min(1, scale)); // don't go below 0.72
-        wrap.style.transform = `scale(${scale})`;
-      } else {
-        wrap.style.transform = "scale(1)";
+      /* =========================
+         Admin
+      ========================= */
+      function RequireAdmin({ store, children }) {
+        if (!store.admin.authed) return React.createElement(Navigate, { to: "/admin/login", replace: true });
+        return children;
       }
-    }
 
-    // Ensure fit before print
-    window.addEventListener("beforeprint", fitToSinglePage);
-    window.addEventListener("afterprint", () => {
-      printScaleWrap.style.transform = "scale(1)";
-    });
+      function AdminLogin({ store, toast }) {
+        const nav = useNavigate();
+        const [pw, setPw] = useState("");
+        const [loading, setLoading] = useState(false);
 
-    // -------- Events --------
-    Object.values(inputs).forEach(inp => inp.addEventListener("input", syncAll));
-    inputs.template.addEventListener("change", syncAll);
+        const submit = async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          await new Promise((r) => setTimeout(r, 280));
+          const ok = store.adminLogin(pw);
+          setLoading(false);
+          if (!ok) return toast.push("error", "كلمة السر غلط ❌");
+          toast.push("success", "تم تسجيل الدخول ✅");
+          nav("/admin");
+        };
 
-    addExp.addEventListener("click", () => {
-      state.experiences.push({
-        role: "Role",
-        company: "Company",
-        period: "2023 - 2024",
-        bullets: ["Achievement 1", "Achievement 2"]
-      });
-      renderDynamicForms(); renderPreview();
-    });
-
-    addEdu.addEventListener("click", () => {
-      state.education.push({
-        degree: "Degree",
-        school: "School",
-        period: "2019 - 2023",
-        details: ""
-      });
-      renderDynamicForms(); renderPreview();
-    });
-
-    addProj.addEventListener("click", () => {
-      state.projects.push({
-        name: "Project Name",
-        link: "",
-        bullets: ["What you built", "Tech used", "Result/impact"]
-      });
-      renderDynamicForms(); renderPreview();
-    });
-
-    // Delegated updates
-    expList.addEventListener("input", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
-      const i = Number(t.dataset.i);
-      const k = t.dataset.exp;
-      if (!Number.isFinite(i) || !k) return;
-      const exp = state.experiences[i]; if (!exp) return;
-
-      if (k === "role") exp.role = t.value;
-      if (k === "company") exp.company = t.value;
-      if (k === "period") exp.period = t.value;
-      if (k === "bullets") exp.bullets = t.value.split("\n").map(s => s.trim()).filter(Boolean);
-
-      renderPreview();
-    });
-    expList.addEventListener("click", (e) => {
-      const t = e.target; if (!(t instanceof HTMLElement)) return;
-      const del = t.getAttribute("data-exp-del");
-      if (del !== null) {
-        state.experiences.splice(Number(del), 1);
-        renderDynamicForms(); renderPreview();
+        return React.createElement(Shell, null,
+          React.createElement(Card, { className: "p-6 max-w-xl mx-auto anim-pop" },
+            React.createElement("div", { className: "text-2xl font-black" }, "Admin Login"),
+            React.createElement("div", { className: "mt-1 text-sm text-slate-300" }, "Password ثابت: admin123"),
+            React.createElement("form", { onSubmit: submit, className: "mt-6 space-y-3" },
+              React.createElement("div", null,
+                React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Password"),
+                React.createElement(Input, { type: "password", value: pw, onChange: (e) => setPw(e.target.value), placeholder: "admin123" })
+              ),
+              React.createElement(Button, { className: "w-full", type: "submit", disabled: loading }, loading ? "جارٍ الدخول…" : "Login"),
+              React.createElement(Button, { className: "w-full", type: "button", variant: "ghost", onClick: () => nav("/") }, "رجوع للمتجر")
+            )
+          )
+        );
       }
-    });
 
-    eduList.addEventListener("input", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLInputElement)) return;
-      const i = Number(t.dataset.i);
-      const k = t.dataset.edu;
-      if (!Number.isFinite(i) || !k) return;
-      const edu = state.education[i]; if (!edu) return;
+      function ProductForm({ initial, onSave, onCancel }) {
+        const [name, setName] = useState(initial?.name || "");
+        const [price, setPrice] = useState(initial?.price || 0);
+        const [category, setCategory] = useState(initial?.category || "Electronics");
+        const [image, setImage] = useState(initial?.image || seedProducts[0].image);
+        const [description, setDescription] = useState(initial?.description || "");
 
-      if (k === "degree") edu.degree = t.value;
-      if (k === "school") edu.school = t.value;
-      if (k === "period") edu.period = t.value;
-      if (k === "details") edu.details = t.value;
+        const submit = (e) => {
+          e.preventDefault();
+          if (!name.trim()) return alert("اكتب اسم المنتج");
+          if (!price || Number(price) < 1) return alert("السعر لازم يكون أكبر من 0");
+          onSave({ name: name.trim(), price: Number(price), category, image: image.trim(), description: description.trim() });
+        };
 
-      renderPreview();
-    });
-    eduList.addEventListener("click", (e) => {
-      const t = e.target; if (!(t instanceof HTMLElement)) return;
-      const del = t.getAttribute("data-edu-del");
-      if (del !== null) {
-        state.education.splice(Number(del), 1);
-        renderDynamicForms(); renderPreview();
+        return React.createElement("form", { onSubmit: submit, className: "space-y-3" },
+          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Name"), React.createElement(Input, { value: name, onChange: (e) => setName(e.target.value) })),
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Price"), React.createElement(Input, { type: "number", value: price, onChange: (e) => setPrice(e.target.value) }))
+          ),
+          React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" },
+            React.createElement("div", null,
+              React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Category"),
+              React.createElement(Select, { value: category, onChange: (e) => setCategory(e.target.value) }, PRODUCT_CATS.map((c) => React.createElement("option", { key: c, value: c }, c)))
+            ),
+            React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Image URL"), React.createElement(Input, { value: image, onChange: (e) => setImage(e.target.value) }))
+          ),
+          React.createElement("div", null, React.createElement("div", { className: "text-sm text-slate-300 mb-1" }, "Description"), React.createElement(Input, { value: description, onChange: (e) => setDescription(e.target.value), placeholder: "وصف بسيط…" })),
+          React.createElement("div", { className: "flex gap-2 pt-2" },
+            React.createElement(Button, { type: "submit", className: "flex-1" }, "Save"),
+            React.createElement(Button, { type: "button", variant: "ghost", className: "flex-1", onClick: onCancel }, "Cancel")
+          )
+        );
       }
-    });
 
-    projList.addEventListener("input", (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
-      const i = Number(t.dataset.i);
-      const k = t.dataset.proj;
-      if (!Number.isFinite(i) || !k) return;
-      const proj = state.projects[i]; if (!proj) return;
+      function AdminProducts({ store, toast }) {
+        const [open, setOpen] = useState(false);
+        const [editing, setEditing] = useState(null);
 
-      if (k === "name") proj.name = t.value;
-      if (k === "link") proj.link = t.value;
-      if (k === "bullets") proj.bullets = t.value.split("\n").map(s => s.trim()).filter(Boolean);
+        const openAdd = () => { setEditing(null); setOpen(true); };
+        const openEdit = (p) => { setEditing(p); setOpen(true); };
 
-      renderPreview();
-    });
-    projList.addEventListener("click", (e) => {
-      const t = e.target; if (!(t instanceof HTMLElement)) return;
-      const del = t.getAttribute("data-proj-del");
-      if (del !== null) {
-        state.projects.splice(Number(del), 1);
-        renderDynamicForms(); renderPreview();
+        return React.createElement(React.Fragment, null,
+          React.createElement(PageTitle, { title: "Products", subtitle: "CRUD على LocalStorage", right: React.createElement(Button, { onClick: openAdd }, "Add Product") }),
+          React.createElement("div", { className: "mt-4" },
+            store.products.length === 0
+              ? React.createElement(Empty, { title: "مفيش منتجات", hint: "ضيف أول منتج.", action: React.createElement(Button, { onClick: openAdd }, "Add Product") })
+              : React.createElement(Card, { className: "p-4 overflow-auto scrollbar-thin anim-pop" },
+                  React.createElement("table", { className: "w-full text-sm" },
+                    React.createElement("thead", null,
+                      React.createElement("tr", { className: "text-slate-300" }, ["Name", "Category", "Price", "Actions"].map((h) => React.createElement("th", { key: h, className: "text-right font-semibold py-2 px-2" }, h)))
+                    ),
+                    React.createElement("tbody", null,
+                      store.products.map((p) =>
+                        React.createElement("tr", { key: p.id, className: "border-t border-white/10" },
+                          React.createElement("td", { className: "py-3 px-2" },
+                            React.createElement("div", { className: "flex items-center gap-3" },
+                              React.createElement("img", { src: p.image, className: "h-10 w-10 rounded-2xl object-cover ring-soft" }),
+                              React.createElement("div", null,
+                                React.createElement("div", { className: "font-extrabold" }, p.name),
+                                React.createElement("div", { className: "text-xs text-slate-400" }, p.id)
+                              )
+                            )
+                          ),
+                          React.createElement("td", { className: "py-3 px-2" }, React.createElement(Badge, { tone: "indigo" }, p.category)),
+                          React.createElement("td", { className: "py-3 px-2 font-extrabold" }, egp(p.price)),
+                          React.createElement("td", { className: "py-3 px-2" },
+                            React.createElement("div", { className: "flex gap-2" },
+                              React.createElement(Button, { variant: "ghost", onClick: () => openEdit(p) }, "Edit"),
+                              React.createElement(Button, { variant: "danger", onClick: () => { if (confirm("متأكد تمسح المنتج؟")) { store.productsCRUD.remove(p.id); toast.push("success", "اتمسح المنتج"); } } }, "Delete")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+          ),
+          React.createElement(Modal, { open, onClose: () => setOpen(false), title: editing ? "Edit Product" : "Add Product" },
+            React.createElement(ProductForm, {
+              initial: editing,
+              onCancel: () => setOpen(false),
+              onSave: (data) => {
+                if (editing) { store.productsCRUD.update(editing.id, data); toast.push("success", "تم التعديل ✅"); }
+                else { store.productsCRUD.add(data); toast.push("success", "تمت الإضافة ✅"); }
+                setOpen(false);
+              }
+            })
+          )
+        );
       }
-    });
 
-    btnPdf.addEventListener("click", () => {
-      // Ensure last sync + fit before print dialog
-      syncAll();
-      fitToSinglePage();
-      window.print();
-    });
+      function AdminOrders({ store, toast }) {
+        const statuses = ["new", "processing", "shipped", "cancelled"];
+        return React.createElement(React.Fragment, null,
+          React.createElement(PageTitle, { title: "Orders", subtitle: "عرض الطلبات + تغيير الحالة." }),
+          React.createElement("div", { className: "mt-4" },
+            store.orders.length === 0
+              ? React.createElement(Empty, { title: "مفيش Orders", hint: "اعمل Checkout من المتجر." })
+              : React.createElement("div", { className: "space-y-3" },
+                  store.orders.map((o) =>
+                    React.createElement(Card, { key: o.id, className: "p-5 anim-pop" },
+                      React.createElement("div", { className: "flex flex-wrap items-start justify-between gap-3" },
+                        React.createElement("div", null,
+                          React.createElement("div", { className: "font-black text-lg" }, o.id),
+                          React.createElement("div", { className: "text-sm text-slate-300 mt-1" }, new Date(o.createdAt).toLocaleString("ar-EG"), " • ", (o.customer?.name || "—"))
+                        ),
+                        React.createElement(Select, {
+                          value: o.status,
+                          onChange: (e) => { store.ordersCRUD.setStatus(o.id, e.target.value); toast.push("success", `الحالة: ${e.target.value}`); },
+                          className: "w-48"
+                        }, statuses.map((s) => React.createElement("option", { key: s, value: s }, s)))
+                      ),
+                      React.createElement("div", { className: "mt-3 text-sm text-slate-300" }, "الإجمالي: ", React.createElement("span", { className: "font-extrabold text-slate-100" }, egp(o.total)))
+                    )
+                  )
+                )
+          )
+        );
+      }
 
-    btnSave.addEventListener("click", save);
-    btnReset.addEventListener("click", reset);
+      function AdminStats({ store }) {
+        const totalSales = useMemo(() => store.orders.reduce((s, o) => s + (o.total || 0), 0), [store.orders]);
+        const topCategory = useMemo(() => {
+          const map = new Map();
+          for (const o of store.orders) for (const it of (o.items || [])) map.set(it.category, (map.get(it.category) || 0) + (it.qty || 0));
+          let best = null, bestV = -1;
+          for (const [k, v] of map.entries()) if (v > bestV) { bestV = v; best = k; }
+          return best ? `${best} (${bestV})` : "—";
+        }, [store.orders]);
 
-    // -------- Init --------
-    (function init() {
-      load();
-      syncInputsFromState();
-      renderDynamicForms();
-      renderPreview();
-      toast("جاهز ✅ اختر قالب واطبع PDF");
-    })();
-  </script>
-</body>
+        return React.createElement(React.Fragment, null,
+          React.createElement(PageTitle, { title: "Stats", subtitle: "عدد الطلبات + إجمالي المبيعات + أكثر تصنيف." }),
+          React.createElement("div", { className: "mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "عدد الطلبات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, store.orders.length)),
+            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "إجمالي المبيعات"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, egp(totalSales))),
+            React.createElement(Card, { className: "p-5 anim-pop" }, React.createElement("div", { className: "text-sm text-slate-300" }, "أكثر تصنيف مبيعًا"), React.createElement("div", { className: "mt-2 text-2xl font-black" }, topCategory))
+          )
+        );
+      }
+
+      function AdminLayout({ store, toast }) {
+        const nav = useNavigate();
+        const { pathname } = useLocation();
+        const [menu, setMenu] = useState(false);
+
+        // Decide which admin page to render based on path
+        let content = React.createElement(AdminStats, { store });
+        if (pathname === "/admin/products") content = React.createElement(AdminProducts, { store, toast });
+        if (pathname === "/admin/orders") content = React.createElement(AdminOrders, { store, toast });
+
+        const linkClass = (to, exact) => {
+          const active = exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+          return cn("px-3 py-2 rounded-2xl text-sm font-semibold block", active ? "bg-white/10" : "hover:bg-white/5");
+        };
+
+        return React.createElement(Shell, null,
+          React.createElement("div", { className: "grid lg:grid-cols-[280px_1fr] gap-4" },
+            React.createElement(Card, { className: "p-4 h-fit lg:sticky lg:top-6 anim-pop" },
+              React.createElement("div", { className: "flex items-center justify-between" },
+                React.createElement("div", { className: "font-black" }, "Admin"),
+                React.createElement("button", { className: "lg:hidden px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm", onClick: () => setMenu(v => !v) }, menu ? "إخفاء" : "قائمة")
+              ),
+              React.createElement("div", { className: cn("mt-3 space-y-1", menu ? "block" : "hidden lg:block") },
+                React.createElement("a", { href:"#/admin", className: linkClass("/admin", true) }, "Stats"),
+                React.createElement("a", { href:"#/admin/products", className: linkClass("/admin/products") }, "Products"),
+                React.createElement("a", { href:"#/admin/orders", className: linkClass("/admin/orders") }, "Orders"),
+                React.createElement("div", { className: "pt-3 mt-3 border-t border-white/10 flex gap-2" },
+                  React.createElement(Button, { variant: "ghost", className: "flex-1", onClick: () => nav("/") }, "Store"),
+                  React.createElement(Button, { variant: "danger", className: "flex-1", onClick: () => { store.adminLogout(); toast.push("success", "تم تسجيل الخروج"); nav("/"); } }, "Logout")
+                )
+              )
+            ),
+            React.createElement("div", null,
+              React.createElement(Card, { className: "p-4 mb-4 anim-pop" },
+                React.createElement("div", { className: "flex items-center justify-between gap-3 flex-wrap" },
+                  React.createElement("div", null,
+                    React.createElement("div", { className: "font-black" }, "Dashboard"),
+                    React.createElement("div", { className: "text-sm text-slate-300" }, pathname)
+                  ),
+                  React.createElement(Badge, { tone: "emerald" }, "UI Only + LocalStorage")
+                )
+              ),
+              content
+            )
+          )
+        );
+      }
+
+      /* =========================
+         App
+      ========================= */
+      function App() {
+        const store = useAppStore();
+        const toast = useToast();
+
+        return React.createElement(HashRouter, null,
+          React.createElement(Toasts, { items: toast.items }),
+          React.createElement(Routes, null,
+            React.createElement(Route, { index: true, element: React.createElement(Shell, null, React.createElement(Storefront, { store, toast })) }),
+            React.createElement(Route, { path: "/product/:id", element: React.createElement(Shell, null, React.createElement(ProductDetails, { store, toast })) }),
+            React.createElement(Route, { path: "/cart", element: React.createElement(Shell, null, React.createElement(CartPage, { store, toast })) }),
+            React.createElement(Route, { path: "/checkout", element: React.createElement(Shell, null, React.createElement(CheckoutPage, { store, toast })) }),
+
+            React.createElement(Route, { path: "/admin/login", element: React.createElement(AdminLogin, { store, toast }) }),
+            React.createElement(Route, { path: "/admin", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
+            React.createElement(Route, { path: "/admin/products", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
+            React.createElement(Route, { path: "/admin/orders", element: React.createElement(RequireAdmin, { store }, React.createElement(AdminLayout, { store, toast })) }),
+
+            // fallback
+            React.createElement(Route, {
+              path: "/404",
+              element: React.createElement(Shell, null, React.createElement(Empty, { title: "الصفحة غير موجودة", hint: "ارجع للمتجر.", action: React.createElement(Link, { to: "/", className: "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold bg-indigo-500/90 hover:bg-indigo-500 text-white" }, "Home") }))
+            })
+          )
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+    </script>
+  </body>
 </html>
