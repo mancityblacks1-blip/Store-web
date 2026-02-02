@@ -943,5 +943,379 @@
 
       ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
     </script>
+    <!-- ============ MINI STORE CHATBOT (FRONT-END ONLY) ============ -->
+<style>
+  .cb-fab{position:fixed;bottom:18px;right:18px;z-index:9999}
+  .cb-btn{width:56px;height:56px;border-radius:16px;background:#111827;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);cursor:pointer}
+  .cb-panel{position:fixed;bottom:86px;right:18px;width:360px;max-width:calc(100vw - 36px);height:520px;max-height:calc(100vh - 140px);background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;z-index:9999;display:none}
+  .cb-head{background:#111827;color:#fff;padding:14px 14px 12px;display:flex;align-items:center;justify-content:space-between}
+  .cb-title{font-weight:800;font-size:14px}
+  .cb-sub{font-size:11px;color:#cbd5e1;margin-top:2px}
+  .cb-x{width:34px;height:34px;border-radius:12px;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .cb-body{height:calc(100% - 128px);background:#f8fafc;padding:12px;overflow:auto}
+  .cb-foot{border-top:1px solid #e5e7eb;background:#fff;padding:10px}
+  .cb-row{display:flex;gap:8px}
+  .cb-input{flex:1;height:44px;border:1px solid #e5e7eb;border-radius:14px;padding:0 12px;font-size:13px;outline:none}
+  .cb-send{height:44px;padding:0 14px;border-radius:14px;background:#059669;color:#fff;border:none;font-weight:800;cursor:pointer}
+  .cb-bubble{max-width:85%;padding:10px 12px;border-radius:16px;font-size:13px;line-height:1.35;border:1px solid transparent;margin-bottom:10px}
+  .cb-me{margin-left:auto;background:#111827;color:#fff;border-color:rgba(255,255,255,.08)}
+  .cb-bot{margin-right:auto;background:#fff;color:#111827;border-color:#e5e7eb}
+  .cb-meta{font-size:11px;color:#6b7280;margin-top:6px}
+  .cb-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+  .cb-chip{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer}
+  .cb-card{border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden;margin-top:10px}
+  .cb-card .top{display:flex;gap:10px;padding:10px}
+  .cb-img{width:56px;height:56px;border-radius:12px;background:#e5e7eb;object-fit:cover}
+  .cb-name{font-weight:800;font-size:13px}
+  .cb-cat{font-size:11px;color:#6b7280;margin-top:2px}
+  .cb-price{font-weight:900;margin-top:6px}
+  .cb-actions{display:flex;gap:8px;padding:10px;border-top:1px solid #e5e7eb}
+  .cb-a{flex:1;height:36px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:800;font-size:12px;cursor:pointer}
+  .cb-a.primary{background:#111827;color:#fff;border-color:#111827}
+  @media (max-width:420px){.cb-panel{width:calc(100vw - 36px)}}
+</style>
+
+<div class="cb-fab">
+  <button class="cb-btn" id="cbOpen" aria-label="Open Chat">
+    💬
+  </button>
+</div>
+
+<div class="cb-panel" id="cbPanel" dir="rtl">
+  <div class="cb-head">
+    <div>
+      <div class="cb-title">مساعد المتجر</div>
+      <div class="cb-sub">اسألني عن الأسعار، الاقتراحات، والتصنيفات</div>
+    </div>
+    <div class="cb-x" id="cbClose" title="Close">✕</div>
+  </div>
+
+  <div class="cb-body" id="cbBody">
+    <div class="cb-chips">
+      <div class="cb-chip" data-q="ايه التصنيفات عندكم؟">التصنيفات</div>
+      <div class="cb-chip" data-q="رشحلي حاجه رخيصه">اقتراحات رخيصة</div>
+      <div class="cb-chip" data-q="سعر سماعه">سعر منتج</div>
+      <div class="cb-chip" data-q="الشحن بياخد قد ايه؟">الشحن</div>
+      <div class="cb-chip" data-q="سياسة الاسترجاع">الاسترجاع</div>
+    </div>
+  </div>
+
+  <div class="cb-foot">
+    <div class="cb-row">
+      <input class="cb-input" id="cbInput" placeholder="اكتب سؤالك هنا…" />
+      <button class="cb-send" id="cbSend">إرسال</button>
+    </div>
+    <div class="cb-meta">Tip: اكتب “بكام + اسم المنتج” أو “رشح + تصنيف”.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ========= 1) PRODUCTS SOURCE =========
+  // لو عندك منتجات في الصفحة كمتغير global اسمه products هنستخدمه.
+  // أو لو عندك LocalStorage: store_products
+  // وإلا هنستخدم demo data.
+  function loadProducts(){
+    try{
+      if (Array.isArray(window.products) && window.products.length) return window.products;
+      const ls = localStorage.getItem("store_products");
+      if(ls){
+        const parsed = JSON.parse(ls);
+        if(Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    }catch(e){}
+    // Demo fallback
+    return [
+      { id:"p1", name:"سماعة بلوتوث", price:799, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/ear/200/200", stock:12, description:"سماعة قوية وبطارية طويلة" },
+      { id:"p2", name:"كيبورد ميكانيكال", price:1299, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/key/200/200", stock:5, description:"سويتشات ناعمة وإضاءة RGB" },
+      { id:"p3", name:"تيشيرت قطن", price:299, category:"ملابس", imageUrl:"https://picsum.photos/seed/shirt/200/200", stock:25, description:"قطن 100% ومريح" },
+      { id:"p4", name:"شنطة ظهر", price:649, category:"أكسسوارات", imageUrl:"https://picsum.photos/seed/bag/200/200", stock:8, description:"مساحة كبيرة وخامة متينة" },
+      { id:"p5", name:"ماوس جيمينج", price:499, category:"إلكترونيات", imageUrl:"https://picsum.photos/seed/mouse/200/200", stock:0, description:"DPI عالي وإمساك ممتاز" },
+      { id:"p6", name:"زجاجة مياه", price:149, category:"منزل", imageUrl:"https://picsum.photos/seed/bottle/200/200", stock:30, description:"خفيفة وسهلة الحمل" },
+    ];
+  }
+
+  function moneyEGP(n){
+    try { return new Intl.NumberFormat("ar-EG",{style:"currency",currency:"EGP"}).format(Number(n)||0); }
+    catch(e){ return (Number(n)||0) + " EGP"; }
+  }
+
+  // ========= 2) UI ELEMENTS =========
+  const panel = document.getElementById("cbPanel");
+  const openBtn = document.getElementById("cbOpen");
+  const closeBtn = document.getElementById("cbClose");
+  const body = document.getElementById("cbBody");
+  const input = document.getElementById("cbInput");
+  const send = document.getElementById("cbSend");
+
+  const CHAT_KEY = "store_chat_history_v1";
+
+  function scrollDown(){ body.scrollTop = body.scrollHeight; }
+
+  function bubble(text, who="bot"){
+    const d = document.createElement("div");
+    d.className = "cb-bubble " + (who==="me" ? "cb-me" : "cb-bot");
+    d.textContent = text;
+    body.appendChild(d);
+    scrollDown();
+    saveHistory();
+  }
+
+  function productCard(p){
+    const wrap = document.createElement("div");
+    wrap.className = "cb-bot";
+
+    const card = document.createElement("div");
+    card.className = "cb-card";
+
+    const top = document.createElement("div");
+    top.className = "top";
+
+    const img = document.createElement("img");
+    img.className = "cb-img";
+    img.src = p.imageUrl || "";
+    img.alt = p.name || "product";
+    img.onerror = () => { img.style.display="none"; };
+
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "cb-name";
+    name.textContent = p.name;
+
+    const cat = document.createElement("div");
+    cat.className = "cb-cat";
+    cat.textContent = (p.category || "—") + (p.stock === 0 ? " • غير متاح" : "");
+
+    const price = document.createElement("div");
+    price.className = "cb-price";
+    price.textContent = moneyEGP(p.price);
+
+    info.appendChild(name);
+    info.appendChild(cat);
+    info.appendChild(price);
+
+    top.appendChild(img);
+    top.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "cb-actions";
+
+    const btnView = document.createElement("button");
+    btnView.className = "cb-a";
+    btnView.textContent = "عرض";
+    btnView.onclick = () => {
+      // لو عندك صفحة منتجات: /products/{id}
+      // عدّل اللينك حسب مشروعك
+      const url = (p.id ? (`/products/${p.id}`) : "#");
+      window.location.href = url;
+    };
+
+    const btnAdd = document.createElement("button");
+    btnAdd.className = "cb-a primary";
+    btnAdd.textContent = "أضف للسلة";
+    btnAdd.onclick = () => {
+      // لو عندك دالة addToCart على الصفحة
+      if (typeof window.addToCart === "function") {
+        window.addToCart(p.id);
+        bubble("✅ اتضاف للسلة.", "bot");
+      } else {
+        // fallback: LocalStorage cart
+        try{
+          const key = "cart_items_v1";
+          const raw = localStorage.getItem(key);
+          const cart = raw ? JSON.parse(raw) : [];
+          const existing = cart.find(x => x.id === p.id);
+          if(existing) existing.qty += 1;
+          else cart.push({ id: p.id, qty: 1, name: p.name, price: p.price, imageUrl: p.imageUrl });
+          localStorage.setItem(key, JSON.stringify(cart));
+          bubble("✅ اتضاف للسلة (LocalStorage).", "bot");
+        }catch(e){
+          bubble("حصلت مشكلة وإحنا بنضيف للسلة 😅", "bot");
+        }
+      }
+    };
+
+    actions.appendChild(btnView);
+    actions.appendChild(btnAdd);
+
+    card.appendChild(top);
+    card.appendChild(actions);
+
+    wrap.appendChild(card);
+    body.appendChild(wrap);
+    scrollDown();
+    saveHistory();
+  }
+
+  function saveHistory(){
+    try{
+      // نحفظ نصوص/كروت بس كـ HTML بسيط
+      localStorage.setItem(CHAT_KEY, body.innerHTML);
+    }catch(e){}
+  }
+  function loadHistory(){
+    try{
+      const raw = localStorage.getItem(CHAT_KEY);
+      if(raw) body.innerHTML = raw;
+    }catch(e){}
+  }
+
+  // ========= 3) BOT LOGIC (FRONT-END RULES) =========
+  function normalize(s){
+    return (s||"")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu," ")
+      .replace(/\s+/g," ")
+      .trim();
+  }
+
+  function hasAny(msg, arr){
+    return arr.some(w => msg.includes(w));
+  }
+
+  function extractKeywords(msg){
+    return msg.split(" ").filter(w => w.length >= 3).slice(0, 6);
+  }
+
+  function findProducts(products, msg){
+    const keys = extractKeywords(msg);
+    if(!keys.length) return [];
+    return products.filter(p => {
+      const hay = normalize((p.name||"") + " " + (p.description||"") + " " + (p.category||""));
+      return keys.some(k => hay.includes(k));
+    });
+  }
+
+  function uniqueCategories(products){
+    const set = new Set();
+    products.forEach(p => p.category && set.add(p.category));
+    return Array.from(set).sort((a,b)=> a.localeCompare(b,"ar"));
+  }
+
+  function recommend(products, msg){
+    // لو الرسالة فيها تصنيف موجود، نرشح منه
+    const cats = uniqueCategories(products);
+    const foundCat = cats.find(c => normalize(c).includes(msg) || msg.includes(normalize(c)));
+    let list = products.filter(p => p.stock !== 0);
+
+    if(foundCat){
+      list = list.filter(p => p.category === foundCat);
+    }
+
+    // لو قال رخيص/أرخص: sort by price
+    if(hasAny(msg, ["رخيص","ارخص","cheap","اقتصادي","اقل"])){
+      list = list.sort((a,b)=> (a.price||0) - (b.price||0));
+    } else {
+      // default: المتاح الأعلى ثم الأرخص
+      list = list.sort((a,b)=> (b.stock||0) - (a.stock||0) || (a.price||0)-(b.price||0));
+    }
+
+    return list.slice(0, 4);
+  }
+
+  function botReply(raw){
+    const products = loadProducts();
+    const msg = normalize(raw);
+
+    if(!msg) return { text: "اكتب سؤالك، وأنا هساعدك ✅" };
+
+    // FAQ
+    if(hasAny(msg, ["شحن","توصيل","delivery","shipping","مدة","بياخد"])){
+      return { text: "🚚 الشحن غالبًا 1-3 أيام حسب العنوان. ابعتلي محافظتك/منطقتك أقولك تقدير أدق." };
+    }
+    if(hasAny(msg, ["استرجاع","استبدال","ارجاع","refund","return"])){
+      return { text: "🔁 الاسترجاع/الاستبدال خلال 14 يوم بشرط يكون المنتج بحالته. قولّي رقم الطلب لو موجود." };
+    }
+    if(hasAny(msg, ["تصنيفات","اقسام","قسم","category","categories","فئات","فئة"])){
+      const cats = uniqueCategories(products);
+      return { text: cats.length ? `📦 التصنيفات المتاحة: ${cats.join("، ")}` : "حاليًا مفيش تصنيفات." };
+    }
+
+    // Price questions
+    if(hasAny(msg, ["سعر","بكام","price","كام","ثمن","cost"])){
+      const matches = findProducts(products, msg);
+      if(!matches.length){
+        return { text: "قولّي اسم المنتج أو كلمة من اسمه (مثال: سماعة/شنطة)، وأنا أطلعلك السعر فورًا 💰" };
+      }
+      return {
+        text: "لقيتلك دول 👇",
+        cards: matches.slice(0,4)
+      };
+    }
+
+    // Recommend
+    if(hasAny(msg, ["اقترح","رشح","suggest","recommend","انصح","اختارلي","عايز"])){
+      const recs = recommend(products, msg);
+      if(!recs.length) return { text: "مش لاقي منتجات متاحة دلوقتي. جرّب تسأل عن تصنيف معين." };
+      return {
+        text: "✨ دي ترشيحات مناسبة:",
+        cards: recs
+      };
+    }
+
+    // Search by name
+    const matches = findProducts(products, msg);
+    if(matches.length){
+      return { text: "لقيت منتجات قريبة من كلامك:", cards: matches.slice(0,4) };
+    }
+
+    // Fallback help
+    return {
+      text:
+        "ممكن تساعدني بكلمة أوضح؟ جرّب:\n" +
+        "• “بكام سماعة”\n" +
+        "• “اقترح إلكترونيات رخيصة”\n" +
+        "• “ايه التصنيفات؟”"
+    };
+  }
+
+  // ========= 4) EVENTS =========
+  function open(){
+    panel.style.display = "block";
+    input.focus();
+    scrollDown();
+  }
+  function close(){ panel.style.display = "none"; }
+
+  openBtn.addEventListener("click", open);
+  closeBtn.addEventListener("click", close);
+
+  send.addEventListener("click", () => {
+    const v = input.value;
+    input.value = "";
+    bubble(v, "me");
+    const res = botReply(v);
+    bubble(res.text, "bot");
+    if(res.cards && res.cards.length){
+      res.cards.forEach(productCard);
+    }
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+      e.preventDefault();
+      send.click();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const chip = e.target.closest && e.target.closest(".cb-chip");
+    if(chip){
+      const q = chip.getAttribute("data-q");
+      input.value = q;
+      send.click();
+    }
+  });
+
+  // Load previous chat and greet
+  loadHistory();
+  if(!localStorage.getItem("store_chat_greeted_v1")){
+    bubble("أهلًا 👋 أنا مساعد المتجر. اسألني عن الأسعار أو خليّني أرشحلك منتجات.", "bot");
+    localStorage.setItem("store_chat_greeted_v1","1");
+  }
+})();
+</script>
+<!-- ============ /MINI STORE CHATBOT ============ -->
+
   </body>
 </html>
