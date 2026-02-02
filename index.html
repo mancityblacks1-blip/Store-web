@@ -3,233 +3,236 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>مولّد عروض أسعار + فواتير (ملف واحد)</title>
+  <title>CV Builder - ملف واحد</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* تحسين طباعة PDF */
+    /* تحسين الطباعة */
     @media print {
-      body { background: white !important; }
+      body { background: #fff !important; }
       .no-print { display: none !important; }
       .print-area { box-shadow: none !important; border: none !important; }
       .print-container { max-width: 100% !important; padding: 0 !important; }
-      .print-card { border: none !important; }
+      .cv-page { border: none !important; border-radius: 0 !important; }
     }
-    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+    .shadow-soft { box-shadow: 0 18px 40px rgba(0,0,0,.08); }
+    .a4 { width: 210mm; min-height: 297mm; }
+    @media (max-width: 1024px){ .a4 { width: 100%; } }
   </style>
 </head>
 
 <body class="bg-zinc-50 text-zinc-900">
   <header class="no-print border-b border-zinc-200 bg-white">
     <div class="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-      <div class="font-semibold">📄 مولّد عروض أسعار + فواتير</div>
-      <div class="text-xs text-zinc-600">ملف واحد • بدون Backend</div>
+      <div class="font-semibold">🧾 CV Builder</div>
+      <div class="flex items-center gap-2">
+        <button id="btnSave" class="h-10 px-4 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">
+          حفظ
+        </button>
+        <button id="btnReset" class="h-10 px-4 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">
+          إعادة ضبط
+        </button>
+        <button id="btnPdf" class="h-10 px-4 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 text-sm">
+          🖨️ PDF
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="mx-auto max-w-6xl px-4 py-6 print-container">
     <div class="grid gap-4 lg:grid-cols-3">
       <!-- Form -->
-      <section class="no-print lg:col-span-2 space-y-4">
+      <section class="no-print lg:col-span-1 space-y-4">
         <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex items-start justify-between gap-3">
             <div>
-              <div class="text-lg font-semibold">إعداد المستند</div>
-              <div class="text-sm text-zinc-600">املأ البيانات وشوف المعاينة على اليمين</div>
+              <div class="text-lg font-semibold">بيانات الـ CV</div>
+              <div class="text-sm text-zinc-600">املأ البيانات وشوف الشكل فورًا</div>
             </div>
-            <div class="flex items-center gap-2">
-              <button id="btnSaveCompany" class="h-10 px-4 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">
-                حفظ بيانات الشركة
-              </button>
-              <button id="btnReset" class="h-10 px-4 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">
-                إعادة ضبط
-              </button>
-            </div>
-          </div>
-
-          <div class="mt-4 grid gap-3 md:grid-cols-3">
-            <div>
-              <label class="block text-xs text-zinc-600 mb-1">نوع المستند</label>
-              <select id="docType" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300">
-                <option value="quote">عرض سعر</option>
-                <option value="invoice">فاتورة</option>
+            <div class="w-40">
+              <label class="block text-xs text-zinc-600 mb-1">القالب</label>
+              <select id="template" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300">
+                <option value="modern">Modern</option>
+                <option value="classic">Classic</option>
               </select>
             </div>
+          </div>
+
+          <div class="mt-4 grid gap-3">
             <div>
-              <label class="block text-xs text-zinc-600 mb-1">رقم المستند</label>
-              <input id="docNo" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Q-1001" />
+              <label class="block text-xs text-zinc-600 mb-1">الاسم</label>
+              <input id="fullName" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Ahmed Mohamed" />
             </div>
             <div>
-              <label class="block text-xs text-zinc-600 mb-1">تاريخ الإصدار</label>
-              <input id="issueDate" type="date" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" />
-            </div>
-          </div>
-
-          <div class="mt-4 grid gap-3 md:grid-cols-2">
-            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-              <div class="font-semibold text-sm">بيانات الشركة</div>
-              <div class="mt-3 grid gap-3">
-                <div>
-                  <label class="block text-xs text-zinc-600 mb-1">اسم الشركة</label>
-                  <input id="companyName" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="اسم شركتك" />
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-xs text-zinc-600 mb-1">هاتف</label>
-                    <input id="companyPhone" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="01xxxxxxxxx" />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-zinc-600 mb-1">العملة</label>
-                    <input id="currency" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="EGP" />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-xs text-zinc-600 mb-1">العنوان</label>
-                  <input id="companyAddress" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="القاهرة - مصر" />
-                </div>
-              </div>
+              <label class="block text-xs text-zinc-600 mb-1">المسمى الوظيفي</label>
+              <input id="title" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="مثال: Frontend Developer" />
             </div>
 
-            <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-              <div class="font-semibold text-sm">بيانات العميل</div>
-              <div class="mt-3 grid gap-3">
-                <div>
-                  <label class="block text-xs text-zinc-600 mb-1">اسم العميل</label>
-                  <input id="clientName" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="اسم العميل" />
-                </div>
-                <div>
-                  <label class="block text-xs text-zinc-600 mb-1">هاتف العميل</label>
-                  <input id="clientPhone" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="01xxxxxxxxx" />
-                </div>
-                <div>
-                  <label class="block text-xs text-zinc-600 mb-1">عنوان العميل</label>
-                  <input id="clientAddress" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="عنوان العميل (اختياري)" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Items -->
-          <div class="mt-4 rounded-2xl border border-zinc-200 bg-white p-3">
-            <div class="flex items-center justify-between">
-              <div class="font-semibold text-sm">بنود المستند</div>
-              <button id="btnAddItem" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">
-                + إضافة بند
-              </button>
-            </div>
-
-            <div class="mt-3 overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="text-zinc-600">
-                  <tr class="border-b border-zinc-100">
-                    <th class="py-2 text-right">الوصف</th>
-                    <th class="py-2 text-right w-20">الكمية</th>
-                    <th class="py-2 text-right w-28">السعر</th>
-                    <th class="py-2 text-right w-28">الإجمالي</th>
-                    <th class="py-2 w-14"></th>
-                  </tr>
-                </thead>
-                <tbody id="itemsBody"></tbody>
-              </table>
-            </div>
-
-            <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-zinc-600 mb-1">خصم (قيمة)</label>
-                <input id="discount" type="number" min="0" step="0.01"
-                  class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-                  placeholder="0" />
+                <label class="block text-xs text-zinc-600 mb-1">الهاتف</label>
+                <input id="phone" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="01xxxxxxxxx" />
               </div>
               <div>
-                <label class="block text-xs text-zinc-600 mb-1">ضريبة %</label>
-                <input id="taxPercent" type="number" min="0" step="0.01"
-                  class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-                  placeholder="0" />
-              </div>
-              <div>
-                <label class="block text-xs text-zinc-600 mb-1">ملاحظات</label>
-                <textarea id="notes"
-                  class="min-h-[42px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-                  placeholder="شروط/ملاحظات (اختياري)"></textarea>
+                <label class="block text-xs text-zinc-600 mb-1">البريد</label>
+                <input id="email" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="name@email.com" />
               </div>
             </div>
 
-            <div class="mt-4 flex items-center justify-between gap-3">
-              <div class="text-xs text-zinc-600">
-                نصيحة: بعد المعاينة اضغط <b>طباعة PDF</b> واختر “Save as PDF”.
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">المكان</label>
+                <input id="location" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="Cairo, Egypt" />
               </div>
-              <div class="flex items-center gap-2">
-                <button id="btnDownload" class="h-10 px-4 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">
-                  🖨️ طباعة PDF
-                </button>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">LinkedIn</label>
+                <input id="linkedin" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="linkedin.com/in/..." />
               </div>
             </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">GitHub</label>
+                <input id="github" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="github.com/..." />
+              </div>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">Portfolio</label>
+                <input id="portfolio" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" placeholder="your-site.com" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">ملخص (Summary)</label>
+              <textarea id="summary" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
+                placeholder="اكتب 3-5 سطور عنك: خبرتك، أقوى مهاراتك، نوع الشغل اللي بتستهدفه..."></textarea>
+            </div>
           </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">الخبرات</div>
+            <button id="addExp" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
+          </div>
+          <div id="expList" class="mt-3 space-y-3"></div>
+        </div>
+
+        <!-- Education -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">التعليم</div>
+            <button id="addEdu" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
+          </div>
+          <div id="eduList" class="mt-3 space-y-3"></div>
+        </div>
+
+        <!-- Projects -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">مشاريع</div>
+            <button id="addProj" class="h-9 px-3 rounded-xl bg-zinc-900 text-white hover:bg-zinc-800 text-sm">+ إضافة</button>
+          </div>
+          <div id="projList" class="mt-3 space-y-3"></div>
+        </div>
+
+        <!-- Skills -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
+          <div class="font-semibold">المهارات</div>
+          <div class="mt-2 text-xs text-zinc-600">اكتبها مفصولة بفواصل: HTML, CSS, React...</div>
+          <input id="skills" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
+            placeholder="React, Next.js, Tailwind, TypeScript..." />
+        </div>
+
+        <!-- Languages -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft">
+          <div class="font-semibold">اللغات</div>
+          <div class="mt-2 text-xs text-zinc-600">مثال: Arabic (Native), English (B2)</div>
+          <input id="languages" class="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
+            placeholder="Arabic (Native), English (B2)" />
         </div>
       </section>
 
       <!-- Preview -->
-      <section class="lg:col-span-1">
-        <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft print-area print-card" id="printArea">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="text-xl font-semibold" id="previewTitle">عرض سعر</div>
-              <div class="text-xs text-zinc-600 mt-1">
-                رقم: <span class="font-mono" id="previewDocNo">—</span> •
-                تاريخ: <span id="previewDate">—</span>
+      <section class="lg:col-span-2">
+        <div class="print-area mx-auto a4 rounded-2xl border border-zinc-200 bg-white shadow-soft overflow-hidden cv-page" id="cv">
+          <!-- Modern template header -->
+          <div id="modernHeader" class="hidden">
+            <div class="bg-zinc-900 text-white p-7">
+              <div class="flex items-start justify-between gap-6">
+                <div class="min-w-0">
+                  <div class="text-3xl font-semibold leading-tight" id="pName">—</div>
+                  <div class="mt-1 text-lg text-zinc-200" id="pTitle">—</div>
+                  <div class="mt-4 grid gap-1 text-sm text-zinc-200">
+                    <div id="pMeta1">—</div>
+                    <div id="pMeta2">—</div>
+                  </div>
+                </div>
+                <div class="w-40 text-right text-sm text-zinc-200">
+                  <div class="font-semibold text-white">Contacts</div>
+                  <div class="mt-2 space-y-1" id="pLinks">—</div>
+                </div>
               </div>
             </div>
-            <div class="text-right">
-              <div class="font-semibold" id="previewCompany">—</div>
-              <div class="text-xs text-zinc-600" id="previewCompanyMeta">—</div>
+          </div>
+
+          <!-- Classic template header -->
+          <div id="classicHeader" class="hidden p-7 border-b border-zinc-200">
+            <div class="flex items-start justify-between gap-6">
+              <div class="min-w-0">
+                <div class="text-3xl font-semibold leading-tight" id="cName">—</div>
+                <div class="mt-1 text-lg text-zinc-700" id="cTitle">—</div>
+                <div class="mt-3 text-sm text-zinc-600" id="cMeta">—</div>
+              </div>
+              <div class="text-right text-sm text-zinc-700">
+                <div class="font-semibold">Contacts</div>
+                <div class="mt-2 space-y-1" id="cLinks">—</div>
+              </div>
             </div>
           </div>
 
-          <div class="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-            <div class="text-xs text-zinc-600">موجه إلى</div>
-            <div class="font-semibold" id="previewClient">—</div>
-            <div class="text-xs text-zinc-600" id="previewClientMeta">—</div>
-          </div>
+          <div class="p-7">
+            <!-- Summary -->
+            <section>
+              <h2 class="text-sm font-semibold tracking-wide text-zinc-900" id="hSummary">SUMMARY</h2>
+              <div class="mt-2 text-sm text-zinc-700 whitespace-pre-wrap" id="pSummary">—</div>
+            </section>
 
-          <div class="mt-4 overflow-x-auto">
-            <table class="w-full text-xs">
-              <thead class="text-zinc-600">
-                <tr class="border-b border-zinc-200">
-                  <th class="py-2 text-right">البند</th>
-                  <th class="py-2 text-right w-10">ك</th>
-                  <th class="py-2 text-right w-20">سعر</th>
-                  <th class="py-2 text-right w-20">إجمالي</th>
-                </tr>
-              </thead>
-              <tbody id="previewItems" class="text-zinc-900"></tbody>
-            </table>
-          </div>
+            <div class="mt-6 grid gap-6 lg:grid-cols-2">
+              <!-- Left -->
+              <div class="space-y-6">
+                <section>
+                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">EXPERIENCE</h2>
+                  <div class="mt-3 space-y-4" id="pExp">—</div>
+                </section>
 
-          <div class="mt-4 border-t border-zinc-200 pt-3 text-sm">
-            <div class="flex items-center justify-between">
-              <div class="text-zinc-600">Subtotal</div>
-              <div class="font-semibold" id="previewSubtotal">—</div>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="text-zinc-600">Discount</div>
-              <div class="font-semibold" id="previewDiscount">—</div>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="text-zinc-600">Tax</div>
-              <div class="font-semibold" id="previewTax">—</div>
-            </div>
-            <div class="mt-2 flex items-center justify-between rounded-xl bg-zinc-900 text-white px-3 py-2">
-              <div class="font-semibold">Total</div>
-              <div class="font-semibold" id="previewTotal">—</div>
-            </div>
-          </div>
+                <section>
+                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">PROJECTS</h2>
+                  <div class="mt-3 space-y-3" id="pProj">—</div>
+                </section>
+              </div>
 
-          <div class="mt-4">
-            <div class="text-xs text-zinc-600">ملاحظات</div>
-            <div class="text-sm whitespace-pre-wrap" id="previewNotes">—</div>
-          </div>
+              <!-- Right -->
+              <div class="space-y-6">
+                <section>
+                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">EDUCATION</h2>
+                  <div class="mt-3 space-y-3" id="pEdu">—</div>
+                </section>
 
-          <div class="mt-6 text-[10px] text-zinc-500">
-            تم إنشاء المستند بواسطة مولّد مستندات (نسخة تجريبية).
+                <section>
+                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">SKILLS</h2>
+                  <div class="mt-3 flex flex-wrap gap-2" id="pSkills">—</div>
+                </section>
+
+                <section>
+                  <h2 class="text-sm font-semibold tracking-wide text-zinc-900">LANGUAGES</h2>
+                  <div class="mt-2 text-sm text-zinc-700" id="pLang">—</div>
+                </section>
+              </div>
+            </div>
+
+            <div class="mt-8 text-[11px] text-zinc-500">
+              Tip: احفظه كـ PDF من زر الطباعة.
+            </div>
           </div>
         </div>
       </section>
@@ -237,155 +240,98 @@
   </main>
 
   <script>
-    const LS_KEY = "docgen_company_v1";
+    const LS_KEY = "cv_builder_v1";
 
-    const els = {
-      docType: document.getElementById("docType"),
-      docNo: document.getElementById("docNo"),
-      issueDate: document.getElementById("issueDate"),
-
-      companyName: document.getElementById("companyName"),
-      companyPhone: document.getElementById("companyPhone"),
-      companyAddress: document.getElementById("companyAddress"),
-      currency: document.getElementById("currency"),
-
-      clientName: document.getElementById("clientName"),
-      clientPhone: document.getElementById("clientPhone"),
-      clientAddress: document.getElementById("clientAddress"),
-
-      discount: document.getElementById("discount"),
-      taxPercent: document.getElementById("taxPercent"),
-      notes: document.getElementById("notes"),
-
-      itemsBody: document.getElementById("itemsBody"),
-
-      btnAddItem: document.getElementById("btnAddItem"),
-      btnDownload: document.getElementById("btnDownload"),
-      btnSaveCompany: document.getElementById("btnSaveCompany"),
-      btnReset: document.getElementById("btnReset"),
-
-      // preview
-      previewTitle: document.getElementById("previewTitle"),
-      previewDocNo: document.getElementById("previewDocNo"),
-      previewDate: document.getElementById("previewDate"),
-      previewCompany: document.getElementById("previewCompany"),
-      previewCompanyMeta: document.getElementById("previewCompanyMeta"),
-      previewClient: document.getElementById("previewClient"),
-      previewClientMeta: document.getElementById("previewClientMeta"),
-      previewItems: document.getElementById("previewItems"),
-      previewSubtotal: document.getElementById("previewSubtotal"),
-      previewDiscount: document.getElementById("previewDiscount"),
-      previewTax: document.getElementById("previewTax"),
-      previewTotal: document.getElementById("previewTotal"),
-      previewNotes: document.getElementById("previewNotes")
+    const state = {
+      template: "modern",
+      fullName: "Ahmed Mohamed",
+      title: "Frontend Developer",
+      phone: "01000000000",
+      email: "ahmed@email.com",
+      location: "Cairo, Egypt",
+      linkedin: "linkedin.com/in/ahmed",
+      github: "github.com/ahmed",
+      portfolio: "ahmed.dev",
+      summary:
+`Frontend Developer with experience building responsive web apps using React and Next.js.
+I focus on clean UI, performance, and maintainable code.
+Looking for opportunities to deliver modern products and delightful user experiences.`,
+      experiences: [
+        {
+          role: "Frontend Developer",
+          company: "Freelance",
+          period: "2024 - Present",
+          bullets: [
+            "Built responsive landing pages and dashboards with React + Tailwind.",
+            "Improved performance and Lighthouse scores through optimization.",
+            "Collaborated with clients to deliver features quickly and cleanly."
+          ]
+        }
+      ],
+      education: [
+        {
+          degree: "BSc Computer Science",
+          school: "Your University",
+          period: "2019 - 2023",
+          details: "Relevant: Data Structures, Web Development, Databases"
+        }
+      ],
+      projects: [
+        {
+          name: "E-commerce Store + Admin",
+          link: "github.com/yourrepo",
+          bullets: [
+            "Next.js storefront with cart, checkout demo and admin dashboard.",
+            "Prisma + SQLite database with CRUD and stats."
+          ]
+        }
+      ],
+      skills: ["React", "Next.js", "Tailwind", "TypeScript", "HTML", "CSS", "Git"],
+      languages: "Arabic (Native), English (B2)"
     };
 
-    let items = [
-      { name: "خدمة 1", qty: 1, price: 1000 },
-      { name: "خدمة 2", qty: 2, price: 250 }
-    ];
+    // DOM
+    const el = (id) => document.getElementById(id);
+    const inputs = {
+      template: el("template"),
+      fullName: el("fullName"),
+      title: el("title"),
+      phone: el("phone"),
+      email: el("email"),
+      location: el("location"),
+      linkedin: el("linkedin"),
+      github: el("github"),
+      portfolio: el("portfolio"),
+      summary: el("summary"),
+      skills: el("skills"),
+      languages: el("languages")
+    };
 
-    function fmtDate(isoDate) {
-      if (!isoDate) return "—";
-      try {
-        const d = new Date(isoDate + "T00:00:00");
-        return d.toLocaleDateString("ar-EG");
-      } catch { return isoDate; }
-    }
+    // Preview targets
+    const modernHeader = el("modernHeader");
+    const classicHeader = el("classicHeader");
 
-    function money(n) {
-      const cur = (els.currency.value || "EGP").trim();
-      const v = Number.isFinite(n) ? n : 0;
-      return v.toFixed(2) + " " + cur;
-    }
+    const pName = el("pName"), pTitle = el("pTitle"), pMeta1 = el("pMeta1"), pMeta2 = el("pMeta2"), pLinks = el("pLinks");
+    const cName = el("cName"), cTitle = el("cTitle"), cMeta = el("cMeta"), cLinks = el("cLinks");
 
-    function num(v, fallback = 0) {
-      const x = Number(v);
-      return Number.isFinite(x) ? x : fallback;
-    }
+    const pSummary = el("pSummary");
+    const pExp = el("pExp");
+    const pEdu = el("pEdu");
+    const pProj = el("pProj");
+    const pSkills = el("pSkills");
+    const pLang = el("pLang");
 
-    function compute() {
-      const subtotal = items.reduce((s, it) => s + num(it.qty) * num(it.price), 0);
-      const discount = Math.max(0, num(els.discount.value, 0));
-      const afterDiscount = Math.max(0, subtotal - discount);
-      const taxPercent = Math.max(0, num(els.taxPercent.value, 0));
-      const tax = afterDiscount * (taxPercent / 100);
-      const total = afterDiscount + tax;
-      return { subtotal, discount, taxPercent, tax, total };
-    }
+    const expList = el("expList");
+    const eduList = el("eduList");
+    const projList = el("projList");
 
-    function renderItemsTable() {
-      els.itemsBody.innerHTML = "";
-      items.forEach((it, idx) => {
-        const tr = document.createElement("tr");
-        tr.className = "border-b border-zinc-100";
-        tr.innerHTML = `
-          <td class="py-2">
-            <input data-k="name" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(it.name)}" />
-          </td>
-          <td class="py-2">
-            <input data-k="qty" data-i="${idx}" type="number" min="0" step="1" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${it.qty}" />
-          </td>
-          <td class="py-2">
-            <input data-k="price" data-i="${idx}" type="number" min="0" step="0.01" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${it.price}" />
-          </td>
-          <td class="py-2 text-sm font-semibold">${money(num(it.qty) * num(it.price))}</td>
-          <td class="py-2 text-left">
-            <button data-del="${idx}" class="h-9 w-9 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50">✕</button>
-          </td>
-        `;
-        els.itemsBody.appendChild(tr);
-      });
-    }
+    const btnPdf = el("btnPdf");
+    const btnSave = el("btnSave");
+    const btnReset = el("btnReset");
 
-    function renderPreview() {
-      const type = els.docType.value;
-      els.previewTitle.textContent = type === "invoice" ? "فاتورة" : "عرض سعر";
-
-      els.previewDocNo.textContent = (els.docNo.value || "—").trim();
-      els.previewDate.textContent = fmtDate(els.issueDate.value);
-
-      const companyName = (els.companyName.value || "—").trim();
-      const companyPhone = (els.companyPhone.value || "").trim();
-      const companyAddress = (els.companyAddress.value || "").trim();
-
-      els.previewCompany.textContent = companyName;
-      els.previewCompanyMeta.textContent = [companyPhone, companyAddress].filter(Boolean).join(" • ") || "—";
-
-      const clientName = (els.clientName.value || "—").trim();
-      const clientPhone = (els.clientPhone.value || "").trim();
-      const clientAddress = (els.clientAddress.value || "").trim();
-
-      els.previewClient.textContent = clientName;
-      els.previewClientMeta.textContent = [clientPhone, clientAddress].filter(Boolean).join(" • ") || "—";
-
-      // Items preview
-      els.previewItems.innerHTML = "";
-      if (items.length === 0) {
-        els.previewItems.innerHTML = `<tr><td colspan="4" class="py-3 text-center text-zinc-500">لا توجد بنود</td></tr>`;
-      } else {
-        items.forEach((it) => {
-          const tr = document.createElement("tr");
-          tr.className = "border-b border-zinc-100";
-          tr.innerHTML = `
-            <td class="py-2 text-right">${escapeHtml(it.name)}</td>
-            <td class="py-2 text-right">${num(it.qty)}</td>
-            <td class="py-2 text-right">${money(num(it.price))}</td>
-            <td class="py-2 text-right font-semibold">${money(num(it.qty) * num(it.price))}</td>
-          `;
-          els.previewItems.appendChild(tr);
-        });
-      }
-
-      const { subtotal, discount, tax, total } = compute();
-      els.previewSubtotal.textContent = money(subtotal);
-      els.previewDiscount.textContent = money(discount);
-      els.previewTax.textContent = money(tax);
-      els.previewTotal.textContent = money(total);
-
-      const notes = (els.notes.value || "").trim();
-      els.previewNotes.textContent = notes || "—";
-    }
+    const addExp = el("addExp");
+    const addEdu = el("addEdu");
+    const addProj = el("addProj");
 
     function escapeHtml(s) {
       return String(s ?? "")
@@ -396,122 +342,416 @@
         .replaceAll("'", "&#039;");
     }
 
-    function sync() {
-      renderItemsTable();
-      renderPreview();
+    function toast(msg) {
+      const t = document.createElement("div");
+      t.className = "fixed left-1/2 top-4 -translate-x-1/2 z-50 rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm shadow-soft";
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 1600);
     }
 
-    function saveCompany() {
-      const data = {
-        companyName: els.companyName.value,
-        companyPhone: els.companyPhone.value,
-        companyAddress: els.companyAddress.value,
-        currency: els.currency.value
-      };
-      localStorage.setItem(LS_KEY, JSON.stringify(data));
-      toast("✅ تم حفظ بيانات الشركة");
+    function setTemplate(template) {
+      state.template = template;
+      if (template === "modern") {
+        modernHeader.classList.remove("hidden");
+        classicHeader.classList.add("hidden");
+      } else {
+        classicHeader.classList.remove("hidden");
+        modernHeader.classList.add("hidden");
+      }
     }
 
-    function loadCompany() {
+    function linkLine(label, value) {
+      if (!value) return "";
+      const safe = escapeHtml(value);
+      return `<div class="truncate"><span class="text-zinc-300">${label}:</span> <span class="text-white">${safe}</span></div>`;
+    }
+
+    function classicLinkLine(label, value) {
+      if (!value) return "";
+      const safe = escapeHtml(value);
+      return `<div class="truncate"><span class="text-zinc-500">${label}:</span> <span class="text-zinc-900">${safe}</span></div>`;
+    }
+
+    function renderChips(arr) {
+      if (!arr || arr.length === 0) return `<span class="text-sm text-zinc-500">—</span>`;
+      return arr.map(s => `<span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700">${escapeHtml(s)}</span>`).join("");
+    }
+
+    function renderBullets(bullets) {
+      if (!bullets || bullets.length === 0) return "";
+      return `
+        <ul class="mt-2 list-disc pr-5 text-sm text-zinc-700 space-y-1">
+          ${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}
+        </ul>
+      `;
+    }
+
+    function renderExp() {
+      if (!state.experiences.length) return `<div class="text-sm text-zinc-500">—</div>`;
+      return state.experiences.map((e) => `
+        <div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-semibold text-zinc-900">${escapeHtml(e.role)}</div>
+            <div class="text-xs text-zinc-500">${escapeHtml(e.period)}</div>
+          </div>
+          <div class="text-sm text-zinc-700">${escapeHtml(e.company)}</div>
+          ${renderBullets(e.bullets)}
+        </div>
+      `).join("");
+    }
+
+    function renderEdu() {
+      if (!state.education.length) return `<div class="text-sm text-zinc-500">—</div>`;
+      return state.education.map((e) => `
+        <div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-semibold text-zinc-900">${escapeHtml(e.degree)}</div>
+            <div class="text-xs text-zinc-500">${escapeHtml(e.period)}</div>
+          </div>
+          <div class="text-sm text-zinc-700">${escapeHtml(e.school)}</div>
+          ${e.details ? `<div class="mt-1 text-sm text-zinc-600">${escapeHtml(e.details)}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function renderProj() {
+      if (!state.projects.length) return `<div class="text-sm text-zinc-500">—</div>`;
+      return state.projects.map((p) => `
+        <div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-semibold text-zinc-900">${escapeHtml(p.name)}</div>
+            <div class="text-xs text-zinc-500">${escapeHtml(p.link || "")}</div>
+          </div>
+          ${renderBullets(p.bullets)}
+        </div>
+      `).join("");
+    }
+
+    function syncInputsFromState() {
+      inputs.template.value = state.template;
+      inputs.fullName.value = state.fullName;
+      inputs.title.value = state.title;
+      inputs.phone.value = state.phone;
+      inputs.email.value = state.email;
+      inputs.location.value = state.location;
+      inputs.linkedin.value = state.linkedin;
+      inputs.github.value = state.github;
+      inputs.portfolio.value = state.portfolio;
+      inputs.summary.value = state.summary;
+      inputs.skills.value = state.skills.join(", ");
+      inputs.languages.value = state.languages;
+    }
+
+    function syncStateFromInputs() {
+      state.template = inputs.template.value;
+      state.fullName = inputs.fullName.value;
+      state.title = inputs.title.value;
+      state.phone = inputs.phone.value;
+      state.email = inputs.email.value;
+      state.location = inputs.location.value;
+      state.linkedin = inputs.linkedin.value;
+      state.github = inputs.github.value;
+      state.portfolio = inputs.portfolio.value;
+      state.summary = inputs.summary.value;
+      state.skills = (inputs.skills.value || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      state.languages = inputs.languages.value;
+    }
+
+    // Dynamic forms for Experience/Education/Projects
+    function expCard(e, idx) {
+      const bulletsText = (e.bullets || []).join("\n");
+      return `
+        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold">خبرة #${idx + 1}</div>
+            <button data-exp-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
+          </div>
+          <div class="mt-3 grid gap-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">المسمى</label>
+                <input data-exp="role" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.role)}" />
+              </div>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">الفترة</label>
+                <input data-exp="period" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.period)}" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">الشركة</label>
+              <input data-exp="company" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.company)}" />
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">نقاط (كل سطر نقطة)</label>
+              <textarea data-exp="bullets" data-i="${idx}" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300">${escapeHtml(bulletsText)}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function eduCard(e, idx) {
+      return `
+        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold">تعليم #${idx + 1}</div>
+            <button data-edu-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
+          </div>
+          <div class="mt-3 grid gap-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">الدرجة</label>
+                <input data-edu="degree" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.degree)}" />
+              </div>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">الفترة</label>
+                <input data-edu="period" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.period)}" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">الجهة</label>
+              <input data-edu="school" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.school)}" />
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">تفاصيل</label>
+              <input data-edu="details" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(e.details || "")}" />
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function projCard(p, idx) {
+      const bulletsText = (p.bullets || []).join("\n");
+      return `
+        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold">مشروع #${idx + 1}</div>
+            <button data-proj-del="${idx}" class="h-9 px-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-sm">حذف</button>
+          </div>
+          <div class="mt-3 grid gap-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">اسم المشروع</label>
+                <input data-proj="name" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(p.name)}" />
+              </div>
+              <div>
+                <label class="block text-xs text-zinc-600 mb-1">لينك (اختياري)</label>
+                <input data-proj="link" data-i="${idx}" class="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300" value="${escapeHtml(p.link || "")}" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-600 mb-1">نقاط (كل سطر نقطة)</label>
+              <textarea data-proj="bullets" data-i="${idx}" class="min-h-[90px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-300">${escapeHtml(bulletsText)}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDynamicForms() {
+      expList.innerHTML = state.experiences.map(expCard).join("");
+      eduList.innerHTML = state.education.map(eduCard).join("");
+      projList.innerHTML = state.projects.map(projCard).join("");
+    }
+
+    function renderPreview() {
+      setTemplate(state.template);
+
+      const name = (state.fullName || "—").trim();
+      const title = (state.title || "—").trim();
+
+      // meta lines
+      const meta1 = [state.location, state.phone].filter(Boolean).join(" • ") || "—";
+      const meta2 = [state.email].filter(Boolean).join(" • ") || "—";
+
+      // links
+      const linksModern =
+        [
+          ["LinkedIn", state.linkedin],
+          ["GitHub", state.github],
+          ["Portfolio", state.portfolio]
+        ]
+          .filter(([_, v]) => (v || "").trim().length > 0)
+          .map(([k, v]) => linkLine(k, v))
+          .join("") || `<div class="text-zinc-300">—</div>`;
+
+      const linksClassic =
+        [
+          ["LinkedIn", state.linkedin],
+          ["GitHub", state.github],
+          ["Portfolio", state.portfolio]
+        ]
+          .filter(([_, v]) => (v || "").trim().length > 0)
+          .map(([k, v]) => classicLinkLine(k, v))
+          .join("") || `<div class="text-zinc-500">—</div>`;
+
+      // modern
+      pName.textContent = name;
+      pTitle.textContent = title;
+      pMeta1.textContent = meta1;
+      pMeta2.textContent = meta2;
+      pLinks.innerHTML = linksModern;
+
+      // classic
+      cName.textContent = name;
+      cTitle.textContent = title;
+      cMeta.textContent = [state.location, state.phone, state.email].filter(Boolean).join(" • ") || "—";
+      cLinks.innerHTML = linksClassic;
+
+      pSummary.textContent = (state.summary || "").trim() || "—";
+      pExp.innerHTML = renderExp();
+      pEdu.innerHTML = renderEdu();
+      pProj.innerHTML = renderProj();
+      pSkills.innerHTML = renderChips(state.skills);
+      pLang.textContent = (state.languages || "").trim() || "—";
+    }
+
+    function save() {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      toast("✅ تم الحفظ");
+    }
+
+    function load() {
       try {
         const raw = localStorage.getItem(LS_KEY);
         if (!raw) return;
         const data = JSON.parse(raw);
-        els.companyName.value = data.companyName || "";
-        els.companyPhone.value = data.companyPhone || "";
-        els.companyAddress.value = data.companyAddress || "";
-        els.currency.value = data.currency || "EGP";
+        Object.assign(state, data);
       } catch {}
     }
 
-    function resetAll() {
-      if (!confirm("إعادة ضبط البيانات والبنود؟")) return;
-      els.docType.value = "quote";
-      els.docNo.value = "";
-      els.issueDate.value = "";
-      els.clientName.value = "";
-      els.clientPhone.value = "";
-      els.clientAddress.value = "";
-      els.discount.value = "";
-      els.taxPercent.value = "";
-      els.notes.value = "";
-      items = [{ name: "خدمة 1", qty: 1, price: 1000 }];
-      sync();
+    function reset() {
+      if (!confirm("إعادة ضبط كل البيانات؟")) return;
+      localStorage.removeItem(LS_KEY);
+      location.reload();
     }
 
-    // tiny toast
-    function toast(msg) {
-      const el = document.createElement("div");
-      el.className =
-        "fixed left-1/2 top-4 -translate-x-1/2 z-50 rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm shadow-soft";
-      el.textContent = msg;
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 1800);
+    function syncAll() {
+      syncStateFromInputs();
+      renderDynamicForms();
+      renderPreview();
     }
 
-    // Events
-    els.btnAddItem.addEventListener("click", () => {
-      items.push({ name: "بند جديد", qty: 1, price: 0 });
-      sync();
+    // Events (simple)
+    Object.values(inputs).forEach(inp => inp.addEventListener("input", syncAll));
+    inputs.template.addEventListener("change", syncAll);
+
+    addExp.addEventListener("click", () => {
+      state.experiences.push({ role: "Role", company: "Company", period: "2023 - 2024", bullets: ["Achievement 1", "Achievement 2"] });
+      renderDynamicForms();
+      renderPreview();
     });
 
-    els.itemsBody.addEventListener("input", (e) => {
+    addEdu.addEventListener("click", () => {
+      state.education.push({ degree: "Degree", school: "School", period: "2019 - 2023", details: "" });
+      renderDynamicForms();
+      renderPreview();
+    });
+
+    addProj.addEventListener("click", () => {
+      state.projects.push({ name: "Project Name", link: "", bullets: ["What you built", "Tech used", "Result/impact"] });
+      renderDynamicForms();
+      renderPreview();
+    });
+
+    // Delegated inputs for dynamic lists
+    expList.addEventListener("input", (e) => {
       const t = e.target;
-      if (!(t instanceof HTMLInputElement)) return;
+      if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
       const i = Number(t.dataset.i);
-      const k = t.dataset.k;
+      const k = t.dataset.exp;
       if (!Number.isFinite(i) || !k) return;
+      const exp = state.experiences[i];
+      if (!exp) return;
 
-      if (k === "name") items[i].name = t.value;
-      if (k === "qty") items[i].qty = num(t.value, 0);
-      if (k === "price") items[i].price = num(t.value, 0);
+      if (k === "role") exp.role = t.value;
+      if (k === "company") exp.company = t.value;
+      if (k === "period") exp.period = t.value;
+      if (k === "bullets") exp.bullets = t.value.split("\n").map(s => s.trim()).filter(Boolean);
 
-      sync();
+      renderPreview();
     });
-
-    els.itemsBody.addEventListener("click", (e) => {
+    expList.addEventListener("click", (e) => {
       const t = e.target;
       if (!(t instanceof HTMLElement)) return;
-      const del = t.getAttribute("data-del");
+      const del = t.getAttribute("data-exp-del");
       if (del !== null) {
-        const idx = Number(del);
-        items.splice(idx, 1);
-        sync();
+        state.experiences.splice(Number(del), 1);
+        renderDynamicForms();
+        renderPreview();
       }
     });
 
-    [
-      els.docType, els.docNo, els.issueDate,
-      els.companyName, els.companyPhone, els.companyAddress, els.currency,
-      els.clientName, els.clientPhone, els.clientAddress,
-      els.discount, els.taxPercent, els.notes
-    ].forEach((el) => el.addEventListener("input", sync));
+    eduList.addEventListener("input", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      const i = Number(t.dataset.i);
+      const k = t.dataset.edu;
+      if (!Number.isFinite(i) || !k) return;
+      const edu = state.education[i];
+      if (!edu) return;
 
-    els.btnDownload.addEventListener("click", () => {
-      // قبل الطباعة: تحديث المعاينة
-      sync();
-      window.print();
+      if (k === "degree") edu.degree = t.value;
+      if (k === "school") edu.school = t.value;
+      if (k === "period") edu.period = t.value;
+      if (k === "details") edu.details = t.value;
+
+      renderPreview();
+    });
+    eduList.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const del = t.getAttribute("data-edu-del");
+      if (del !== null) {
+        state.education.splice(Number(del), 1);
+        renderDynamicForms();
+        renderPreview();
+      }
     });
 
-    els.btnSaveCompany.addEventListener("click", saveCompany);
-    els.btnReset.addEventListener("click", resetAll);
+    projList.addEventListener("input", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)) return;
+      const i = Number(t.dataset.i);
+      const k = t.dataset.proj;
+      if (!Number.isFinite(i) || !k) return;
+      const proj = state.projects[i];
+      if (!proj) return;
 
-    // Init defaults
+      if (k === "name") proj.name = t.value;
+      if (k === "link") proj.link = t.value;
+      if (k === "bullets") proj.bullets = t.value.split("\n").map(s => s.trim()).filter(Boolean);
+
+      renderPreview();
+    });
+    projList.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const del = t.getAttribute("data-proj-del");
+      if (del !== null) {
+        state.projects.splice(Number(del), 1);
+        renderDynamicForms();
+        renderPreview();
+      }
+    });
+
+    btnPdf.addEventListener("click", () => window.print());
+    btnSave.addEventListener("click", save);
+    btnReset.addEventListener("click", reset);
+
+    // Init
     (function init() {
-      loadCompany();
-      // date default today
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, "0");
-      const dd = String(today.getDate()).padStart(2, "0");
-      els.issueDate.value = `${yyyy}-${mm}-${dd}`;
-
-      // doc no default
-      const rand = Math.floor(1000 + Math.random() * 9000);
-      els.docNo.value = `Q-${rand}`;
-      els.currency.value = els.currency.value || "EGP";
-
-      sync();
+      load();
+      syncInputsFromState();
+      renderDynamicForms();
+      renderPreview();
+      setTemplate(state.template);
+      toast("جاهز ✅ املأ بياناتك واطبع PDF");
     })();
   </script>
 </body>
