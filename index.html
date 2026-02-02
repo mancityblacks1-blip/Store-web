@@ -1134,9 +1134,12 @@ function ChatWidget({ store, toast, navigate }) {
       function App() {
         const store = useAppStore();
         const toast = useToast();
+        const navigate = useNavigate();
+
 
         return React.createElement(HashRouter, null,
           React.createElement(Toasts, { items: toast.items }),
+          React.createElement(ChatWidget, { store, toast, navigate })
           React.createElement(Routes, null,
             React.createElement(Route, { index: true, element: React.createElement(Shell, null, React.createElement(Storefront, { store, toast })) }),
             React.createElement(Route, { path: "/product/:id", element: React.createElement(Shell, null, React.createElement(ProductDetails, { store, toast })) }),
