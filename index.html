@@ -882,6 +882,275 @@ INIT ORDERS
 ========================= */
 
 renderOrders()
+  /* =========================
+ADMIN LOGIN
+========================= */
+
+function login(){
+
+let user=document.getElementById("username").value
+let pass=document.getElementById("password").value
+
+if(user==="admin" && pass==="admin123"){
+
+document.querySelector(".container").classList.add("hidden")
+document.getElementById("adminPanel").classList.remove("hidden")
+
+adminPage("dashboard")
+
+return
+
+}
+
+alert("User login successful")
+
+}
+
+/* =========================
+ADMIN ROUTER
+========================= */
+
+function adminPage(page){
+
+let content=document.getElementById("adminContent")
+
+if(page==="dashboard"){
+
+let revenue=orders.reduce((total,o)=>
+
+total+o.items.reduce((s,i)=>s+i.price,0)
+
+,0)
+
+content.innerHTML=`
+
+<h2>Admin Dashboard</h2>
+
+<p>Total Orders: ${orders.length}</p>
+
+<p>Total Revenue: $${revenue}</p>
+
+<p>Total Products: ${products.length}</p>
+
+`
+
+}
+
+/* =========================
+PRODUCT MANAGER
+========================= */
+
+if(page==="products"){
+
+content.innerHTML=`
+
+<h2>Manage Products</h2>
+
+<button onclick="adminAddProduct()">Add Product</button>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Price</th>
+<th>Stock</th>
+<th>Delete</th>
+</tr>
+
+${products.map(p=>`
+
+<tr>
+
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>$${p.price}</td>
+<td>${p.stock}</td>
+
+<td>
+<button onclick="adminDeleteProduct(${p.id})">
+Delete
+</button>
+</td>
+
+</tr>
+
+`).join("")}
+
+</table>
+
+`
+
+}
+
+/* =========================
+ORDER MANAGER
+========================= */
+
+if(page==="orders"){
+
+content.innerHTML=`
+
+<h2>Orders Manager</h2>
+
+${orders.map(o=>`
+
+<div class="card">
+
+<h4>Order ${o.id}</h4>
+
+<p>Status: ${o.status}</p>
+
+<button onclick="adminUpdateOrder(${o.id})">
+Next Status
+</button>
+
+</div>
+
+`).join("")}
+
+`
+
+}
+
+/* =========================
+USERS MANAGER
+========================= */
+
+if(page==="users"){
+
+content.innerHTML=`
+
+<h2>Users</h2>
+
+<p>Users system is demo (front-end only)</p>
+
+`
+
+}
+
+}
+
+/* =========================
+ADD PRODUCT
+========================= */
+
+function adminAddProduct(){
+
+let name=prompt("Product name")
+let price=parseFloat(prompt("Price"))
+let stock=parseInt(prompt("Stock"))
+
+if(!name || !price) return
+
+products.push({
+
+id:Date.now(),
+name:name,
+price:price,
+stock:stock,
+rating:5,
+img:"https://picsum.photos/300?random="+Math.random()
+
+})
+
+saveData()
+
+adminPage("products")
+
+renderProducts()
+
+}
+
+/* =========================
+DELETE PRODUCT
+========================= */
+
+function adminDeleteProduct(id){
+
+products=products.filter(p=>p.id!==id)
+
+saveData()
+
+adminPage("products")
+
+renderProducts()
+
+}
+
+/* =========================
+UPDATE ORDER STATUS
+========================= */
+
+function adminUpdateOrder(id){
+
+let order=orders.find(o=>o.id===id)
+
+if(!order) return
+
+if(order.status==="Processing") order.status="Shipped"
+else if(order.status==="Shipped") order.status="Out for Delivery"
+else if(order.status==="Out for Delivery") order.status="Delivered"
+
+saveData()
+
+adminPage("orders")
+
+renderOrders()
+
+}
+
+/* =========================
+COUPON SYSTEM
+========================= */
+
+let coupons=JSON.parse(localStorage.getItem("coupons"))||[]
+
+function addCoupon(){
+
+let code=prompt("Coupon code")
+let discount=parseInt(prompt("Discount %"))
+
+coupons.push({code,discount})
+
+localStorage.setItem("coupons",JSON.stringify(coupons))
+
+}
+
+function applyCoupon(){
+
+let code=prompt("Enter coupon code")
+
+let c=coupons.find(x=>x.code===code)
+
+if(!c){
+
+alert("Invalid coupon")
+return
+
+}
+
+let total=document.getElementById("cartTotal").innerText
+
+let newTotal=total-(total*(c.discount/100))
+
+document.getElementById("cartTotal").innerText=Math.floor(newTotal)
+
+alert("Coupon applied")
+
+}
+
+/* =========================
+ADMIN NAVIGATION
+========================= */
+
+document.querySelector(".sidebar").innerHTML+=`
+
+<div onclick="adminPage('products')">Products</div>
+<div onclick="adminPage('orders')">Orders</div>
+<div onclick="adminPage('users')">Users</div>
+
+
 </script>
 
 </body>
