@@ -1,113 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Creative Visual Website</title>
+<title>VisionGlass</title>
 
 <style>
 
-/* =========================
-GLOBAL
-========================= */
-
-*{
-box-sizing:border-box;
-}
+/* ===== GLOBAL ===== */
 
 body{
 margin:0;
 font-family:Arial;
+background:#0f172a;
 color:white;
-overflow-x:hidden;
-background:linear-gradient(-45deg,#0f2027,#203a43,#2c5364,#1c1c3c);
-background-size:400% 400%;
-animation:gradientMove 12s ease infinite;
 }
 
-@keyframes gradientMove{
-
-0%{background-position:0% 50%}
-50%{background-position:100% 50%}
-100%{background-position:0% 50%}
-
-}
-
-/* =========================
-NAVBAR
-========================= */
+/* ===== NAVBAR ===== */
 
 nav{
-position:fixed;
-top:0;
-width:100%;
 display:flex;
 justify-content:space-between;
-align-items:center;
 padding:20px 40px;
-backdrop-filter:blur(10px);
+background:#020617;
 }
 
 nav h2{
-color:#00eaff;
+color:#38bdf8;
 }
 
 nav button{
-background:#00eaff;
+background:#38bdf8;
 border:none;
 padding:10px 20px;
-border-radius:6px;
 cursor:pointer;
 }
 
-/* =========================
-HERO
-========================= */
+/* ===== HERO ===== */
 
 .hero{
-height:100vh;
+height:70vh;
 display:flex;
 align-items:center;
 justify-content:center;
 text-align:center;
-padding:40px;
+background:linear-gradient(135deg,#020617,#1e293b);
 }
 
 .hero h1{
-font-size:70px;
-background:linear-gradient(90deg,#00eaff,#ff00c8);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
+font-size:60px;
 }
 
 .hero p{
-font-size:22px;
 opacity:0.8;
 }
 
-.hero button{
-margin-top:25px;
-padding:15px 35px;
-font-size:18px;
-border:none;
-border-radius:8px;
-background:#00eaff;
-color:black;
-cursor:pointer;
-transition:0.3s;
-}
+/* ===== PRODUCTS ===== */
 
-.hero button:hover{
-transform:scale(1.1);
-}
-
-/* =========================
-GLASS CARDS
-========================= */
-
-.section{
-padding:120px 10%;
+.products{
+padding:60px;
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
 gap:30px;
@@ -115,74 +68,47 @@ gap:30px;
 
 .card{
 
-background:rgba(255,255,255,0.1);
-backdrop-filter:blur(12px);
-border-radius:12px;
-padding:30px;
-transition:0.4s;
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+text-align:center;
+transition:0.3s;
+
 }
 
 .card:hover{
-transform:translateY(-10px) scale(1.03);
+transform:translateY(-10px);
 }
 
-/* =========================
-FLOATING SHAPES
-========================= */
-
-.shape{
-position:absolute;
-border-radius:50%;
-filter:blur(80px);
-opacity:0.6;
-animation:float 10s infinite ease-in-out;
+.card img{
+width:100%;
 }
 
-.shape1{
-width:300px;
-height:300px;
-background:#ff00c8;
-top:10%;
-left:5%;
+/* ===== CUSTOMIZER ===== */
+
+.customizer{
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:50px;
+background:#020617;
 }
 
-.shape2{
-width:250px;
-height:250px;
-background:#00eaff;
-bottom:10%;
-right:5%;
+.controls{
+margin-top:20px;
 }
 
-.shape3{
-width:200px;
-height:200px;
-background:#ff9900;
-top:60%;
-left:40%;
+button{
+padding:10px 15px;
+margin:5px;
+cursor:pointer;
 }
 
-@keyframes float{
+/* ===== 3D VIEW ===== */
 
-0%{transform:translateY(0)}
-50%{transform:translateY(-60px)}
-100%{transform:translateY(0)}
-
-}
-
-/* =========================
-SCROLL ANIMATION
-========================= */
-
-.fade{
-opacity:0;
-transform:translateY(40px);
-transition:1s;
-}
-
-.fade.show{
-opacity:1;
-transform:translateY(0);
+#viewer{
+width:100%;
+height:400px;
 }
 
 </style>
@@ -193,9 +119,9 @@ transform:translateY(0);
 
 <nav>
 
-<h2>CreativeSite</h2>
+<h2>VisionGlass</h2>
 
-<button>Start</button>
+<button onclick="openTryOn()">Try On</button>
 
 </nav>
 
@@ -203,60 +129,196 @@ transform:translateY(0);
 
 <div>
 
-<h1>Future Design</h1>
+<h1>Find Your Perfect Glasses</h1>
 
-<p>Creative websites that instantly capture attention</p>
-
-<button>Explore</button>
+<p>Try glasses online and choose the best frame for your face</p>
 
 </div>
 
 </section>
 
-<section class="section">
+<section class="products">
 
-<div class="card fade">
-<h3>Creative UI</h3>
-<p>Modern user interface with smooth animations</p>
+<div class="card">
+
+<img src="https://images.unsplash.com/photo-1511497584788-876760111969">
+
+<h3>Classic Frame</h3>
+
+<button onclick="selectModel('classic')">Customize</button>
+
 </div>
 
-<div class="card fade">
-<h3>Interactive</h3>
-<p>Elements react with mouse and scroll</p>
+<div class="card">
+
+<img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8">
+
+<h3>Modern Frame</h3>
+
+<button onclick="selectModel('modern')">Customize</button>
+
 </div>
 
-<div class="card fade">
-<h3>Fast</h3>
-<p>Optimized and responsive design</p>
+<div class="card">
+
+<img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f">
+
+<h3>Round Frame</h3>
+
+<button onclick="selectModel('round')">Customize</button>
+
 </div>
 
 </section>
 
-<div class="shape shape1"></div>
-<div class="shape shape2"></div>
-<div class="shape shape3"></div>
+<section class="customizer">
+
+<h2>Customize Your Glasses</h2>
+
+<div id="viewer"></div>
+
+<div class="controls">
+
+<label>Color</label>
+
+<button onclick="changeColor('black')">Black</button>
+<button onclick="changeColor('gold')">Gold</button>
+<button onclick="changeColor('blue')">Blue</button>
+
+<br><br>
+
+<label>Size</label>
+
+<select onchange="changeSize(this.value)">
+
+<option value="1">Small</option>
+<option value="1.3">Medium</option>
+<option value="1.6">Large</option>
+
+</select>
+
+</div>
+
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
 <script>
 
-/* =========================
-SCROLL ANIMATION
-========================= */
+/* ===== 3D SCENE ===== */
 
-const observer=new IntersectionObserver(entries=>{
+const scene=new THREE.Scene()
 
-entries.forEach(entry=>{
+const camera=new THREE.PerspectiveCamera(
+75,
+window.innerWidth/400,
+0.1,
+1000
+)
 
-if(entry.isIntersecting){
+const renderer=new THREE.WebGLRenderer()
 
-entry.target.classList.add("show")
+renderer.setSize(window.innerWidth,400)
+
+document.getElementById("viewer").appendChild(renderer.domElement)
+
+/* ===== LIGHT ===== */
+
+const light=new THREE.DirectionalLight(0xffffff,1)
+
+light.position.set(0,5,5)
+
+scene.add(light)
+
+/* ===== GLASSES MODEL ===== */
+
+const material=new THREE.MeshStandardMaterial({color:0x000000})
+
+const ring=new THREE.TorusGeometry(1,0.1,16,100)
+
+const left=new THREE.Mesh(ring,material)
+
+left.position.x=-1.2
+
+scene.add(left)
+
+const right=new THREE.Mesh(ring,material)
+
+right.position.x=1.2
+
+scene.add(right)
+
+const bridge=new THREE.Mesh(
+
+new THREE.BoxGeometry(0.5,0.1,0.1),
+material
+
+)
+
+scene.add(bridge)
+
+/* ===== CAMERA ===== */
+
+camera.position.z=5
+
+/* ===== ROTATE WITH MOUSE ===== */
+
+let mouseX=0
+
+document.addEventListener("mousemove",e=>{
+
+mouseX=(e.clientX/window.innerWidth-0.5)*2
+
+})
+
+/* ===== ANIMATE ===== */
+
+function animate(){
+
+requestAnimationFrame(animate)
+
+left.rotation.y=mouseX
+right.rotation.y=mouseX
+bridge.rotation.y=mouseX
+
+renderer.render(scene,camera)
 
 }
 
-})
+animate()
 
-})
+/* ===== COLOR CHANGE ===== */
 
-document.querySelectorAll(".fade").forEach(el=>observer.observe(el))
+function changeColor(color){
+
+material.color.set(color)
+
+}
+
+/* ===== SIZE ===== */
+
+function changeSize(scale){
+
+left.scale.set(scale,scale,scale)
+right.scale.set(scale,scale,scale)
+
+}
+
+/* ===== MODEL SELECT ===== */
+
+function selectModel(name){
+
+alert("Model selected: "+name)
+
+}
+
+/* ===== TRY ON ===== */
+
+function openTryOn(){
+
+alert("Camera try-on page will open here")
+
+}
 
 </script>
 
