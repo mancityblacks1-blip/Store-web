@@ -5,42 +5,70 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Electro Amazon Pro</title>
+<title>ElectroStore Pro</title>
 
 <style>
 
-/* ================================
-GLOBAL
-================================ */
+/* =========================
+ROOT VARIABLES
+========================= */
 
-body{
-font-family:Arial;
-margin:0;
-background:#f3f3f3;
+:root{
+--primary:#ff9900;
+--dark:#131921;
+--secondary:#232f3e;
+--bg:#f3f3f3;
+--card:#ffffff;
+--text:#111;
 }
 
-.hidden{display:none}
+body.dark{
+--bg:#1e1e1e;
+--card:#2b2b2b;
+--text:#eee;
+}
 
-.container{padding:20px}
+/* =========================
+GLOBAL
+========================= */
 
-/* ================================
+body{
+margin:0;
+font-family:Arial;
+background:var(--bg);
+color:var(--text);
+}
+
+.hidden{
+display:none;
+}
+
+.container{
+padding:20px;
+}
+
+/* =========================
 HEADER
-================================ */
+========================= */
 
 header{
-background:#131921;
+background:var(--dark);
 color:white;
 display:flex;
 align-items:center;
-padding:10px 20px;
 gap:20px;
+padding:10px 20px;
 }
 
 .logo{
 font-size:22px;
 font-weight:bold;
-color:#ff9900;
+color:var(--primary);
 }
+
+/* =========================
+SEARCH
+========================= */
 
 .search{
 flex:1;
@@ -54,24 +82,28 @@ border:none;
 }
 
 .search button{
-background:#febd69;
+background:var(--primary);
 border:none;
 padding:10px 15px;
 cursor:pointer;
 }
 
+/* =========================
+NAVIGATION
+========================= */
+
 nav button{
-background:#232f3e;
-color:white;
+background:var(--secondary);
 border:none;
+color:white;
 padding:8px 12px;
 cursor:pointer;
 margin-left:5px;
 }
 
-/* ================================
+/* =========================
 GRID
-================================ */
+========================= */
 
 .grid{
 display:grid;
@@ -79,15 +111,20 @@ grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
 gap:20px;
 }
 
-/* ================================
-PRODUCT CARD
-================================ */
+/* =========================
+CARD
+========================= */
 
 .card{
-background:white;
+background:var(--card);
 padding:15px;
 border-radius:6px;
 box-shadow:0 2px 8px rgba(0,0,0,0.1);
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-5px);
 }
 
 .card img{
@@ -96,16 +133,18 @@ height:180px;
 object-fit:cover;
 }
 
+/* =========================
+PRICE
+========================= */
+
 .price{
 color:#b12704;
 font-weight:bold;
 }
 
-.rating{color:#ffa41c}
-
-/* ================================
+/* =========================
 BUTTON
-================================ */
+========================= */
 
 .btn{
 background:#ffd814;
@@ -116,9 +155,29 @@ margin-top:5px;
 width:100%;
 }
 
-/* ================================
-ADMIN
-================================ */
+/* =========================
+TOAST
+========================= */
+
+.toast{
+position:fixed;
+bottom:20px;
+right:20px;
+background:black;
+color:white;
+padding:10px 15px;
+border-radius:6px;
+opacity:0;
+transition:0.4s;
+}
+
+.toast.show{
+opacity:1;
+}
+
+/* =========================
+ADMIN PANEL
+========================= */
 
 .admin{
 display:grid;
@@ -155,7 +214,7 @@ padding:8px;
 
 <header>
 
-<div class="logo">ElectroAmazon</div>
+<div class="logo">ElectroStore</div>
 
 <div class="search">
 <input id="searchBox" placeholder="Search electronics">
@@ -169,6 +228,7 @@ padding:8px;
 <button onclick="page('wishlist')">Wishlist</button>
 <button onclick="page('cart')">Cart (<span id="cartCount">0</span>)</button>
 <button onclick="page('orders')">Orders</button>
+<button onclick="toggleDark()">🌙</button>
 <button onclick="page('login')">Login</button>
 
 </nav>
@@ -177,17 +237,21 @@ padding:8px;
 
 <div class="container">
 
+<!-- HOME -->
+
 <div id="home">
 
 <h2>Featured Products</h2>
 
-<div class="grid" id="featured"></div>
+<div class="grid" id="featuredGrid"></div>
 
 </div>
 
+<!-- PRODUCTS -->
+
 <div id="products" class="hidden">
 
-<h2>Products</h2>
+<h2>All Products</h2>
 
 <label>Max Price</label>
 <input type="range" min="50" max="2000" value="2000" id="priceFilter">
@@ -195,6 +259,8 @@ padding:8px;
 <div class="grid" id="productGrid"></div>
 
 </div>
+
+<!-- WISHLIST -->
 
 <div id="wishlist" class="hidden">
 
@@ -204,17 +270,21 @@ padding:8px;
 
 </div>
 
+<!-- CART -->
+
 <div id="cart" class="hidden">
 
-<h2>Cart</h2>
+<h2>Your Cart</h2>
 
 <div id="cartItems"></div>
 
-<h3>Total $<span id="cartTotal"></span></h3>
+<h3>Total: $<span id="cartTotal">0</span></h3>
 
 <button class="btn" onclick="page('checkout')">Checkout</button>
 
 </div>
+
+<!-- CHECKOUT -->
 
 <div id="checkout" class="hidden">
 
@@ -232,13 +302,17 @@ padding:8px;
 
 </div>
 
+<!-- ORDERS -->
+
 <div id="orders" class="hidden">
 
-<h2>Order Tracking</h2>
+<h2>Orders</h2>
 
 <div id="ordersList"></div>
 
 </div>
+
+<!-- LOGIN -->
 
 <div id="login" class="hidden">
 
@@ -253,53 +327,130 @@ padding:8px;
 
 </div>
 
-<div id="adminPanel" class="hidden admin">
-
-<div class="sidebar">
-
-<h3>Admin</h3>
-
-<div onclick="adminPage('dashboard')">Dashboard</div>
-<div onclick="adminPage('products')">Products</div>
-<div onclick="adminPage('orders')">Orders</div>
-<div onclick="adminPage('users')">Users</div>
-<div onclick="location.reload()">Exit</div>
-
-</div>
-
-<div id="adminContent"></div>
-
-</div>
+<div id="toast" class="toast"></div>
 
 <script>
 
-/* ================================
-DATABASE
-================================ */
+/* =========================
+ROUTER
+========================= */
 
-let products=JSON.parse(localStorage.getItem("products"))||[]
-let cart=JSON.parse(localStorage.getItem("cart"))||[]
-let orders=JSON.parse(localStorage.getItem("orders"))||[]
-let wishlist=JSON.parse(localStorage.getItem("wishlist"))||[]
+function page(id){
 
-function save(){
+document.querySelectorAll(".container > div")
+.forEach(p=>p.classList.add("hidden"))
 
-localStorage.setItem("products",JSON.stringify(products))
-localStorage.setItem("cart",JSON.stringify(cart))
-localStorage.setItem("orders",JSON.stringify(orders))
-localStorage.setItem("wishlist",JSON.stringify(wishlist))
+document.getElementById(id).classList.remove("hidden")
 
 }
 
-/* ================================
+/* =========================
+DARK MODE
+========================= */
+
+function toggleDark(){
+
+document.body.classList.toggle("dark")
+
+}
+
+/* =========================
+TOAST
+========================= */
+
+function toast(msg){
+
+let t=document.getElementById("toast")
+
+t.innerText=msg
+t.classList.add("show")
+
+setTimeout(()=>{
+t.classList.remove("show")
+},2000)
+
+}
+
+/* =========================
+PLACEHOLDER FUNCTIONS
+(سيتم استكمالها في الأجزاء القادمة)
+========================= */
+
+function searchProducts(){}
+
+function placeOrder(){}
+
+function login(){}
+
+/* =========================
+DEMO DATA
+========================= */
+
+let demoProducts=[]
+
+for(let i=1;i<=20;i++){
+
+demoProducts.push({
+
+id:i,
+name:"Electronic Product "+i,
+price:Math.floor(Math.random()*1500)+100,
+img:"https://picsum.photos/300?random="+i
+
+})
+
+}
+
+/* =========================
+RENDER HOME
+========================= */
+
+let featured=document.getElementById("featuredGrid")
+
+demoProducts.slice(0,8).forEach(p=>{
+
+featured.innerHTML+=`
+
+<div class="card">
+
+<img src="${p.img}">
+<h4>${p.name}</h4>
+<p class="price">$${p.price}</p>
+
+<button class="btn">View</button>
+
+</div>
+
+`
+
+})
+/* =========================
+DATABASE
+========================= */
+
+let products = JSON.parse(localStorage.getItem("products")) || []
+let wishlist = JSON.parse(localStorage.getItem("wishlist")) || []
+let cart = JSON.parse(localStorage.getItem("cart")) || []
+let orders = JSON.parse(localStorage.getItem("orders")) || []
+
+function saveData(){
+
+localStorage.setItem("products",JSON.stringify(products))
+localStorage.setItem("wishlist",JSON.stringify(wishlist))
+localStorage.setItem("cart",JSON.stringify(cart))
+localStorage.setItem("orders",JSON.stringify(orders))
+
+}
+
+/* =========================
 GENERATE DEMO PRODUCTS
-================================ */
+========================= */
 
 function generateProducts(){
 
-if(products.length) return
+if(products.length>0) return
 
-for(let i=1;i<=50;i++){
+for(let i=1;i<=40;i++){
 
 products.push({
 
@@ -314,36 +465,27 @@ img:"https://picsum.photos/300?random="+i
 
 }
 
-save()
+saveData()
 
 }
 
-/* ================================
-ROUTER
-================================ */
-
-function page(id){
-
-document.querySelectorAll(".container>div")
-.forEach(x=>x.classList.add("hidden"))
-
-document.getElementById(id).classList.remove("hidden")
-
-}
-
-/* ================================
+/* =========================
 RENDER PRODUCTS
-================================ */
+========================= */
 
 function renderProducts(){
 
-let max=document.getElementById("priceFilter").value
-
 let grid=document.getElementById("productGrid")
+
+if(!grid) return
 
 grid.innerHTML=""
 
-products.filter(p=>p.price<=max).forEach(p=>{
+let max=document.getElementById("priceFilter").value
+
+products
+.filter(p=>p.price<=max)
+.forEach(p=>{
 
 grid.innerHTML+=`
 
@@ -355,11 +497,17 @@ grid.innerHTML+=`
 
 <p class="price">$${p.price}</p>
 
-<p class="rating">⭐ ${p.rating}</p>
+<p>⭐ ${p.rating}</p>
 
-<button class="btn" onclick="addCart(${p.id})">Add to Cart</button>
+<p>Stock: ${p.stock}</p>
 
-<button onclick="addWishlist(${p.id})">❤️</button>
+<button class="btn" onclick="addToCart(${p.id})">
+Add to Cart
+</button>
+
+<button onclick="addWishlist(${p.id})">
+❤️ Wishlist
+</button>
 
 </div>
 
@@ -369,19 +517,23 @@ grid.innerHTML+=`
 
 }
 
-/* ================================
-FEATURED
-================================ */
+/* =========================
+SEARCH ENGINE
+========================= */
 
-function renderFeatured(){
+function searchProducts(){
 
-let f=document.getElementById("featured")
+let q=document.getElementById("searchBox").value.toLowerCase()
 
-f.innerHTML=""
+let grid=document.getElementById("productGrid")
 
-products.slice(0,8).forEach(p=>{
+grid.innerHTML=""
 
-f.innerHTML+=`
+products
+.filter(p=>p.name.toLowerCase().includes(q))
+.forEach(p=>{
+
+grid.innerHTML+=`
 
 <div class="card">
 
@@ -391,7 +543,9 @@ f.innerHTML+=`
 
 <p class="price">$${p.price}</p>
 
-<button class="btn" onclick="addCart(${p.id})">Add</button>
+<button class="btn" onclick="addToCart(${p.id})">
+Add to Cart
+</button>
 
 </div>
 
@@ -401,43 +555,181 @@ f.innerHTML+=`
 
 }
 
-/* ================================
-CART
-================================ */
+/* =========================
+WISHLIST SYSTEM
+========================= */
 
-function addCart(id){
+function addWishlist(id){
 
-let p=products.find(x=>x.id==id)
+if(wishlist.includes(id)){
 
-cart.push(p)
-
-save()
-
-updateCart()
+toast("Already in wishlist")
+return
 
 }
 
-function updateCart(){
+wishlist.push(id)
+
+saveData()
+
+renderWishlist()
+
+toast("Added to wishlist")
+
+}
+
+function renderWishlist(){
+
+let grid=document.getElementById("wishlistGrid")
+
+if(!grid) return
+
+grid.innerHTML=""
+
+wishlist.forEach(id=>{
+
+let p=products.find(x=>x.id===id)
+
+if(!p) return
+
+grid.innerHTML+=`
+
+<div class="card">
+
+<img src="${p.img}">
+
+<h4>${p.name}</h4>
+
+<p class="price">$${p.price}</p>
+
+<button onclick="addToCart(${p.id})">
+Add to Cart
+</button>
+
+<button onclick="removeWishlist(${p.id})">
+Remove
+</button>
+
+</div>
+
+`
+
+})
+
+}
+
+function removeWishlist(id){
+
+wishlist=wishlist.filter(w=>w!==id)
+
+saveData()
+
+renderWishlist()
+
+}
+
+/* =========================
+RATING SYSTEM
+========================= */
+
+function rateProduct(id,stars){
+
+let product=products.find(p=>p.id===id)
+
+if(!product) return
+
+product.rating=stars
+
+saveData()
+
+renderProducts()
+
+}
+
+/* =========================
+STOCK CONTROL
+========================= */
+
+function reduceStock(id){
+
+let product=products.find(p=>p.id===id)
+
+if(!product) return
+
+if(product.stock>0){
+
+product.stock--
+
+}
+
+saveData()
+
+}
+
+/* =========================
+PRICE FILTER
+========================= */
+
+document.getElementById("priceFilter").oninput=renderProducts
+
+/* =========================
+INIT STORE
+========================= */
+
+generateProducts()
+
+renderProducts()
+
+renderWishlist()
+/* =========================
+CART SYSTEM
+========================= */
+
+function addToCart(id){
+
+let product=products.find(p=>p.id===id)
+
+if(!product) return
+
+cart.push(product)
+
+reduceStock(id)
+
+saveData()
+
+renderCart()
+
+toast("Added to cart")
+
+}
+
+function renderCart(){
 
 document.getElementById("cartCount").innerText=cart.length
 
-let items=document.getElementById("cartItems")
+let container=document.getElementById("cartItems")
 
-items.innerHTML=""
+if(!container) return
+
+container.innerHTML=""
 
 let total=0
 
-cart.forEach((c,i)=>{
+cart.forEach((item,index)=>{
 
-total+=c.price
+total+=item.price
 
-items.innerHTML+=`
+container.innerHTML+=`
 
-<div>
+<div class="card">
 
-${c.name} - $${c.price}
+<h4>${item.name}</h4>
 
-<button onclick="removeCart(${i})">X</button>
+<p>$${item.price}</p>
+
+<button onclick="removeCart(${index})">
+Remove
+</button>
 
 </div>
 
@@ -449,111 +741,101 @@ document.getElementById("cartTotal").innerText=total
 
 }
 
-function removeCart(i){
+function removeCart(index){
 
-cart.splice(i,1)
+cart.splice(index,1)
 
-save()
+saveData()
 
-updateCart()
+renderCart()
 
-}
-
-/* ================================
-WISHLIST
-================================ */
-
-function addWishlist(id){
-
-wishlist.push(id)
-
-save()
+toast("Removed from cart")
 
 }
 
-/* ================================
-SEARCH
-================================ */
-
-function searchProducts(){
-
-let q=document.getElementById("searchBox").value.toLowerCase()
-
-let grid=document.getElementById("productGrid")
-
-grid.innerHTML=""
-
-products.filter(p=>p.name.toLowerCase().includes(q))
-.forEach(p=>{
-
-grid.innerHTML+=`
-
-<div class="card">
-
-<img src="${p.img}">
-
-<h4>${p.name}</h4>
-
-<p>$${p.price}</p>
-
-<button onclick="addCart(${p.id})">Add</button>
-
-</div>
-
-`
-
-})
-
-}
-
-/* ================================
-CHECKOUT
-================================ */
+/* =========================
+CHECKOUT SYSTEM
+========================= */
 
 function placeOrder(){
 
-orders.push({
+if(cart.length===0){
+
+toast("Cart is empty")
+
+return
+
+}
+
+let payment=document.getElementById("paymentMethod").value
+
+let order={
 
 id:Date.now(),
+
 date:new Date().toLocaleString(),
+
 items:[...cart],
+
+payment:payment,
+
 status:"Processing"
 
-})
+}
+
+orders.push(order)
 
 cart=[]
 
-save()
+saveData()
 
-updateCart()
+renderCart()
 
 renderOrders()
 
 page("orders")
 
+toast("Order placed")
+
 }
 
-/* ================================
-ORDERS
-================================ */
+/* =========================
+ORDER TRACKING
+========================= */
 
 function renderOrders(){
 
-let o=document.getElementById("ordersList")
+let container=document.getElementById("ordersList")
 
-o.innerHTML=""
+if(!container) return
+
+container.innerHTML=""
 
 orders.forEach(order=>{
 
-o.innerHTML+=`
+let itemsHTML=""
+
+order.items.forEach(i=>{
+
+itemsHTML+=`<li>${i.name} - $${i.price}</li>`
+
+})
+
+container.innerHTML+=`
 
 <div class="card">
 
-<h4>Order ${order.id}</h4>
+<h3>Order #${order.id}</h3>
 
-<p>Status: ${order.status}</p>
+<p>Date: ${order.date}</p>
 
-<p>${order.items.length} items</p>
+<p>Payment: ${order.payment}</p>
+
+<p>Status: <b>${order.status}</b></p>
+
+<ul>${itemsHTML}</ul>
+
+${trackingBar(order.status)}
 
 </div>
 
@@ -563,44 +845,138 @@ o.innerHTML+=`
 
 }
 
-/* ================================
-LOGIN
-================================ */
+/* =========================
+TRACKING BAR
+========================= */
+
+function trackingBar(status){
+
+let steps=["Processing","Shipped","Out for Delivery","Delivered"]
+
+let html="<div style='display:flex;gap:8px;margin-top:10px'>"
+
+steps.forEach(step=>{
+
+let color="gray"
+
+if(steps.indexOf(step)<=steps.indexOf(status)){
+
+color="green"
+
+}
+
+html+=`
+
+<div style="
+padding:5px 10px;
+background:${color};
+color:white;
+border-radius:4px;
+">
+
+${step}
+
+</div>
+
+`
+
+})
+
+html+="</div>"
+
+return html
+
+}
+
+/* =========================
+AUTO SHIPPING SIMULATION
+========================= */
+
+function simulateShipping(){
+
+orders.forEach(order=>{
+
+if(order.status==="Processing"){
+
+order.status="Shipped"
+
+}
+
+else if(order.status==="Shipped"){
+
+order.status="Out for Delivery"
+
+}
+
+else if(order.status==="Out for Delivery"){
+
+order.status="Delivered"
+
+}
+
+})
+
+saveData()
+
+renderOrders()
+
+}
+
+/* تحديث الشحن كل 20 ثانية */
+
+setInterval(simulateShipping,20000)
+
+/* =========================
+INITIALIZE CART + ORDERS
+========================= */
+
+renderCart()
+
+renderOrders()
+
+/* =========================
+ADMIN LOGIN
+========================= */
 
 function login(){
 
-let u=document.getElementById("username").value
-let p=document.getElementById("password").value
+let user=document.getElementById("username").value
+let pass=document.getElementById("password").value
 
-if(u==="admin" && p==="admin123"){
+if(user==="admin" && pass==="admin123"){
 
 document.querySelector(".container").classList.add("hidden")
 document.getElementById("adminPanel").classList.remove("hidden")
 
 adminPage("dashboard")
 
+toast("Admin login")
+
 return
 
 }
 
-alert("User logged")
+toast("User login success")
 
 }
 
-/* ================================
-ADMIN
-================================ */
+/* =========================
+ADMIN ROUTER
+========================= */
 
-function adminPage(section){
+function adminPage(page){
 
-let c=document.getElementById("adminContent")
+let content=document.getElementById("adminContent")
 
-if(section==="dashboard"){
+/* DASHBOARD */
 
-let revenue=orders.reduce((t,o)=>t+
-o.items.reduce((s,i)=>s+i.price,0),0)
+if(page==="dashboard"){
 
-c.innerHTML=`
+let revenue=orders.reduce((total,o)=>
+total+o.items.reduce((s,i)=>s+i.price,0)
+,0)
+
+content.innerHTML=`
 
 <h2>Dashboard</h2>
 
@@ -612,21 +988,407 @@ c.innerHTML=`
 
 }
 
+/* =========================
+PRODUCT MANAGER
+========================= */
+
+if(page==="products"){
+
+content.innerHTML=`
+
+<h2>Products Manager</h2>
+
+<button onclick="adminAddProduct()">Add Product</button>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Price</th>
+<th>Stock</th>
+<th>Delete</th>
+</tr>
+
+${products.map(p=>`
+
+<tr>
+
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>$${p.price}</td>
+<td>${p.stock}</td>
+
+<td>
+<button onclick="adminDeleteProduct(${p.id})">
+Delete
+</button>
+</td>
+
+</tr>
+
+`).join("")}
+
+</table>
+
+`
+
 }
 
-/* ================================
-INIT
-================================ */
+/* =========================
+ORDERS MANAGER
+========================= */
 
-document.getElementById("priceFilter").oninput=renderProducts
+if(page==="orders"){
 
-generateProducts()
+content.innerHTML=`
+
+<h2>Orders Manager</h2>
+
+${orders.map(o=>`
+
+<div class="card">
+
+<h4>Order ${o.id}</h4>
+
+<p>Status: ${o.status}</p>
+
+<button onclick="adminUpdateOrder(${o.id})">
+Next Status
+</button>
+
+</div>
+
+`).join("")}
+
+`
+
+}
+
+/* =========================
+USERS MANAGER
+========================= */
+
+if(page==="users"){
+
+content.innerHTML=`
+
+<h2>Users</h2>
+
+<p>Users system is demo (front-end only)</p>
+
+`
+
+}
+
+}
+
+/* =========================
+ADD PRODUCT
+========================= */
+
+function adminAddProduct(){
+
+let name=prompt("Product name")
+let price=parseFloat(prompt("Price"))
+let stock=parseInt(prompt("Stock"))
+
+if(!name || !price) return
+
+products.push({
+
+id:Date.now(),
+name:name,
+price:price,
+stock:stock,
+rating:5,
+img:"https://picsum.photos/300?random="+Math.random()
+
+})
+
+saveData()
+
+adminPage("products")
 
 renderProducts()
-renderFeatured()
-updateCart()
+
+toast("Product added")
+
+}
+
+/* =========================
+DELETE PRODUCT
+========================= */
+
+function adminDeleteProduct(id){
+
+products=products.filter(p=>p.id!==id)
+
+saveData()
+
+adminPage("products")
+
+renderProducts()
+
+toast("Product deleted")
+
+}
+
+/* =========================
+UPDATE ORDER STATUS
+========================= */
+
+function adminUpdateOrder(id){
+
+let order=orders.find(o=>o.id===id)
+
+if(!order) return
+
+if(order.status==="Processing") order.status="Shipped"
+else if(order.status==="Shipped") order.status="Out for Delivery"
+else if(order.status==="Out for Delivery") order.status="Delivered"
+
+saveData()
+
+adminPage("orders")
+
 renderOrders()
 
+toast("Order updated")
+
+}
+
+/* =========================
+COUPON SYSTEM
+========================= */
+
+let coupons=JSON.parse(localStorage.getItem("coupons"))||[]
+
+function addCoupon(){
+
+let code=prompt("Coupon code")
+let discount=parseInt(prompt("Discount %"))
+
+coupons.push({code,discount})
+
+localStorage.setItem("coupons",JSON.stringify(coupons))
+
+toast("Coupon added")
+
+}
+
+function applyCoupon(){
+
+let code=prompt("Enter coupon code")
+
+let c=coupons.find(x=>x.code===code)
+
+if(!c){
+
+toast("Invalid coupon")
+return
+
+}
+
+let total=parseFloat(document.getElementById("cartTotal").innerText)
+
+let newTotal=total-(total*(c.discount/100))
+
+document.getElementById("cartTotal").innerText=Math.floor(newTotal)
+
+toast("Coupon applied")
+
+}
+
+/* =========================
+DARK MODE SAVE
+========================= */
+
+if(localStorage.getItem("darkMode")==="true"){
+document.body.classList.add("dark")
+}
+
+function toggleDark(){
+
+document.body.classList.toggle("dark")
+
+localStorage.setItem(
+"darkMode",
+document.body.classList.contains("dark")
+)
+
+}
+
+/* =========================
+SMART PRODUCT SUGGESTIONS
+========================= */
+
+function getRecommendations(){
+
+let featured=document.getElementById("featuredGrid")
+
+if(!featured) return
+
+featured.innerHTML=""
+
+let sorted=[...products]
+.sort((a,b)=>b.rating-a.rating)
+
+sorted.slice(0,8).forEach(p=>{
+
+featured.innerHTML+=`
+
+<div class="card">
+
+<img src="${p.img}">
+<h4>${p.name}</h4>
+
+<p class="price">$${p.price}</p>
+
+<p>⭐ ${p.rating}</p>
+
+<button class="btn" onclick="addToCart(${p.id})">
+Add to Cart
+</button>
+
+</div>
+
+`
+
+})
+
+}
+
+/* =========================
+SALES CHART (CANVAS)
+========================= */
+
+function renderSalesChart(){
+
+let content=document.getElementById("adminContent")
+
+let canvas=document.createElement("canvas")
+
+canvas.width=400
+canvas.height=200
+
+content.appendChild(canvas)
+
+let ctx=canvas.getContext("2d")
+
+let sales=orders.map(o=>
+o.items.reduce((t,i)=>t+i.price,0)
+)
+
+ctx.beginPath()
+
+ctx.moveTo(0,200)
+
+sales.forEach((s,i)=>{
+
+ctx.lineTo(i*40,200-s/10)
+
+})
+
+ctx.strokeStyle="green"
+ctx.lineWidth=3
+
+ctx.stroke()
+
+}
+
+/* =========================
+ENHANCED ADMIN DASHBOARD
+========================= */
+
+function adminDashboardAdvanced(){
+
+let content=document.getElementById("adminContent")
+
+let revenue=orders.reduce((t,o)=>
+t+o.items.reduce((s,i)=>s+i.price,0)
+,0)
+
+content.innerHTML=`
+
+<h2>Admin Dashboard</h2>
+
+<div class="grid">
+
+<div class="card">
+<h3>Total Orders</h3>
+<p>${orders.length}</p>
+</div>
+
+<div class="card">
+<h3>Total Revenue</h3>
+<p>$${revenue}</p>
+</div>
+
+<div class="card">
+<h3>Total Products</h3>
+<p>${products.length}</p>
+</div>
+
+</div>
+
+<h3>Sales Chart</h3>
+
+`
+
+renderSalesChart()
+
+}
+
+/* =========================
+NOTIFICATION SYSTEM
+========================= */
+
+function notify(msg){
+
+let n=document.createElement("div")
+
+n.style.position="fixed"
+n.style.bottom="20px"
+n.style.right="20px"
+n.style.background="black"
+n.style.color="white"
+n.style.padding="10px 15px"
+n.style.borderRadius="6px"
+
+n.innerText=msg
+
+document.body.appendChild(n)
+
+setTimeout(()=>{
+n.remove()
+},2000)
+
+}
+
+/* =========================
+BUTTON ANIMATION
+========================= */
+
+document.addEventListener("click",e=>{
+
+if(e.target.classList.contains("btn")){
+
+e.target.style.transform="scale(0.95)"
+
+setTimeout(()=>{
+e.target.style.transform="scale(1)"
+},150)
+
+}
+
+})
+
+/* =========================
+INIT SMART SYSTEMS
+========================= */
+
+getRecommendations()
 </script>
 
 </body>
