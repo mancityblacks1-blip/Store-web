@@ -1,1524 +1,548 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>QR Menu | فخم + Dashboard (Frontend Only)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroShop</title>
 
-  <!-- Optional QR library (frontend-only) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
 
-  <style>
-    :root{
-      --bg:#070b18;
-      --card:rgba(255,255,255,.05);
-      --card2:rgba(255,255,255,.035);
-      --text:#ecf1ff;
-      --muted:#a7b4dd;
-      --line:rgba(255,255,255,.10);
-      --accent:#7c6bff;
-      --accent2:#6ef0ff;
-      --gold:#ffd36c;
-      --good:#7cffb2;
-      --bad:#ff6b6b;
-      --shadow: 0 18px 50px rgba(0,0,0,.42);
-      --shadow2: 0 10px 30px rgba(0,0,0,.30);
-      --radius:20px;
-      --radius2:16px;
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif;
-    }
-    [data-theme="light"]{
-      --bg:#f6f7fb;
-      --card:rgba(16,20,38,.04);
-      --card2:rgba(16,20,38,.03);
-      --text:#0f1322;
-      --muted:#5a678a;
-      --line:rgba(16,20,38,.10);
-      --shadow: 0 18px 50px rgba(16,20,38,.12);
-      --shadow2: 0 10px 30px rgba(16,20,38,.10);
-    }
+:root{
+--primary:#0a66ff;
+--bg:#f5f6fa;
+--card:#ffffff;
+--text:#222;
+}
 
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family:var(--font);
-      color:var(--text);
-      background:
-        radial-gradient(1100px 700px at 15% 0%, rgba(110,240,255,.12), transparent 55%),
-        radial-gradient(900px 650px at 85% 10%, rgba(124,107,255,.16), transparent 55%),
-        radial-gradient(850px 650px at 50% 100%, rgba(255,211,108,.08), transparent 55%),
-        var(--bg);
-      overflow-x:hidden;
-    }
+body.dark{
+--bg:#1e1e1e;
+--card:#2a2a2a;
+--text:#eee;
+}
 
-    /* Top bar */
-    .topbar{
-      position:sticky; top:0; z-index:30;
-      backdrop-filter: blur(12px);
-      background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0));
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
-    [data-theme="light"] .topbar{
-      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.55));
-      border-bottom:1px solid rgba(16,20,38,.08);
-    }
-    .topbarInner{
-      max-width:1200px;
-      margin:0 auto;
-      padding:12px 14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .brand{
-      display:flex; align-items:center; gap:10px;
-      min-width:0;
-      flex:1;
-    }
-    .logo{
-      width:44px;height:44px;border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: 0 16px 34px rgba(124,107,255,.22);
-      position:relative;
-      overflow:hidden;
-      flex:0 0 auto;
-    }
-    .logo:before{
-      content:"";
-      position:absolute; inset:-30%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.40), transparent 55%);
-      transform: rotate(12deg);
-    }
-    .brandText{min-width:0}
-    .brandText b{display:block; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .brandText span{display:block; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+body{
+font-family:Arial;
+background:var(--bg);
+margin:0;
+color:var(--text);
+}
 
-    .actions{display:flex; gap:8px; flex-wrap:wrap}
-    .btn{
-      border:none; cursor:pointer; user-select:none;
-      padding:10px 12px;
-      border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color:white;
-      font-weight:800;
-      box-shadow: 0 12px 26px rgba(124,107,255,.22);
-      transition:.15s ease;
-      display:inline-flex; align-items:center; gap:10px;
-      white-space:nowrap;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .btn:active{ transform: translateY(0) scale(.99); }
-    .btn.secondary{
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      border:1px solid var(--line);
-      box-shadow:none;
-      font-weight:700;
-    }
-    .btn.ghost{
-      background: transparent;
-      border:1px solid var(--line);
-      color: var(--text);
-      box-shadow:none;
-      font-weight:700;
-    }
-    .pill{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color:var(--muted);
-      padding:10px 12px;
-      border-radius:999px;
-      font-size:12px;
-      display:inline-flex; align-items:center; gap:8px;
-      user-select:none;
-    }
-    .dot{
-      width:8px;height:8px;border-radius:999px;
-      background: var(--good);
-      box-shadow: 0 0 0 3px rgba(124,255,178,.18);
-    }
+header{
+background:#111;
+color:white;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
-    /* Layout */
-    .wrap{
-      max-width:1200px;
-      margin:0 auto;
-      padding:14px;
-      display:grid;
-      grid-template-columns: 1fr 360px;
-      gap:14px;
-    }
-    @media (max-width: 980px){
-      .wrap{ grid-template-columns: 1fr; }
-    }
+header input{
+padding:8px;
+width:200px;
+}
 
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow2);
-      overflow:hidden;
-      backdrop-filter: blur(10px);
-    }
-    .cardHead{
-      padding:14px 14px 12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    [data-theme="light"] .cardHead{ border-bottom:1px solid rgba(16,20,38,.08); }
-    .cardHead b{ font-size:14px; }
-    .cardHead span{ font-size:12px; color:var(--muted); }
+nav button{
+margin-left:10px;
+padding:8px 12px;
+cursor:pointer;
+}
 
-    .hero{
-      padding:16px 14px;
-      display:flex;
-      gap:14px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-    .heroLeft{
-      min-width: 240px;
-      flex:1;
-    }
-    .heroTitle{
-      font-size:22px;
-      margin:0 0 6px;
-      letter-spacing:.2px;
-    }
-    .heroSub{
-      margin:0;
-      color:var(--muted);
-      line-height:1.7;
-      font-size:13px;
-    }
-    .heroBadges{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
+.container{
+padding:20px;
+}
 
-    .qrBox{
-      width:160px;
-      height:160px;
-      border-radius: 18px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      display:grid;
-      place-items:center;
-      padding:10px;
-      box-shadow: var(--shadow2);
-    }
-    .qrCanvas{ width:140px; height:140px; border-radius:12px; background:#fff; }
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+}
 
-    /* Controls */
-    .controls{
-      padding:12px 14px 14px;
-      display:flex; gap:10px; flex-wrap:wrap;
-      align-items:center;
-    }
-    .input, .select, .textarea{
-      width:100%;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      padding: 12px 12px;
-      outline:none;
-      font-size:13px;
-      transition:.15s ease;
-    }
-    .input:focus, .select:focus, .textarea:focus{
-      box-shadow: 0 0 0 3px rgba(124,107,255,.20);
-      border-color: rgba(124,107,255,.40);
-    }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; }
-    .row > *{ flex: 1; min-width: 160px; }
-    .small{ font-size:12px; color:var(--muted); }
-    .divider{
-      height:1px;
-      background: rgba(255,255,255,.08);
-      margin: 10px 0;
-    }
-    [data-theme="light"] .divider{ background: rgba(16,20,38,.08); }
+.card{
+background:var(--card);
+padding:15px;
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
+transition:.3s;
+}
 
-    /* Categories */
-    .cats{
-      padding: 0 14px 14px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .catBtn{
-      cursor:pointer;
-      user-select:none;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color: var(--muted);
-      padding:10px 12px;
-      border-radius: 999px;
-      font-size:12px;
-      transition:.15s ease;
-      display:inline-flex; gap:8px; align-items:center;
-    }
-    .catBtn.active{
-      color: var(--text);
-      border-color: rgba(255,211,108,.35);
-      background: linear-gradient(135deg, rgba(255,211,108,.18), rgba(124,107,255,.10));
-    }
+.card:hover{
+transform:translateY(-5px);
+}
 
-    /* Grid items */
-    .grid{
-      padding: 0 14px 16px;
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap:12px;
-    }
-    @media (max-width: 560px){ .grid{ grid-template-columns: 1fr; } }
+.card img{
+width:100%;
+height:160px;
+object-fit:cover;
+}
 
-    .item{
-      border:1px solid var(--line);
-      border-radius: var(--radius2);
-      background: rgba(255,255,255,.03);
-      overflow:hidden;
-      box-shadow: 0 10px 26px rgba(0,0,0,.18);
-      position:relative;
-    }
-    .itemImg{
-      height:140px;
-      background: linear-gradient(135deg, rgba(124,107,255,.18), rgba(110,240,255,.10));
-      display:flex; align-items:center; justify-content:center;
-      color: rgba(255,255,255,.85);
-      font-weight:900;
-      letter-spacing:.8px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      overflow:hidden;
-      position:relative;
-    }
-    .itemImg img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      filter: saturate(1.05) contrast(1.02);
-    }
-    .itemBody{ padding:12px 12px 10px; }
-    .itemName{ font-weight:900; margin:0 0 4px; font-size:14px; }
-    .itemDesc{ margin:0 0 10px; color:var(--muted); font-size:12px; line-height:1.6; min-height: 38px; }
-    .itemFooter{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .price{
-      font-weight:1000;
-      font-size:14px;
-      color: var(--gold);
-      letter-spacing:.2px;
-      white-space:nowrap;
-    }
-    .badge{
-      font-size:11px;
-      padding:6px 9px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      white-space:nowrap;
-    }
+button.primary{
+background:var(--primary);
+color:white;
+border:none;
+padding:8px 10px;
+cursor:pointer;
+margin-top:5px;
+}
 
-    /* Right panel */
-    .sidePad{ padding:14px; }
-    .sideBlock{
-      border:1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(255,255,255,.03);
-      padding:12px;
-      margin-bottom:12px;
-    }
-    .sideBlock b{ display:block; margin-bottom:8px; font-size:13px; }
-    .sideBlock .small{ line-height:1.6; }
+.cart-item{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
 
-    /* Admin */
-    .adminWrap{
-      max-width:1200px;
-      margin:0 auto;
-      padding:14px;
-      display:none;
-    }
-    .adminGrid{
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap:14px;
-    }
-    @media (max-width: 980px){ .adminGrid{ grid-template-columns: 1fr; } }
+.hidden{
+display:none;
+}
 
-    .table{
-      width:100%;
-      border-collapse: collapse;
-      overflow:hidden;
-      border-radius: 16px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-    }
-    .table th, .table td{
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      font-size:12px;
-      text-align:right;
-      vertical-align:top;
-    }
-    [dir="ltr"] .table th, [dir="ltr"] .table td{ text-align:left; }
-    .table th{ color: var(--muted); font-weight:900; }
-    .table tr:last-child td{ border-bottom:none; }
-    .miniBtn{
-      cursor:pointer;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      padding:8px 10px;
-      border-radius: 12px;
-      font-size:12px;
-      user-select:none;
-      transition:.15s ease;
-      white-space:nowrap;
-    }
-    .miniBtn:hover{ transform: translateY(-1px); }
-    .miniBtn.danger{ border-color: rgba(255,107,107,.30); background: rgba(255,107,107,.10); }
+.admin{
+display:grid;
+grid-template-columns:200px 1fr;
+height:100vh;
+}
 
-    .toast{
-      position: fixed;
-      left: 16px;
-      bottom: 16px;
-      background: rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.12);
-      padding:10px 12px;
-      border-radius: 14px;
-      font-size:12px;
-      color:#fff;
-      opacity:0;
-      transform: translateY(10px);
-      pointer-events:none;
-      transition:.2s ease;
-      backdrop-filter: blur(10px);
-      z-index:80;
-      max-width:min(520px, 92vw);
-    }
-    .toast.show{ opacity:1; transform: translateY(0); }
+.sidebar{
+background:#111;
+color:white;
+padding:20px;
+}
 
-    /* Hide/show pages */
-    .pageMenu{ display:block; }
-    .pageAdmin{ display:none; }
+.sidebar div{
+margin-bottom:15px;
+cursor:pointer;
+}
 
-    /* Tiny shine */
-    .shine{
-      position:absolute;
-      inset:-60%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), transparent 55%);
-      transform: rotate(12deg);
-      pointer-events:none;
-      filter: blur(1px);
-    }
-  </style>
+.admin-content{
+padding:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+td,th{
+border:1px solid #ccc;
+padding:8px;
+}
+
+.notification{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#0a66ff;
+color:white;
+padding:10px;
+border-radius:6px;
+}
+
+</style>
 </head>
 
-<body id="root" data-theme="dark">
+<body>
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbarInner">
-      <div class="brand">
-        <div class="logo"><div class="shine"></div></div>
-        <div class="brandText">
-          <b id="brandName">LuxeQR Menu</b>
-          <span id="brandSub">Menu فاخر + QR + لوحة تحكم (بدون Backend)</span>
-        </div>
-      </div>
+<header>
+<h2>ElectroShop</h2>
 
-      <div class="actions">
-        <span class="pill"><span class="dot"></span><span id="onlineTxt">Live</span></span>
-        <button class="btn ghost" id="langBtn">AR / EN</button>
-        <button class="btn secondary" id="themeBtn">☀️</button>
-        <button class="btn secondary" id="goAdminBtn">Dashboard</button>
-      </div>
-    </div>
-  </div>
+<input id="search" placeholder="Search products">
 
-  <!-- MENU PAGE -->
-  <div class="wrap pageMenu" id="menuPage">
-    <div class="card">
-      <div class="hero">
-        <div class="heroLeft">
-          <h1 class="heroTitle" id="heroTitle">مرحبًا 👋 منيو المطعم</h1>
-          <p class="heroSub" id="heroSub">
-            امسح الـ QR أو ابحث عن صنفك. الأسعار محدثة من لوحة التحكم.
-          </p>
-          <div class="heroBadges">
-            <span class="pill">✨ <span id="badgeLux">فخم</span></span>
-            <span class="pill">📱 <span id="badgeMobile">مناسب للموبايل</span></span>
-            <span class="pill">⚡ <span id="badgeFast">سريع</span></span>
-          </div>
-        </div>
+<nav>
+<button onclick="showPage('home')">Home</button>
+<button onclick="showPage('products')">Products</button>
+<button onclick="showPage('cart')">Cart (<span id="cartCount">0</span>)</button>
+<button onclick="showPage('orders')">Orders</button>
+<button onclick="showPage('login')">Login</button>
+<button onclick="toggleDark()">🌙</button>
+</nav>
+</header>
 
-        <div class="qrBox">
-          <canvas id="qrCanvas" class="qrCanvas" width="140" height="140"></canvas>
-        </div>
-      </div>
+<div class="container">
 
-      <div class="controls">
-        <div class="row" style="width:100%">
-          <input class="input" id="searchInput" placeholder="ابحث عن صنف..." />
-          <select class="select" id="typeFilter">
-            <option value="all">الكل</option>
-            <option value="restaurant">مطعم</option>
-            <option value="cafe">كافيه</option>
-            <option value="both">الاتنين</option>
-          </select>
-          <select class="select" id="sortBy">
-            <option value="featured">ترتيب مميز</option>
-            <option value="priceAsc">السعر: الأقل</option>
-            <option value="priceDesc">السعر: الأعلى</option>
-            <option value="nameAsc">الاسم: A-Z</option>
-          </select>
-        </div>
-      </div>
+<div id="home">
+<h2>Featured Products</h2>
+<div class="products" id="homeProducts"></div>
+</div>
 
-      <div class="cats" id="cats"></div>
-      <div class="grid" id="grid"></div>
-    </div>
+<div id="products" class="hidden">
+<h2>All Products</h2>
 
-    <!-- Side -->
-    <div class="card">
-      <div class="cardHead">
-        <div>
-          <b id="infoTitle">معلومات</b><br/>
-          <span id="infoSub">تواصل / عنوان / ساعات عمل</span>
-        </div>
-        <span class="pill">⭐ <span id="ratingTxt">4.8</span></span>
-      </div>
+<label>Max Price</label>
+<input type="range" min="50" max="2000" value="2000" id="priceFilter">
 
-      <div class="sidePad">
-        <div class="sideBlock">
-          <b id="restNameLabel">اسم المكان</b>
-          <div class="small" id="restNameValue">Luxe Restaurant & Cafe</div>
-          <div class="divider"></div>
-          <div class="small" id="restDescValue">أكل فاخر + قهوة مميزة. جودة + نظافة + تجربة أنيقة.</div>
-        </div>
+<div class="products" id="productList"></div>
+</div>
 
-        <div class="sideBlock">
-          <b id="contactLabel">تواصل</b>
-          <div class="small" id="contactValue">📞 0100-000-0000</div>
-          <div class="small" id="whatsValue">💬 WhatsApp: 0100-000-0000</div>
-          <div class="divider"></div>
-          <div class="small" id="addrValue">📍 العنوان: شارع مثال، المدينة</div>
-          <div class="small" id="hoursValue">⏰ 10:00 ص - 2:00 ص</div>
+<div id="cart" class="hidden">
+<h2>Your Cart</h2>
+<div id="cartItems"></div>
+<h3>Total: $<span id="cartTotal">0</span></h3>
+<button class="primary" onclick="showPage('checkout')">Checkout</button>
+</div>
 
-          <div class="divider"></div>
-          <div class="row">
-            <button class="btn secondary" id="callBtn">اتصال</button>
-            <button class="btn" id="waBtn">واتساب</button>
-          </div>
-        </div>
+<div id="checkout" class="hidden">
+<h2>Checkout</h2>
 
-        <div class="sideBlock">
-          <b id="tipsLabel">ملاحظة</b>
-          <div class="small" id="tipsValue">
-            الأسعار قابلة للتغيير. لو مش لاقي صنف، استخدم البحث أو اختار قسم.
-          </div>
-          <div class="divider"></div>
-          <button class="btn ghost" id="copyLinkBtn">نسخ رابط المنيو</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<select id="payment">
+<option>Visa / Mastercard</option>
+<option>InstaPay</option>
+<option>Vodafone Cash</option>
+</select>
 
-  <!-- ADMIN PAGE -->
-  <div class="adminWrap pageAdmin" id="adminPage">
-    <div class="card" style="margin-bottom:14px;">
-      <div class="cardHead">
-        <div>
-          <b id="adminTitle">لوحة التحكم</b><br/>
-          <span id="adminSub">إضافة / تعديل / حذف الأصناف والأسعار (محلي بدون Backend)</span>
-        </div>
-        <div class="actions">
-          <button class="btn secondary" id="backToMenuBtn">المنيو</button>
-          <button class="btn ghost" id="lockBtn">قفل</button>
-        </div>
-      </div>
+<button class="primary" onclick="placeOrder()">Place Order</button>
+</div>
 
-      <div class="controls">
-        <div class="row" style="width:100%">
-          <input class="input" id="pinInput" placeholder="PIN للدخول (افتراضي: 1234)" />
-          <button class="btn" id="unlockBtn">دخول</button>
-          <button class="btn secondary" id="changePinBtn">تغيير PIN</button>
-        </div>
-        <div class="small" id="pinHint">
-          لو فتحت Dashboard على جهاز جديد: لازم تستورد ملف JSON أو تدخل نفس الجهاز (لأنها LocalStorage).
-        </div>
-      </div>
-    </div>
+<div id="orders" class="hidden">
+<h2>Order History</h2>
+<div id="orderList"></div>
+</div>
 
-    <div class="adminGrid">
-      <div class="card">
-        <div class="cardHead">
-          <div>
-            <b id="settingsTitle">إعدادات المكان</b><br/>
-            <span id="settingsSub">اسم/وصف/تواصل/ساعات/تقييم</span>
-          </div>
-        </div>
+<div id="login" class="hidden">
+<h2>Login</h2>
 
-        <div class="sidePad">
-          <div class="sideBlock">
-            <b>العربي</b>
-            <input class="input" id="nameAr" placeholder="اسم المكان (AR)" />
-            <textarea class="textarea" id="descAr" placeholder="وصف (AR)" rows="3"></textarea>
-          </div>
+<input id="username" placeholder="Username"><br><br>
+<input id="password" placeholder="Password" type="password"><br><br>
 
-          <div class="sideBlock">
-            <b>English</b>
-            <input class="input" id="nameEn" placeholder="Place name (EN)" />
-            <textarea class="textarea" id="descEn" placeholder="Description (EN)" rows="3"></textarea>
-          </div>
+<button onclick="login()">Login</button>
+</div>
 
-          <div class="sideBlock">
-            <b>Contact</b>
-            <input class="input" id="phone" placeholder="Phone e.g. 0100..." />
-            <input class="input" id="whatsapp" placeholder="WhatsApp e.g. 0100..." />
-            <input class="input" id="address" placeholder="Address" />
-            <input class="input" id="hours" placeholder="Hours e.g. 10:00 - 2:00" />
-            <div class="row">
-              <input class="input" id="rating" placeholder="Rating e.g. 4.8" />
-              <select class="select" id="currency">
-                <option value="EGP">EGP</option>
-                <option value="SAR">SAR</option>
-                <option value="AED">AED</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
-            <button class="btn" id="saveSettingsBtn">حفظ الإعدادات</button>
-          </div>
+</div>
 
-          <div class="sideBlock">
-            <b>Data</b>
-            <div class="row">
-              <button class="btn secondary" id="exportBtn">تصدير JSON</button>
-              <button class="btn secondary" id="importBtn">استيراد JSON</button>
-              <input type="file" id="importFile" accept="application/json" style="display:none" />
-            </div>
-            <div class="divider"></div>
-            <button class="btn ghost" id="resetAllBtn">Reset كامل (خطر)</button>
-          </div>
+<div id="adminPanel" class="hidden admin">
 
-        </div>
-      </div>
+<div class="sidebar">
+<h3>Admin</h3>
 
-      <div class="card">
-        <div class="cardHead">
-          <div>
-            <b id="itemsTitle">الأصناف</b><br/>
-            <span id="itemsSub">أضف صنف جديد أو عدل الموجود</span>
-          </div>
-        </div>
+<div onclick="adminView('products')">Products</div>
+<div onclick="adminView('orders')">Orders</div>
+<div onclick="adminView('stats')">Stats</div>
+<div onclick="location.reload()">Exit</div>
 
-        <div class="sidePad">
-          <div class="sideBlock">
-            <b id="addEditTitle">إضافة / تعديل</b>
+</div>
 
-            <div class="row">
-              <select class="select" id="itemType">
-                <option value="both">مطعم + كافيه</option>
-                <option value="restaurant">مطعم</option>
-                <option value="cafe">كافيه</option>
-              </select>
+<div class="admin-content" id="adminContent"></div>
 
-              <select class="select" id="itemCategory"></select>
-            </div>
+</div>
 
-            <div class="divider"></div>
-
-            <b style="margin-top:8px; display:block">العربي</b>
-            <input class="input" id="itemNameAr" placeholder="اسم الصنف (AR)" />
-            <textarea class="textarea" id="itemDescAr" placeholder="وصف (AR)" rows="2"></textarea>
-
-            <div class="divider"></div>
-
-            <b style="margin-top:8px; display:block">English</b>
-            <input class="input" id="itemNameEn" placeholder="Item name (EN)" />
-            <textarea class="textarea" id="itemDescEn" placeholder="Description (EN)" rows="2"></textarea>
-
-            <div class="divider"></div>
-
-            <div class="row">
-              <input class="input" id="itemPrice" placeholder="السعر (رقم)" inputmode="decimal" />
-              <input class="input" id="itemImage" placeholder="رابط صورة (اختياري)" />
-            </div>
-
-            <div class="row">
-              <button class="btn" id="saveItemBtn">حفظ الصنف</button>
-              <button class="btn secondary" id="clearFormBtn">تفريغ</button>
-            </div>
-
-            <div class="small" id="formHint">
-              لو مش عايز صور، سيب رابط الصورة فاضي وهيظهر كارت فخم بدون صورة.
-            </div>
-          </div>
-
-          <div class="sideBlock">
-            <b>قائمة الأصناف</b>
-            <div class="row" style="margin-bottom:10px;">
-              <input class="input" id="adminSearch" placeholder="بحث داخل الأصناف..." />
-              <select class="select" id="adminCatFilter"></select>
-            </div>
-
-            <table class="table" id="itemsTable"></table>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="toast" id="toast">تم ✅</div>
+<div id="notify" class="notification hidden"></div>
 
 <script>
-(() => {
-  const $ = (s) => document.querySelector(s);
-
-  // ---------- Storage Keys ----------
-  const LS_KEY = "luxe_qr_menu_v1";
-  const PIN_KEY = "luxe_qr_pin_v1";
-  const THEME_KEY = "luxe_qr_theme";
-  const LANG_KEY = "luxe_qr_lang";
-
-  // ---------- Helpers ----------
-  const uid = () => "id_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-  const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
-  const toast = $("#toast");
-  const showToast = (msg="تم ✅") => {
-    toast.textContent = msg;
-    toast.classList.add("show");
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=>toast.classList.remove("show"), 1400);
-  };
-
-  const fmtPrice = (value, currency, lang) => {
-    const num = Number(value || 0);
-    const map = { EGP:"ج.م", SAR:"ر.س", AED:"د.إ", USD:"$" };
-    const suffix = map[currency] || currency;
-    const formatted = (lang === "en")
-      ? num.toLocaleString("en-US", { maximumFractionDigits: 2 })
-      : num.toLocaleString("ar-EG", { maximumFractionDigits: 2 });
-    return lang === "en" ? `${suffix} ${formatted}` : `${formatted} ${suffix}`;
-  };
-
-  // ---------- Default Data ----------
-  const defaultState = () => ({
-    meta:{
-      name:{ ar:"Luxe Restaurant & Cafe", en:"Luxe Restaurant & Cafe" },
-      desc:{
-        ar:"أكل فاخر + قهوة مميزة. جودة + نظافة + تجربة أنيقة.",
-        en:"Fine dining + signature coffee. Quality, cleanliness, and an elegant experience."
-      },
-      phone:"0100-000-0000",
-      whatsapp:"0100-000-0000",
-      address:"شارع مثال، المدينة",
-      hours:"10:00 ص - 2:00 ص",
-      rating:"4.8",
-      currency:"EGP"
-    },
-    categories:[
-      { id:"starters",  name:{ar:"مقبلات", en:"Starters"} },
-      { id:"mains",     name:{ar:"أطباق رئيسية", en:"Main Courses"} },
-      { id:"sandwiches",name:{ar:"سندوتشات", en:"Sandwiches"} },
-      { id:"desserts",  name:{ar:"حلويات", en:"Desserts"} },
-      { id:"coffee",    name:{ar:"قهوة", en:"Coffee"} },
-      { id:"drinks",    name:{ar:"مشروبات", en:"Drinks"} },
-    ],
-    items:[
-      {
-        id:uid(),
-        type:"restaurant",
-        categoryId:"starters",
-        name:{ ar:"بطاطس كرانشي", en:"Crispy Fries" },
-        desc:{ ar:"توابل خاصة + صوص اختيارك.", en:"Signature spices + your choice of sauce." },
-        price:79,
-        image:""
-      },
-      {
-        id:uid(),
-        type:"restaurant",
-        categoryId:"mains",
-        name:{ ar:"ستيك صوص فلفل", en:"Pepper Steak" },
-        desc:{ ar:"مستوى استواء حسب الطلب.", en:"Cooked to your preference." },
-        price:399,
-        image:""
-      },
-      {
-        id:uid(),
-        type:"cafe",
-        categoryId:"coffee",
-        name:{ ar:"لاتيه فانيلا", en:"Vanilla Latte" },
-        desc:{ ar:"حليب مخملي + فانيلا.", en:"Velvety milk + vanilla." },
-        price:95,
-        image:""
-      },
-      {
-        id:uid(),
-        type:"both",
-        categoryId:"desserts",
-        name:{ ar:"تشيز كيك", en:"Cheesecake" },
-        desc:{ ar:"كريمي ومظبوط على الآخر.", en:"Creamy and perfectly balanced." },
-        price:140,
-        image:""
-      },
-      {
-        id:uid(),
-        type:"both",
-        categoryId:"drinks",
-        name:{ ar:"موهيتو", en:"Mojito" },
-        desc:{ ar:"نعناع طازة + ليمون.", en:"Fresh mint + lime." },
-        price:110,
-        image:""
-      }
-    ]
-  });
-
-  const loadState = () => {
-    try{
-      const s = JSON.parse(localStorage.getItem(LS_KEY) || "null");
-      if(s && s.meta && s.categories && s.items) return s;
-    }catch(e){}
-    const init = defaultState();
-    localStorage.setItem(LS_KEY, JSON.stringify(init));
-    return init;
-  };
-
-  let state = loadState();
-
-  // ---------- Language & Theme ----------
-  let lang = (localStorage.getItem(LANG_KEY) || "ar"); // ar/en
-  let theme = (localStorage.getItem(THEME_KEY) || "dark");
-
-  const root = $("#root");
-  const applyLang = () => {
-    const isAr = lang === "ar";
-    document.documentElement.lang = isAr ? "ar" : "en";
-    document.documentElement.dir = isAr ? "rtl" : "ltr";
-    // Quick text map
-    const t = (ar,en) => isAr ? ar : en;
-
-    $("#brandName").textContent = t("LuxeQR Menu", "LuxeQR Menu");
-    $("#brandSub").textContent = t("Menu فاخر + QR + لوحة تحكم (بدون Backend)","Luxury menu + QR + dashboard (no backend)");
-    $("#onlineTxt").textContent = t("شغال", "Live");
-
-    $("#heroTitle").textContent = t("مرحبًا 👋 منيو المكان", "Welcome 👋 Menu");
-    $("#heroSub").textContent = t("امسح الـ QR أو ابحث عن صنفك. الأسعار محدثة من لوحة التحكم.","Scan the QR or search your item. Prices are updated from the dashboard.");
-    $("#badgeLux").textContent = t("فخم","Luxury");
-    $("#badgeMobile").textContent = t("مناسب للموبايل","Mobile-ready");
-    $("#badgeFast").textContent = t("سريع","Fast");
-
-    $("#searchInput").placeholder = t("ابحث عن صنف...","Search items...");
-    $("#typeFilter").options[0].textContent = t("الكل","All");
-    $("#typeFilter").options[1].textContent = t("مطعم","Restaurant");
-    $("#typeFilter").options[2].textContent = t("كافيه","Cafe");
-    $("#typeFilter").options[3].textContent = t("الاتنين","Both");
-
-    $("#sortBy").options[0].textContent = t("ترتيب مميز","Featured");
-    $("#sortBy").options[1].textContent = t("السعر: الأقل","Price: Low");
-    $("#sortBy").options[2].textContent = t("السعر: الأعلى","Price: High");
-    $("#sortBy").options[3].textContent = t("الاسم: A-Z","Name: A-Z");
-
-    $("#infoTitle").textContent = t("معلومات","Info");
-    $("#infoSub").textContent = t("تواصل / عنوان / ساعات عمل","Contact / Address / Hours");
-    $("#ratingTxt").textContent = state.meta.rating || "—";
-
-    $("#restNameLabel").textContent = t("اسم المكان","Place");
-    $("#restNameValue").textContent = isAr ? state.meta.name.ar : state.meta.name.en;
-    $("#restDescValue").textContent = isAr ? state.meta.desc.ar : state.meta.desc.en;
-
-    $("#contactLabel").textContent = t("تواصل","Contact");
-    $("#contactValue").textContent = t("📞 تليفون: ","📞 Phone: ") + (state.meta.phone || "—");
-    $("#whatsValue").textContent = "💬 WhatsApp: " + (state.meta.whatsapp || "—");
-    $("#addrValue").textContent = t("📍 العنوان: ","📍 Address: ") + (state.meta.address || "—");
-    $("#hoursValue").textContent = t("⏰ المواعيد: ","⏰ Hours: ") + (state.meta.hours || "—");
-
-    $("#callBtn").textContent = t("اتصال","Call");
-    $("#waBtn").textContent = t("واتساب","WhatsApp");
-
-    $("#tipsLabel").textContent = t("ملاحظة","Note");
-    $("#tipsValue").textContent = t("الأسعار قابلة للتغيير. لو مش لاقي صنف، استخدم البحث أو اختار قسم.","Prices may change. Use search or categories to find your item.");
-    $("#copyLinkBtn").textContent = t("نسخ رابط المنيو","Copy menu link");
-
-    $("#goAdminBtn").textContent = t("Dashboard","Dashboard");
-    $("#themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
-
-    // Admin texts
-    $("#adminTitle").textContent = t("لوحة التحكم","Dashboard");
-    $("#adminSub").textContent = t("إضافة / تعديل / حذف الأصناف والأسعار (محلي بدون Backend)","Add / edit / delete items and prices (local, no backend)");
-    $("#backToMenuBtn").textContent = t("المنيو","Menu");
-    $("#lockBtn").textContent = t("قفل","Lock");
-
-    $("#pinInput").placeholder = t("PIN للدخول (افتراضي: 1234)","Enter PIN (default: 1234)");
-    $("#unlockBtn").textContent = t("دخول","Unlock");
-    $("#changePinBtn").textContent = t("تغيير PIN","Change PIN");
-    $("#pinHint").textContent = t(
-      "لو فتحت Dashboard على جهاز جديد: لازم تستورد ملف JSON أو تستخدم نفس الجهاز (عشان LocalStorage).",
-      "If you open the dashboard on a new device: import the JSON file or use the same device (LocalStorage)."
-    );
-
-    $("#settingsTitle").textContent = t("إعدادات المكان","Place Settings");
-    $("#settingsSub").textContent = t("اسم/وصف/تواصل/ساعات/تقييم","Name/Description/Contact/Hours/Rating");
-    $("#saveSettingsBtn").textContent = t("حفظ الإعدادات","Save settings");
-    $("#exportBtn").textContent = t("تصدير JSON","Export JSON");
-    $("#importBtn").textContent = t("استيراد JSON","Import JSON");
-    $("#resetAllBtn").textContent = t("Reset كامل (خطر)","Full reset (danger)");
-
-    $("#itemsTitle").textContent = t("الأصناف","Items");
-    $("#itemsSub").textContent = t("أضف صنف جديد أو عدل الموجود","Add a new item or edit existing");
-
-    $("#addEditTitle").textContent = t("إضافة / تعديل","Add / Edit");
-    $("#itemNameAr").placeholder = t("اسم الصنف (AR)","Item name (AR)");
-    $("#itemDescAr").placeholder = t("وصف (AR)","Description (AR)");
-    $("#itemNameEn").placeholder = t("Item name (EN)","Item name (EN)");
-    $("#itemDescEn").placeholder = t("Description (EN)","Description (EN)");
-    $("#itemPrice").placeholder = t("السعر (رقم)","Price (number)");
-    $("#itemImage").placeholder = t("رابط صورة (اختياري)","Image URL (optional)");
-    $("#saveItemBtn").textContent = t("حفظ الصنف","Save item");
-    $("#clearFormBtn").textContent = t("تفريغ","Clear");
-
-    $("#formHint").textContent = t(
-      "لو مش عايز صور، سيب رابط الصورة فاضي وهيظهر كارت فخم بدون صورة.",
-      "Leave image URL empty to show a luxury card without image."
-    );
-    $("#adminSearch").placeholder = t("بحث داخل الأصناف...","Search items...");
-  };
-
-  const applyTheme = () => {
-    root.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
-    $("#themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
-  };
-
-  // ---------- Pages ----------
-  const menuPage = $("#menuPage");
-  const adminPage = $("#adminPage");
-  const showPage = (which) => {
-    if(which === "admin"){
-      menuPage.style.display = "none";
-      adminPage.style.display = "block";
-      adminPage.classList.add("pageAdmin");
-      menuPage.classList.remove("pageMenu");
-      location.hash = "admin";
-    } else {
-      adminPage.style.display = "none";
-      menuPage.style.display = "grid";
-      location.hash = "";
-    }
-  };
-
-  // ---------- QR ----------
-  const drawQR = async () => {
-    const canvas = $("#qrCanvas");
-    const url = location.origin + location.pathname; // current page without hash
-    try{
-      if(window.QRCode && QRCode.toCanvas){
-        await QRCode.toCanvas(canvas, url, {
-          margin: 1,
-          width: 140,
-          color: { dark:"#111827", light:"#ffffff" }
-        });
-      } else {
-        // fallback: simple text
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle="#fff"; ctx.fillRect(0,0,140,140);
-        ctx.fillStyle="#111"; ctx.font="12px sans-serif";
-        ctx.fillText("QR lib not loaded", 18, 70);
-      }
-    }catch(e){
-      // ignore
-    }
-  };
-
-  // ---------- Menu Rendering ----------
-  let activeCat = "all";
-
-  const getVisibleItems = () => {
-    const q = ($("#searchInput").value || "").trim().toLowerCase();
-    const type = $("#typeFilter").value;
-    const sort = $("#sortBy").value;
-
-    const textPick = (obj) => (lang === "ar" ? (obj.ar||"") : (obj.en||""));
-
-    let items = state.items.slice();
-
-    // type filter
-    items = items.filter(it => {
-      if(type === "all") return true;
-      if(type === "both") return it.type === "both";
-      return (it.type === type || it.type === "both");
-    });
-
-    // category filter
-    if(activeCat !== "all"){
-      items = items.filter(it => it.categoryId === activeCat);
-    }
-
-    // search
-    if(q){
-      items = items.filter(it => {
-        const n = (textPick(it.name) || "").toLowerCase();
-        const d = (textPick(it.desc) || "").toLowerCase();
-        return n.includes(q) || d.includes(q);
-      });
-    }
-
-    // sort
-    if(sort === "priceAsc") items.sort((a,b)=>Number(a.price)-Number(b.price));
-    else if(sort === "priceDesc") items.sort((a,b)=>Number(b.price)-Number(a.price));
-    else if(sort === "nameAsc"){
-      items.sort((a,b)=>{
-        const an = (textPick(a.name) || "").toLowerCase();
-        const bn = (textPick(b.name) || "").toLowerCase();
-        return an.localeCompare(bn);
-      });
-    } else {
-      // featured: keep as is
-    }
-
-    return items;
-  };
-
-  const renderCats = () => {
-    const catsEl = $("#cats");
-    catsEl.innerHTML = "";
-    const t = (ar,en)=> (lang==="ar"?ar:en);
-
-    const mk = (id, label) => {
-      const b = document.createElement("button");
-      b.className = "catBtn" + (activeCat === id ? " active" : "");
-      b.textContent = label;
-      b.addEventListener("click", () => {
-        activeCat = id;
-        renderCats();
-        renderGrid();
-      });
-      return b;
-    };
-
-    catsEl.appendChild(mk("all", t("الكل","All")));
-    state.categories.forEach(c=>{
-      catsEl.appendChild(mk(c.id, (lang==="ar"?c.name.ar:c.name.en)));
-    });
-  };
-
-  const renderMeta = () => {
-    $("#ratingTxt").textContent = state.meta.rating || "—";
-    $("#restNameValue").textContent = (lang==="ar"?state.meta.name.ar:state.meta.name.en);
-    $("#restDescValue").textContent = (lang==="ar"?state.meta.desc.ar:state.meta.desc.en);
-
-    $("#contactValue").textContent = (lang==="ar"?"📞 تليفون: ":"📞 Phone: ") + (state.meta.phone || "—");
-    $("#whatsValue").textContent = "💬 WhatsApp: " + (state.meta.whatsapp || "—");
-    $("#addrValue").textContent = (lang==="ar"?"📍 العنوان: ":"📍 Address: ") + (state.meta.address || "—");
-    $("#hoursValue").textContent = (lang==="ar"?"⏰ المواعيد: ":"⏰ Hours: ") + (state.meta.hours || "—");
-  };
-
-  const renderGrid = () => {
-    const grid = $("#grid");
-    grid.innerHTML = "";
-    const items = getVisibleItems();
-    const currency = state.meta.currency || "EGP";
-
-    const catName = (catId) => {
-      const c = state.categories.find(x=>x.id===catId);
-      if(!c) return "";
-      return (lang==="ar"?c.name.ar:c.name.en);
-    };
-
-    items.forEach(it=>{
-      const card = document.createElement("div");
-      card.className = "item";
-
-      const hasImg = !!(it.image && it.image.trim());
-      const name = (lang==="ar"?it.name.ar:it.name.en) || "";
-      const desc = (lang==="ar"?it.desc.ar:it.desc.en) || "";
-      const badge = it.type === "both"
-        ? (lang==="ar" ? "مطعم + كافيه" : "Restaurant + Cafe")
-        : it.type === "restaurant"
-          ? (lang==="ar" ? "مطعم" : "Restaurant")
-          : (lang==="ar" ? "كافيه" : "Cafe");
-
-      const imgHtml = hasImg
-        ? `<img src="${it.image.replaceAll('"','&quot;')}" alt="">`
-        : `<div style="font-size:18px; opacity:.92">LUXE</div>`;
-
-      card.innerHTML = `
-        <div class="itemImg">${imgHtml}</div>
-        <div class="itemBody">
-          <p class="itemName">${escapeHtml(name)}</p>
-          <p class="itemDesc">${escapeHtml(desc)}</p>
-          <div class="itemFooter">
-            <span class="price">${fmtPrice(it.price, currency, lang)}</span>
-            <span class="badge">${escapeHtml(catName(it.categoryId))} • ${escapeHtml(badge)}</span>
-          </div>
-        </div>
-      `;
-      grid.appendChild(card);
-    });
-
-    if(items.length === 0){
-      const empty = document.createElement("div");
-      empty.className = "item";
-      empty.style.gridColumn = "1 / -1";
-      empty.innerHTML = `
-        <div class="itemBody">
-          <p class="itemName">${lang==="ar" ? "لا توجد نتائج" : "No results"}</p>
-          <p class="itemDesc">${lang==="ar" ? "جرّب تغير البحث أو القسم." : "Try changing your search or category."}</p>
-        </div>
-      `;
-      grid.appendChild(empty);
-    }
-  };
-
-  function escapeHtml(s){
-    return String(s||"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;");
-  }
-
-  // ---------- Admin (Lock) ----------
-  const getPin = () => localStorage.getItem(PIN_KEY) || "1234";
-  const setPin = (p) => localStorage.setItem(PIN_KEY, p);
-
-  let unlocked = false;
-  const requireUnlock = () => {
-    unlocked = false;
-    disableAdmin(true);
-  };
-
-  const disableAdmin = (disabled) => {
-    const ids = [
-      "nameAr","descAr","nameEn","descEn","phone","whatsapp","address","hours","rating","currency",
-      "saveSettingsBtn","exportBtn","importBtn","resetAllBtn",
-      "itemType","itemCategory","itemNameAr","itemDescAr","itemNameEn","itemDescEn","itemPrice","itemImage",
-      "saveItemBtn","clearFormBtn","adminSearch","adminCatFilter"
-    ];
-    ids.forEach(id=>{
-      const el = $("#"+id);
-      if(!el) return;
-      el.disabled = disabled;
-      el.style.opacity = disabled ? .6 : 1;
-      el.style.pointerEvents = disabled ? "none" : "auto";
-    });
-    $("#itemsTable").style.opacity = disabled ? .7 : 1;
-  };
-
-  // ---------- Admin Rendering ----------
-  let editId = null;
-
-  const fillSettingsForm = () => {
-    $("#nameAr").value = state.meta.name.ar || "";
-    $("#descAr").value = state.meta.desc.ar || "";
-    $("#nameEn").value = state.meta.name.en || "";
-    $("#descEn").value = state.meta.desc.en || "";
-    $("#phone").value = state.meta.phone || "";
-    $("#whatsapp").value = state.meta.whatsapp || "";
-    $("#address").value = state.meta.address || "";
-    $("#hours").value = state.meta.hours || "";
-    $("#rating").value = state.meta.rating || "";
-    $("#currency").value = state.meta.currency || "EGP";
-  };
-
-  const fillCategorySelects = () => {
-    const catSel = $("#itemCategory");
-    const adminCat = $("#adminCatFilter");
-    catSel.innerHTML = "";
-    adminCat.innerHTML = "";
-
-    const optAll = document.createElement("option");
-    optAll.value = "all";
-    optAll.textContent = (lang==="ar" ? "كل الأقسام" : "All categories");
-    adminCat.appendChild(optAll);
-
-    state.categories.forEach(c=>{
-      const o1 = document.createElement("option");
-      o1.value = c.id;
-      o1.textContent = (lang==="ar" ? c.name.ar : c.name.en);
-      catSel.appendChild(o1);
-
-      const o2 = document.createElement("option");
-      o2.value = c.id;
-      o2.textContent = (lang==="ar" ? c.name.ar : c.name.en);
-      adminCat.appendChild(o2);
-    });
-  };
-
-  const clearItemForm = () => {
-    editId = null;
-    $("#itemType").value = "both";
-    $("#itemCategory").value = state.categories[0]?.id || "starters";
-    $("#itemNameAr").value = "";
-    $("#itemDescAr").value = "";
-    $("#itemNameEn").value = "";
-    $("#itemDescEn").value = "";
-    $("#itemPrice").value = "";
-    $("#itemImage").value = "";
-    showToast(lang==="ar" ? "تم تفريغ النموذج" : "Form cleared");
-  };
-
-  const saveState = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-
-  const saveSettings = () => {
-    state.meta.name.ar = $("#nameAr").value.trim();
-    state.meta.desc.ar = $("#descAr").value.trim();
-    state.meta.name.en = $("#nameEn").value.trim();
-    state.meta.desc.en = $("#descEn").value.trim();
-
-    state.meta.phone = $("#phone").value.trim();
-    state.meta.whatsapp = $("#whatsapp").value.trim();
-    state.meta.address = $("#address").value.trim();
-    state.meta.hours = $("#hours").value.trim();
-    state.meta.rating = $("#rating").value.trim();
-    state.meta.currency = $("#currency").value;
-
-    saveState();
-    renderMeta();
-    applyLang();
-    showToast(lang==="ar" ? "تم حفظ الإعدادات ✅" : "Settings saved ✅");
-  };
-
-  const saveItem = () => {
-    const price = Number($("#itemPrice").value);
-    if(!isFinite(price)){
-      showToast(lang==="ar" ? "السعر لازم يكون رقم" : "Price must be a number");
-      return;
-    }
-
-    const data = {
-      type: $("#itemType").value,
-      categoryId: $("#itemCategory").value,
-      name:{
-        ar: $("#itemNameAr").value.trim(),
-        en: $("#itemNameEn").value.trim()
-      },
-      desc:{
-        ar: $("#itemDescAr").value.trim(),
-        en: $("#itemDescEn").value.trim()
-      },
-      price: price,
-      image: $("#itemImage").value.trim()
-    };
-
-    if(!data.name.ar && !data.name.en){
-      showToast(lang==="ar" ? "اكتب اسم الصنف" : "Add item name");
-      return;
-    }
-
-    if(editId){
-      const idx = state.items.findIndex(x=>x.id===editId);
-      if(idx >= 0){
-        state.items[idx] = { ...state.items[idx], ...data };
-      }
-      editId = null;
-      showToast(lang==="ar" ? "تم التعديل ✅" : "Updated ✅");
-    } else {
-      state.items.unshift({ id: uid(), ...data });
-      showToast(lang==="ar" ? "تمت الإضافة ✅" : "Added ✅");
-    }
-
-    saveState();
-    renderGrid();
-    renderAdminTable();
-    clearItemForm();
-  };
-
-  const renderAdminTable = () => {
-    const q = ($("#adminSearch").value || "").trim().toLowerCase();
-    const catFilter = $("#adminCatFilter").value || "all";
-    const currency = state.meta.currency || "EGP";
-
-    const pickName = (it) => (lang==="ar" ? (it.name.ar||it.name.en||"") : (it.name.en||it.name.ar||""));
-    const pickCat = (id) => {
-      const c = state.categories.find(x=>x.id===id);
-      return c ? (lang==="ar"?c.name.ar:c.name.en) : "";
-    };
-    const pickType = (type) => {
-      if(type==="both") return lang==="ar" ? "الاتنين" : "Both";
-      if(type==="restaurant") return lang==="ar" ? "مطعم" : "Restaurant";
-      return lang==="ar" ? "كافيه" : "Cafe";
-    };
-
-    let items = state.items.slice();
-
-    if(catFilter !== "all") items = items.filter(it=>it.categoryId===catFilter);
-
-    if(q){
-      items = items.filter(it=>{
-        const n = pickName(it).toLowerCase();
-        const d = (lang==="ar" ? (it.desc.ar||"") : (it.desc.en||"")).toLowerCase();
-        return n.includes(q) || d.includes(q);
-      });
-    }
-
-    const table = $("#itemsTable");
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>${lang==="ar" ? "الصنف" : "Item"}</th>
-          <th>${lang==="ar" ? "القسم" : "Category"}</th>
-          <th>${lang==="ar" ? "النوع" : "Type"}</th>
-          <th>${lang==="ar" ? "السعر" : "Price"}</th>
-          <th>${lang==="ar" ? "إجراءات" : "Actions"}</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-    const tb = table.querySelector("tbody");
-
-    items.forEach(it=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><b>${escapeHtml(pickName(it))}</b><div class="small">${escapeHtml(lang==="ar"?(it.desc.ar||""):(it.desc.en||""))}</div></td>
-        <td>${escapeHtml(pickCat(it.categoryId))}</td>
-        <td>${escapeHtml(pickType(it.type))}</td>
-        <td><b style="color:var(--gold)">${fmtPrice(it.price, currency, lang)}</b></td>
-        <td>
-          <button class="miniBtn" data-act="edit" data-id="${it.id}">${lang==="ar"?"تعديل":"Edit"}</button>
-          <button class="miniBtn danger" data-act="del" data-id="${it.id}">${lang==="ar"?"حذف":"Delete"}</button>
-        </td>
-      `;
-      tb.appendChild(tr);
-    });
-
-    tb.querySelectorAll("button").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const id = btn.dataset.id;
-        const act = btn.dataset.act;
-        if(act === "edit") startEdit(id);
-        else if(act === "del") delItem(id);
-      });
-    });
-
-    if(items.length === 0){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="5" style="color:var(--muted)">${lang==="ar"?"لا توجد عناصر":"No items"}</td>`;
-      tb.appendChild(tr);
-    }
-  };
-
-  const startEdit = (id) => {
-    const it = state.items.find(x=>x.id===id);
-    if(!it) return;
-    editId = id;
-    $("#itemType").value = it.type;
-    $("#itemCategory").value = it.categoryId;
-    $("#itemNameAr").value = it.name.ar || "";
-    $("#itemDescAr").value = it.desc.ar || "";
-    $("#itemNameEn").value = it.name.en || "";
-    $("#itemDescEn").value = it.desc.en || "";
-    $("#itemPrice").value = it.price;
-    $("#itemImage").value = it.image || "";
-    showToast(lang==="ar" ? "وضع التعديل ✏️" : "Edit mode ✏️");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const delItem = (id) => {
-    const ok = confirm(lang==="ar" ? "متأكد حذف الصنف؟" : "Delete this item?");
-    if(!ok) return;
-    state.items = state.items.filter(x=>x.id!==id);
-    saveState();
-    renderGrid();
-    renderAdminTable();
-    showToast(lang==="ar" ? "تم الحذف 🗑️" : "Deleted 🗑️");
-  };
-
-  // ---------- Export/Import ----------
-  const exportJSON = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      state
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "qrmenu-data.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    showToast(lang==="ar" ? "تم التصدير ⤓" : "Exported ⤓");
-  };
-
-  const importJSON = async (file) => {
-    try{
-      const text = await file.text();
-      const obj = JSON.parse(text);
-      if(obj && obj.state && obj.state.meta && obj.state.categories && obj.state.items){
-        state = obj.state;
-        saveState();
-        fillSettingsForm();
-        fillCategorySelects();
-        renderCats();
-        renderMeta();
-        renderGrid();
-        renderAdminTable();
-        applyLang();
-        showToast(lang==="ar" ? "تم الاستيراد ✅" : "Imported ✅");
-      } else {
-        showToast(lang==="ar" ? "ملف غير صالح" : "Invalid file");
-      }
-    }catch(e){
-      showToast(lang==="ar" ? "فشل الاستيراد" : "Import failed");
-    }
-  };
-
-  // ---------- Reset ----------
-  const resetAll = () => {
-    const ok = confirm(lang==="ar" ? "هيمسح كل البيانات المحلية ويرجع الافتراضي. متأكد؟" : "This will wipe local data and restore defaults. Continue?");
-    if(!ok) return;
-    state = defaultState();
-    saveState();
-    fillSettingsForm();
-    fillCategorySelects();
-    activeCat = "all";
-    renderCats();
-    renderMeta();
-    renderGrid();
-    renderAdminTable();
-    showToast(lang==="ar" ? "تم الريست ✅" : "Reset ✅");
-  };
-
-  // ---------- Menu actions (Call/WA/Copy) ----------
-  const callAction = () => {
-    const p = (state.meta.phone || "").replace(/\s+/g,"");
-    if(!p){ showToast(lang==="ar" ? "لا يوجد رقم" : "No phone"); return; }
-    location.href = `tel:${p}`;
-  };
-  const waAction = () => {
-    const w = (state.meta.whatsapp || "").replace(/\D/g,"");
-    if(!w){ showToast(lang==="ar" ? "لا يوجد واتساب" : "No WhatsApp"); return; }
-    const msg = encodeURIComponent(lang==="ar" ? "مرحبًا، عندي استفسار من المنيو." : "Hello, I have a question from the menu.");
-    location.href = `https://wa.me/${w}?text=${msg}`;
-  };
-  const copyLink = async () => {
-    const url = location.origin + location.pathname;
-    try{
-      await navigator.clipboard.writeText(url);
-      showToast(lang==="ar" ? "تم نسخ الرابط ✅" : "Link copied ✅");
-    }catch(e){
-      showToast(lang==="ar" ? "انسخ يدويًا: " + url : "Copy manually: " + url);
-    }
-  };
-
-  // ---------- Wiring: Menu ----------
-  $("#searchInput").addEventListener("input", renderGrid);
-  $("#typeFilter").addEventListener("change", renderGrid);
-  $("#sortBy").addEventListener("change", renderGrid);
-
-  $("#callBtn").addEventListener("click", callAction);
-  $("#waBtn").addEventListener("click", waAction);
-  $("#copyLinkBtn").addEventListener("click", copyLink);
-
-  // ---------- Wiring: Top actions ----------
-  $("#langBtn").addEventListener("click", ()=>{
-    lang = (lang === "ar" ? "en" : "ar");
-    localStorage.setItem(LANG_KEY, lang);
-    applyLang();
-    renderCats();
-    renderMeta();
-    renderGrid();
-    fillCategorySelects();
-    renderAdminTable();
-    showToast(lang==="ar" ? "تم التحويل للعربية" : "Switched to English");
-  });
-
-  $("#themeBtn").addEventListener("click", ()=>{
-    theme = (theme === "dark" ? "light" : "dark");
-    applyTheme();
-    showToast(theme === "dark" ? "Dark ✅" : "Light ✅");
-  });
-
-  $("#goAdminBtn").addEventListener("click", ()=>{
-    showPage("admin");
-    fillSettingsForm();
-    fillCategorySelects();
-    renderAdminTable();
-    requireUnlock();
-    showToast(lang==="ar" ? "Dashboard" : "Dashboard");
-  });
-
-  // ---------- Wiring: Admin ----------
-  $("#backToMenuBtn").addEventListener("click", ()=>{
-    showPage("menu");
-  });
-
-  $("#unlockBtn").addEventListener("click", ()=>{
-    const pin = ($("#pinInput").value || "").trim();
-    if(pin === getPin()){
-      unlocked = true;
-      disableAdmin(false);
-      showToast(lang==="ar" ? "تم الدخول ✅" : "Unlocked ✅");
-    } else {
-      showToast(lang==="ar" ? "PIN غلط" : "Wrong PIN");
-    }
-  });
-
-  $("#lockBtn").addEventListener("click", ()=>{
-    requireUnlock();
-    $("#pinInput").value = "";
-    showToast(lang==="ar" ? "تم القفل 🔒" : "Locked 🔒");
-  });
-
-  $("#changePinBtn").addEventListener("click", ()=>{
-    const current = prompt(lang==="ar" ? "اكتب الـ PIN الحالي:" : "Enter current PIN:");
-    if(current === null) return;
-    if(current.trim() !== getPin()){
-      showToast(lang==="ar" ? "PIN الحالي غلط" : "Wrong current PIN");
-      return;
-    }
-    const next = prompt(lang==="ar" ? "اكتب PIN جديد (4-10 أرقام):" : "Enter new PIN (4-10 digits):");
-    if(!next) return;
-    const cleaned = next.trim();
-    if(cleaned.length < 4 || cleaned.length > 10 || !/^\d+$/.test(cleaned)){
-      showToast(lang==="ar" ? "PIN غير صالح" : "Invalid PIN");
-      return;
-    }
-    setPin(cleaned);
-    showToast(lang==="ar" ? "تم تغيير PIN ✅" : "PIN changed ✅");
-  });
-
-  $("#saveSettingsBtn").addEventListener("click", saveSettings);
-  $("#saveItemBtn").addEventListener("click", saveItem);
-  $("#clearFormBtn").addEventListener("click", clearItemForm);
-
-  $("#exportBtn").addEventListener("click", exportJSON);
-  $("#importBtn").addEventListener("click", ()=> $("#importFile").click());
-  $("#importFile").addEventListener("change", (e)=>{
-    const f = e.target.files?.[0];
-    if(f) importJSON(f);
-    e.target.value = "";
-  });
-
-  $("#resetAllBtn").addEventListener("click", resetAll);
-
-  $("#adminSearch").addEventListener("input", renderAdminTable);
-  $("#adminCatFilter").addEventListener("change", renderAdminTable);
-
-  // ---------- Initial render ----------
-  applyTheme();
-  applyLang();
-  renderCats();
-  renderMeta();
-  renderGrid();
-  drawQR();
-
-  // Fill admin selects now (so form is ready)
-  fillSettingsForm();
-  fillCategorySelects();
-
-  // Start page based on hash
-  if(location.hash.includes("admin")){
-    showPage("admin");
-    requireUnlock();
-    renderAdminTable();
-  } else {
-    showPage("menu");
-  }
-
-})();
+
+let products = JSON.parse(localStorage.getItem("products")) || []
+let cart = JSON.parse(localStorage.getItem("cart")) || []
+let orders = JSON.parse(localStorage.getItem("orders")) || []
+let users = JSON.parse(localStorage.getItem("users")) || []
+
+function notify(msg){
+let n=document.getElementById("notify")
+n.innerText=msg
+n.classList.remove("hidden")
+setTimeout(()=>n.classList.add("hidden"),2000)
+}
+
+function save(){
+localStorage.setItem("products",JSON.stringify(products))
+localStorage.setItem("cart",JSON.stringify(cart))
+localStorage.setItem("orders",JSON.stringify(orders))
+localStorage.setItem("users",JSON.stringify(users))
+}
+
+function generateProducts(){
+
+if(products.length>0)return
+
+products=[
+{id:1,name:"iPhone 14",price:999,img:"https://picsum.photos/300?1"},
+{id:2,name:"Samsung S23",price:850,img:"https://picsum.photos/300?2"},
+{id:3,name:"MacBook Pro",price:1800,img:"https://picsum.photos/300?3"},
+{id:4,name:"Dell XPS",price:1500,img:"https://picsum.photos/300?4"},
+{id:5,name:"Sony Headphones",price:300,img:"https://picsum.photos/300?5"},
+{id:6,name:"Apple Watch",price:450,img:"https://picsum.photos/300?6"},
+{id:7,name:"Gaming Mouse",price:80,img:"https://picsum.photos/300?7"},
+{id:8,name:"Mechanical Keyboard",price:120,img:"https://picsum.photos/300?8"},
+{id:9,name:"iPad Pro",price:900,img:"https://picsum.photos/300?9"},
+{id:10,name:"Smart TV",price:1200,img:"https://picsum.photos/300?10"},
+{id:11,name:"Bluetooth Speaker",price:150,img:"https://picsum.photos/300?11"},
+{id:12,name:"Power Bank",price:50,img:"https://picsum.photos/300?12"}
+]
+
+save()
+
+}
+
+function renderProducts(){
+
+let list=document.getElementById("productList")
+list.innerHTML=""
+
+let max=document.getElementById("priceFilter").value
+
+products.filter(p=>p.price<=max).forEach(p=>{
+
+list.innerHTML+=`
+<div class="card">
+
+<img src="${p.img}">
+<h4>${p.name}</h4>
+<p>$${p.price}</p>
+
+<button class="primary" onclick="addCart(${p.id})">
+Add to Cart
+</button>
+
+</div>
+`
+})
+
+}
+
+function renderHome(){
+
+let home=document.getElementById("homeProducts")
+home.innerHTML=""
+
+products.slice(0,4).forEach(p=>{
+home.innerHTML+=`
+<div class="card">
+<img src="${p.img}">
+<h4>${p.name}</h4>
+<p>$${p.price}</p>
+<button onclick="addCart(${p.id})">Add</button>
+</div>
+`
+})
+
+}
+
+function addCart(id){
+
+let p=products.find(x=>x.id==id)
+cart.push(p)
+
+save()
+updateCart()
+
+notify("Added to cart")
+
+}
+
+function updateCart(){
+
+document.getElementById("cartCount").innerText=cart.length
+
+let items=document.getElementById("cartItems")
+items.innerHTML=""
+
+let total=0
+
+cart.forEach((c,i)=>{
+total+=c.price
+
+items.innerHTML+=`
+<div class="cart-item">
+${c.name} - $${c.price}
+<button onclick="removeCart(${i})">X</button>
+</div>
+`
+})
+
+document.getElementById("cartTotal").innerText=total
+
+}
+
+function removeCart(i){
+cart.splice(i,1)
+save()
+updateCart()
+}
+
+function placeOrder(){
+
+if(cart.length==0)return
+
+orders.push({
+date:new Date().toLocaleString(),
+items:[...cart]
+})
+
+cart=[]
+save()
+
+updateCart()
+renderOrders()
+
+notify("Order placed!")
+
+showPage("orders")
+
+}
+
+function renderOrders(){
+
+let o=document.getElementById("orderList")
+o.innerHTML=""
+
+orders.forEach(order=>{
+o.innerHTML+=`
+<div class="card">
+<h4>${order.date}</h4>
+<p>${order.items.length} items</p>
+</div>
+`
+})
+
+}
+
+function showPage(id){
+
+document.querySelectorAll(".container>div")
+.forEach(p=>p.classList.add("hidden"))
+
+document.getElementById(id).classList.remove("hidden")
+
+}
+
+function login(){
+
+let u=document.getElementById("username").value
+let p=document.getElementById("password").value
+
+if(u=="admin" && p=="admin123"){
+
+document.querySelector(".container").classList.add("hidden")
+document.getElementById("adminPanel").classList.remove("hidden")
+
+adminView("products")
+
+return
+}
+
+notify("Logged in")
+
+}
+
+function adminView(section){
+
+let c=document.getElementById("adminContent")
+
+if(section=="products"){
+
+c.innerHTML=`
+
+<h2>Products</h2>
+
+<button onclick="addProduct()">Add Product</button>
+
+<table>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Price</th>
+<th>Delete</th>
+</tr>
+
+${products.map(p=>`
+<tr>
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>${p.price}</td>
+<td><button onclick="deleteProduct(${p.id})">X</button></td>
+</tr>
+`).join("")}
+
+</table>
+`
+}
+
+if(section=="orders"){
+
+c.innerHTML=`
+<h2>Orders</h2>
+
+${orders.map(o=>`
+<div class="card">
+${o.date} - ${o.items.length} items
+</div>
+`).join("")}
+
+`
+}
+
+if(section=="stats"){
+
+let revenue=orders.reduce((t,o)=>t+
+o.items.reduce((s,i)=>s+i.price,0),0)
+
+c.innerHTML=`
+<h2>Sales Stats</h2>
+
+<p>Total Orders: ${orders.length}</p>
+<p>Total Revenue: $${revenue}</p>
+
+`
+}
+
+}
+
+function deleteProduct(id){
+products=products.filter(p=>p.id!=id)
+save()
+adminView("products")
+}
+
+function addProduct(){
+
+let name=prompt("Product name")
+let price=prompt("Price")
+let img="https://picsum.photos/300?random="+Math.random()
+
+products.push({
+id:Date.now(),
+name,
+price,
+img
+})
+
+save()
+adminView("products")
+
+}
+
+function toggleDark(){
+document.body.classList.toggle("dark")
+}
+
+document.getElementById("search").oninput=e=>{
+
+let q=e.target.value.toLowerCase()
+
+let list=document.getElementById("productList")
+
+list.innerHTML=""
+
+products
+.filter(p=>p.name.toLowerCase().includes(q))
+.forEach(p=>{
+
+list.innerHTML+=`
+<div class="card">
+<img src="${p.img}">
+<h4>${p.name}</h4>
+<p>$${p.price}</p>
+<button onclick="addCart(${p.id})">Add</button>
+</div>
+`
+})
+
+}
+
+document.getElementById("priceFilter").oninput=renderProducts
+
+generateProducts()
+renderProducts()
+renderHome()
+updateCart()
+renderOrders()
+
 </script>
+
 </body>
 </html>
