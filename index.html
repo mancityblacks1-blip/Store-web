@@ -5,23 +5,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Electro Amazon Store</title>
+<title>Electro Amazon Pro</title>
 
 <style>
 
-/* =========================
-GLOBAL STYLES
-========================= */
+/* ================================
+GLOBAL
+================================ */
 
 body{
-font-family:Arial,Helvetica,sans-serif;
+font-family:Arial;
 margin:0;
 background:#f3f3f3;
 }
 
-/* =========================
+.hidden{display:none}
+
+.container{padding:20px}
+
+/* ================================
 HEADER
-========================= */
+================================ */
 
 header{
 background:#131921;
@@ -38,27 +42,22 @@ font-weight:bold;
 color:#ff9900;
 }
 
-.search-bar{
+.search{
 flex:1;
 display:flex;
 }
 
-.search-bar input{
+.search input{
 flex:1;
 padding:10px;
 border:none;
 }
 
-.search-bar button{
+.search button{
 background:#febd69;
 border:none;
 padding:10px 15px;
 cursor:pointer;
-}
-
-nav{
-display:flex;
-gap:10px;
 }
 
 nav button{
@@ -67,15 +66,12 @@ color:white;
 border:none;
 padding:8px 12px;
 cursor:pointer;
+margin-left:5px;
 }
 
-/* =========================
-LAYOUT
-========================= */
-
-.container{
-padding:20px;
-}
+/* ================================
+GRID
+================================ */
 
 .grid{
 display:grid;
@@ -83,9 +79,9 @@ grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
 gap:20px;
 }
 
-/* =========================
+/* ================================
 PRODUCT CARD
-========================= */
+================================ */
 
 .card{
 background:white;
@@ -103,16 +99,13 @@ object-fit:cover;
 .price{
 color:#b12704;
 font-weight:bold;
-font-size:18px;
 }
 
-.rating{
-color:#ffa41c;
-}
+.rating{color:#ffa41c}
 
-/* =========================
+/* ================================
 BUTTON
-========================= */
+================================ */
 
 .btn{
 background:#ffd814;
@@ -123,12 +116,35 @@ margin-top:5px;
 width:100%;
 }
 
-/* =========================
-HIDDEN
-========================= */
+/* ================================
+ADMIN
+================================ */
 
-.hidden{
-display:none;
+.admin{
+display:grid;
+grid-template-columns:220px 1fr;
+height:100vh;
+}
+
+.sidebar{
+background:#111;
+color:white;
+padding:20px;
+}
+
+.sidebar div{
+margin-bottom:15px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+td,th{
+border:1px solid #ddd;
+padding:8px;
 }
 
 </style>
@@ -141,19 +157,19 @@ display:none;
 
 <div class="logo">ElectroAmazon</div>
 
-<div class="search-bar">
-<input id="searchInput" placeholder="Search electronics">
+<div class="search">
+<input id="searchBox" placeholder="Search electronics">
 <button onclick="searchProducts()">Search</button>
 </div>
 
 <nav>
 
-<button onclick="showPage('home')">Home</button>
-<button onclick="showPage('products')">Products</button>
-<button onclick="showPage('wishlist')">Wishlist</button>
-<button onclick="showPage('cart')">Cart (<span id="cartCount">0</span>)</button>
-<button onclick="showPage('orders')">Orders</button>
-<button onclick="showPage('login')">Login</button>
+<button onclick="page('home')">Home</button>
+<button onclick="page('products')">Products</button>
+<button onclick="page('wishlist')">Wishlist</button>
+<button onclick="page('cart')">Cart (<span id="cartCount">0</span>)</button>
+<button onclick="page('orders')">Orders</button>
+<button onclick="page('login')">Login</button>
 
 </nav>
 
@@ -161,30 +177,24 @@ display:none;
 
 <div class="container">
 
-<!-- HOME -->
-
 <div id="home">
 
-<h2>Featured Electronics</h2>
+<h2>Featured Products</h2>
 
-<div class="grid" id="featuredProducts"></div>
+<div class="grid" id="featured"></div>
 
 </div>
 
-<!-- PRODUCTS -->
-
 <div id="products" class="hidden">
 
-<h2>All Products</h2>
+<h2>Products</h2>
 
 <label>Max Price</label>
-<input type="range" id="priceFilter" min="50" max="2000" value="2000">
+<input type="range" min="50" max="2000" value="2000" id="priceFilter">
 
 <div class="grid" id="productGrid"></div>
 
 </div>
-
-<!-- WISHLIST -->
 
 <div id="wishlist" class="hidden">
 
@@ -194,21 +204,17 @@ display:none;
 
 </div>
 
-<!-- CART -->
-
 <div id="cart" class="hidden">
 
-<h2>Shopping Cart</h2>
+<h2>Cart</h2>
 
 <div id="cartItems"></div>
 
-<h3>Total: $<span id="cartTotal"></span></h3>
+<h3>Total $<span id="cartTotal"></span></h3>
 
-<button class="btn" onclick="showPage('checkout')">Proceed to Checkout</button>
+<button class="btn" onclick="page('checkout')">Checkout</button>
 
 </div>
-
-<!-- CHECKOUT -->
 
 <div id="checkout" class="hidden">
 
@@ -222,13 +228,9 @@ display:none;
 
 </select>
 
-<br><br>
-
-<button class="btn" onclick="placeOrder()">Complete Payment</button>
+<button class="btn" onclick="placeOrder()">Pay</button>
 
 </div>
-
-<!-- ORDERS -->
 
 <div id="orders" class="hidden">
 
@@ -238,14 +240,11 @@ display:none;
 
 </div>
 
-<!-- LOGIN -->
-
 <div id="login" class="hidden">
 
 <h2>Login</h2>
 
 <input id="username" placeholder="username"><br><br>
-
 <input id="password" type="password" placeholder="password"><br><br>
 
 <button onclick="login()">Login</button>
@@ -254,18 +253,36 @@ display:none;
 
 </div>
 
+<div id="adminPanel" class="hidden admin">
+
+<div class="sidebar">
+
+<h3>Admin</h3>
+
+<div onclick="adminPage('dashboard')">Dashboard</div>
+<div onclick="adminPage('products')">Products</div>
+<div onclick="adminPage('orders')">Orders</div>
+<div onclick="adminPage('users')">Users</div>
+<div onclick="location.reload()">Exit</div>
+
+</div>
+
+<div id="adminContent"></div>
+
+</div>
+
 <script>
 
-/* =========================
+/* ================================
 DATABASE
-========================= */
+================================ */
 
-let products = JSON.parse(localStorage.getItem("products")) || []
-let cart = JSON.parse(localStorage.getItem("cart")) || []
-let orders = JSON.parse(localStorage.getItem("orders")) || []
-let wishlist = JSON.parse(localStorage.getItem("wishlist")) || []
+let products=JSON.parse(localStorage.getItem("products"))||[]
+let cart=JSON.parse(localStorage.getItem("cart"))||[]
+let orders=JSON.parse(localStorage.getItem("orders"))||[]
+let wishlist=JSON.parse(localStorage.getItem("wishlist"))||[]
 
-function saveData(){
+function save(){
 
 localStorage.setItem("products",JSON.stringify(products))
 localStorage.setItem("cart",JSON.stringify(cart))
@@ -274,15 +291,15 @@ localStorage.setItem("wishlist",JSON.stringify(wishlist))
 
 }
 
-/* =========================
+/* ================================
 GENERATE DEMO PRODUCTS
-========================= */
+================================ */
 
 function generateProducts(){
 
-if(products.length>0) return
+if(products.length) return
 
-for(let i=1;i<=30;i++){
+for(let i=1;i<=50;i++){
 
 products.push({
 
@@ -297,38 +314,36 @@ img:"https://picsum.photos/300?random="+i
 
 }
 
-saveData()
+save()
 
 }
 
-/* =========================
-PAGE ROUTER
-========================= */
+/* ================================
+ROUTER
+================================ */
 
-function showPage(id){
+function page(id){
 
-document.querySelectorAll(".container > div")
-.forEach(page => page.classList.add("hidden"))
+document.querySelectorAll(".container>div")
+.forEach(x=>x.classList.add("hidden"))
 
 document.getElementById(id).classList.remove("hidden")
 
 }
 
-/* =========================
+/* ================================
 RENDER PRODUCTS
-========================= */
+================================ */
 
 function renderProducts(){
 
-let grid = document.getElementById("productGrid")
+let max=document.getElementById("priceFilter").value
+
+let grid=document.getElementById("productGrid")
 
 grid.innerHTML=""
 
-let max=document.getElementById("priceFilter").value
-
-products
-.filter(p=>p.price<=max)
-.forEach(p=>{
+products.filter(p=>p.price<=max).forEach(p=>{
 
 grid.innerHTML+=`
 
@@ -342,9 +357,9 @@ grid.innerHTML+=`
 
 <p class="rating">⭐ ${p.rating}</p>
 
-<button class="btn" onclick="addToCart(${p.id})">Add to Cart</button>
+<button class="btn" onclick="addCart(${p.id})">Add to Cart</button>
 
-<button onclick="addToWishlist(${p.id})">❤️ Wishlist</button>
+<button onclick="addWishlist(${p.id})">❤️</button>
 
 </div>
 
@@ -354,19 +369,19 @@ grid.innerHTML+=`
 
 }
 
-/* =========================
+/* ================================
 FEATURED
-========================= */
+================================ */
 
 function renderFeatured(){
 
-let grid=document.getElementById("featuredProducts")
+let f=document.getElementById("featured")
 
-grid.innerHTML=""
+f.innerHTML=""
 
 products.slice(0,8).forEach(p=>{
 
-grid.innerHTML+=`
+f.innerHTML+=`
 
 <div class="card">
 
@@ -376,7 +391,7 @@ grid.innerHTML+=`
 
 <p class="price">$${p.price}</p>
 
-<button class="btn" onclick="addToCart(${p.id})">Add to Cart</button>
+<button class="btn" onclick="addCart(${p.id})">Add</button>
 
 </div>
 
@@ -386,20 +401,89 @@ grid.innerHTML+=`
 
 }
 
-/* =========================
+/* ================================
+CART
+================================ */
+
+function addCart(id){
+
+let p=products.find(x=>x.id==id)
+
+cart.push(p)
+
+save()
+
+updateCart()
+
+}
+
+function updateCart(){
+
+document.getElementById("cartCount").innerText=cart.length
+
+let items=document.getElementById("cartItems")
+
+items.innerHTML=""
+
+let total=0
+
+cart.forEach((c,i)=>{
+
+total+=c.price
+
+items.innerHTML+=`
+
+<div>
+
+${c.name} - $${c.price}
+
+<button onclick="removeCart(${i})">X</button>
+
+</div>
+
+`
+
+})
+
+document.getElementById("cartTotal").innerText=total
+
+}
+
+function removeCart(i){
+
+cart.splice(i,1)
+
+save()
+
+updateCart()
+
+}
+
+/* ================================
+WISHLIST
+================================ */
+
+function addWishlist(id){
+
+wishlist.push(id)
+
+save()
+
+}
+
+/* ================================
 SEARCH
-========================= */
+================================ */
 
 function searchProducts(){
 
-let q=document.getElementById("searchInput").value.toLowerCase()
+let q=document.getElementById("searchBox").value.toLowerCase()
 
 let grid=document.getElementById("productGrid")
 
 grid.innerHTML=""
 
-products
-.filter(p=>p.name.toLowerCase().includes(q))
+products.filter(p=>p.name.toLowerCase().includes(q))
 .forEach(p=>{
 
 grid.innerHTML+=`
@@ -412,7 +496,7 @@ grid.innerHTML+=`
 
 <p>$${p.price}</p>
 
-<button class="btn" onclick="addToCart(${p.id})">Add to Cart</button>
+<button onclick="addCart(${p.id})">Add</button>
 
 </div>
 
@@ -422,336 +506,54 @@ grid.innerHTML+=`
 
 }
 
-/* =========================
-INIT
-========================= */
-
-document.getElementById("priceFilter").oninput=renderProducts
-
-generateProducts()
-
-renderProducts()
-
-renderFeatured()
-/* =========================
-CART SYSTEM
-========================= */
-
-function addToCart(id){
-
-let product = products.find(p=>p.id===id)
-
-if(!product) return
-
-cart.push(product)
-
-saveData()
-
-updateCartUI()
-
-alert("Product added to cart")
-
-}
-
-function updateCartUI(){
-
-document.getElementById("cartCount").innerText=cart.length
-
-let cartItems=document.getElementById("cartItems")
-
-if(!cartItems) return
-
-cartItems.innerHTML=""
-
-let total=0
-
-cart.forEach((item,index)=>{
-
-total+=item.price
-
-cartItems.innerHTML+=`
-
-<div class="card">
-
-<h4>${item.name}</h4>
-
-<p>$${item.price}</p>
-
-<button onclick="removeFromCart(${index})">Remove</button>
-
-</div>
-
-`
-
-})
-
-let totalElement=document.getElementById("cartTotal")
-
-if(totalElement) totalElement.innerText=total
-
-}
-
-function removeFromCart(index){
-
-cart.splice(index,1)
-
-saveData()
-
-updateCartUI()
-
-}
-
-/* =========================
-WISHLIST SYSTEM
-========================= */
-
-function addToWishlist(id){
-
-if(wishlist.includes(id)){
-
-alert("Already in wishlist")
-
-return
-
-}
-
-wishlist.push(id)
-
-saveData()
-
-renderWishlist()
-
-alert("Added to wishlist")
-
-}
-
-function renderWishlist(){
-
-let grid=document.getElementById("wishlistGrid")
-
-if(!grid) return
-
-grid.innerHTML=""
-
-wishlist.forEach(id=>{
-
-let p=products.find(x=>x.id===id)
-
-if(!p) return
-
-grid.innerHTML+=`
-
-<div class="card">
-
-<img src="${p.img}">
-
-<h4>${p.name}</h4>
-
-<p class="price">$${p.price}</p>
-
-<button onclick="addToCart(${p.id})">Add to Cart</button>
-
-<button onclick="removeWishlist(${p.id})">Remove</button>
-
-</div>
-
-`
-
-})
-
-}
-
-function removeWishlist(id){
-
-wishlist=wishlist.filter(w=>w!==id)
-
-saveData()
-
-renderWishlist()
-
-}
-
-/* =========================
-PRODUCT RATINGS
-========================= */
-
-function rateProduct(id,stars){
-
-let product=products.find(p=>p.id===id)
-
-if(!product) return
-
-product.rating=stars
-
-saveData()
-
-renderProducts()
-
-}
-
-/* =========================
-STOCK MANAGEMENT
-========================= */
-
-function reduceStock(id){
-
-let product=products.find(p=>p.id===id)
-
-if(!product) return
-
-if(product.stock>0){
-
-product.stock--
-
-}
-
-saveData()
-
-}
-
-/* =========================
-ADVANCED FILTER
-========================= */
-
-function filterProducts(){
-
-let max=document.getElementById("priceFilter").value
-
-let grid=document.getElementById("productGrid")
-
-grid.innerHTML=""
-
-products
-.filter(p=>p.price<=max)
-.forEach(p=>{
-
-grid.innerHTML+=`
-
-<div class="card">
-
-<img src="${p.img}">
-
-<h4>${p.name}</h4>
-
-<p class="price">$${p.price}</p>
-
-<p>⭐ ${p.rating}</p>
-
-<p>Stock: ${p.stock}</p>
-
-<button class="btn" onclick="addToCart(${p.id})">Add to Cart</button>
-
-<button onclick="addToWishlist(${p.id})">❤️</button>
-
-</div>
-
-`
-
-})
-
-}
-
-document.getElementById("priceFilter").oninput=filterProducts
-
-/* =========================
-INITIALIZE UI
-========================= */
-
-updateCartUI()
-
-renderWishlist()
-
-filterProducts()
-  /* =========================
-CHECKOUT SYSTEM
-========================= */
+/* ================================
+CHECKOUT
+================================ */
 
 function placeOrder(){
 
-if(cart.length===0){
-
-alert("Cart is empty")
-return
-
-}
-
-let payment=document.getElementById("paymentMethod").value
-
-let order={
+orders.push({
 
 id:Date.now(),
-
 date:new Date().toLocaleString(),
-
 items:[...cart],
-
-payment:payment,
-
 status:"Processing"
 
-}
-
-orders.push(order)
+})
 
 cart=[]
 
-saveData()
+save()
 
-updateCartUI()
+updateCart()
 
 renderOrders()
 
-showPage("orders")
-
-alert("Order placed successfully")
+page("orders")
 
 }
 
-/* =========================
-ORDER TRACKING SYSTEM
-========================= */
+/* ================================
+ORDERS
+================================ */
 
 function renderOrders(){
 
-let container=document.getElementById("ordersList")
+let o=document.getElementById("ordersList")
 
-if(!container) return
-
-container.innerHTML=""
+o.innerHTML=""
 
 orders.forEach(order=>{
 
-let itemsHTML=""
-
-order.items.forEach(i=>{
-
-itemsHTML+=`
-
-<li>${i.name} - $${i.price}</li>
-
-`
-
-})
-
-container.innerHTML+=`
+o.innerHTML+=`
 
 <div class="card">
 
-<h3>Order #${order.id}</h3>
+<h4>Order ${order.id}</h4>
 
-<p>Date: ${order.date}</p>
+<p>Status: ${order.status}</p>
 
-<p>Payment: ${order.payment}</p>
-
-<p>Status: <b>${order.status}</b></p>
-
-<ul>${itemsHTML}</ul>
-
-<div class="tracking">
-
-${trackingBar(order.status)}
-
-</div>
+<p>${order.items.length} items</p>
 
 </div>
 
@@ -761,137 +563,16 @@ ${trackingBar(order.status)}
 
 }
 
-/* =========================
-TRACKING BAR
-========================= */
-
-function trackingBar(status){
-
-let steps=["Processing","Shipped","Out for Delivery","Delivered"]
-
-let html="<div style='display:flex;gap:10px'>"
-
-steps.forEach(step=>{
-
-let color="gray"
-
-if(steps.indexOf(step)<=steps.indexOf(status)){
-
-color="green"
-
-}
-
-html+=`<div style="padding:5px;background:${color};color:white">${step}</div>`
-
-})
-
-html+="</div>"
-
-return html
-
-}
-
-/* =========================
-SIMULATE SHIPPING
-========================= */
-
-function simulateShipping(){
-
-orders.forEach(order=>{
-
-if(order.status==="Processing"){
-
-order.status="Shipped"
-
-}
-
-else if(order.status==="Shipped"){
-
-order.status="Out for Delivery"
-
-}
-
-else if(order.status==="Out for Delivery"){
-
-order.status="Delivered"
-
-}
-
-})
-
-saveData()
-
-renderOrders()
-
-}
-
-/* =========================
-AUTO SHIPPING UPDATE
-========================= */
-
-setInterval(simulateShipping,15000)
-
-/* =========================
-ORDER DETAILS MODAL
-========================= */
-
-function showOrderDetails(id){
-
-let order=orders.find(o=>o.id===id)
-
-if(!order) return
-
-let items=""
-
-order.items.forEach(i=>{
-
-items+=`${i.name} - $${i.price}<br>`
-
-})
-
-alert(
-
-"Order ID: "+order.id+
-
-"\nStatus: "+order.status+
-
-"\nItems:\n"+items
-
-)
-
-}
-
-/* =========================
-ORDER CANCEL
-========================= */
-
-function cancelOrder(id){
-
-orders=orders.filter(o=>o.id!==id)
-
-saveData()
-
-renderOrders()
-
-alert("Order cancelled")
-
-}
-
-/* =========================
-INIT ORDERS
-========================= */
-
-renderOrders()
-  /* =========================
-ADMIN LOGIN
-========================= */
+/* ================================
+LOGIN
+================================ */
 
 function login(){
 
-let user=document.getElementById("username").value
-let pass=document.getElementById("password").value
+let u=document.getElementById("username").value
+let p=document.getElementById("password").value
 
-if(user==="admin" && pass==="admin123"){
+if(u==="admin" && p==="admin123"){
 
 document.querySelector(".container").classList.add("hidden")
 document.getElementById("adminPanel").classList.remove("hidden")
@@ -902,254 +583,49 @@ return
 
 }
 
-alert("User login successful")
+alert("User logged")
 
 }
 
-/* =========================
-ADMIN ROUTER
-========================= */
+/* ================================
+ADMIN
+================================ */
 
-function adminPage(page){
+function adminPage(section){
 
-let content=document.getElementById("adminContent")
+let c=document.getElementById("adminContent")
 
-if(page==="dashboard"){
+if(section==="dashboard"){
 
-let revenue=orders.reduce((total,o)=>
+let revenue=orders.reduce((t,o)=>t+
+o.items.reduce((s,i)=>s+i.price,0),0)
 
-total+o.items.reduce((s,i)=>s+i.price,0)
+c.innerHTML=`
 
-,0)
-
-content.innerHTML=`
-
-<h2>Admin Dashboard</h2>
+<h2>Dashboard</h2>
 
 <p>Total Orders: ${orders.length}</p>
-
 <p>Total Revenue: $${revenue}</p>
-
 <p>Total Products: ${products.length}</p>
 
 `
 
 }
 
-/* =========================
-PRODUCT MANAGER
-========================= */
-
-if(page==="products"){
-
-content.innerHTML=`
-
-<h2>Manage Products</h2>
-
-<button onclick="adminAddProduct()">Add Product</button>
-
-<table>
-
-<tr>
-<th>ID</th>
-<th>Name</th>
-<th>Price</th>
-<th>Stock</th>
-<th>Delete</th>
-</tr>
-
-${products.map(p=>`
-
-<tr>
-
-<td>${p.id}</td>
-<td>${p.name}</td>
-<td>$${p.price}</td>
-<td>${p.stock}</td>
-
-<td>
-<button onclick="adminDeleteProduct(${p.id})">
-Delete
-</button>
-</td>
-
-</tr>
-
-`).join("")}
-
-</table>
-
-`
-
 }
 
-/* =========================
-ORDER MANAGER
-========================= */
+/* ================================
+INIT
+================================ */
 
-if(page==="orders"){
+document.getElementById("priceFilter").oninput=renderProducts
 
-content.innerHTML=`
-
-<h2>Orders Manager</h2>
-
-${orders.map(o=>`
-
-<div class="card">
-
-<h4>Order ${o.id}</h4>
-
-<p>Status: ${o.status}</p>
-
-<button onclick="adminUpdateOrder(${o.id})">
-Next Status
-</button>
-
-</div>
-
-`).join("")}
-
-`
-
-}
-
-/* =========================
-USERS MANAGER
-========================= */
-
-if(page==="users"){
-
-content.innerHTML=`
-
-<h2>Users</h2>
-
-<p>Users system is demo (front-end only)</p>
-
-`
-
-}
-
-}
-
-/* =========================
-ADD PRODUCT
-========================= */
-
-function adminAddProduct(){
-
-let name=prompt("Product name")
-let price=parseFloat(prompt("Price"))
-let stock=parseInt(prompt("Stock"))
-
-if(!name || !price) return
-
-products.push({
-
-id:Date.now(),
-name:name,
-price:price,
-stock:stock,
-rating:5,
-img:"https://picsum.photos/300?random="+Math.random()
-
-})
-
-saveData()
-
-adminPage("products")
+generateProducts()
 
 renderProducts()
-
-}
-
-/* =========================
-DELETE PRODUCT
-========================= */
-
-function adminDeleteProduct(id){
-
-products=products.filter(p=>p.id!==id)
-
-saveData()
-
-adminPage("products")
-
-renderProducts()
-
-}
-
-/* =========================
-UPDATE ORDER STATUS
-========================= */
-
-function adminUpdateOrder(id){
-
-let order=orders.find(o=>o.id===id)
-
-if(!order) return
-
-if(order.status==="Processing") order.status="Shipped"
-else if(order.status==="Shipped") order.status="Out for Delivery"
-else if(order.status==="Out for Delivery") order.status="Delivered"
-
-saveData()
-
-adminPage("orders")
-
+renderFeatured()
+updateCart()
 renderOrders()
-
-}
-
-/* =========================
-COUPON SYSTEM
-========================= */
-
-let coupons=JSON.parse(localStorage.getItem("coupons"))||[]
-
-function addCoupon(){
-
-let code=prompt("Coupon code")
-let discount=parseInt(prompt("Discount %"))
-
-coupons.push({code,discount})
-
-localStorage.setItem("coupons",JSON.stringify(coupons))
-
-}
-
-function applyCoupon(){
-
-let code=prompt("Enter coupon code")
-
-let c=coupons.find(x=>x.code===code)
-
-if(!c){
-
-alert("Invalid coupon")
-return
-
-}
-
-let total=document.getElementById("cartTotal").innerText
-
-let newTotal=total-(total*(c.discount/100))
-
-document.getElementById("cartTotal").innerText=Math.floor(newTotal)
-
-alert("Coupon applied")
-
-}
-
-/* =========================
-ADMIN NAVIGATION
-========================= */
-
-document.querySelector(".sidebar").innerHTML+=`
-
-<div onclick="adminPage('products')">Products</div>
-<div onclick="adminPage('orders')">Orders</div>
-<div onclick="adminPage('users')">Users</div>
-
 
 </script>
 
